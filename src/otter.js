@@ -4310,6 +4310,318 @@ function _Browser_load(url)
 		}
 	}));
 }
+
+
+
+// DECODER
+
+var _File_decoder = _Json_decodePrim(function(value) {
+	// NOTE: checks if `File` exists in case this is run on node
+	return (typeof File !== 'undefined' && value instanceof File)
+		? elm$core$Result$Ok(value)
+		: _Json_expecting('a FILE', value);
+});
+
+
+// METADATA
+
+function _File_name(file) { return file.name; }
+function _File_mime(file) { return file.type; }
+function _File_size(file) { return file.size; }
+
+function _File_lastModified(file)
+{
+	return elm$time$Time$millisToPosix(file.lastModified);
+}
+
+
+// DOWNLOAD
+
+var _File_downloadNode;
+
+function _File_getDownloadNode()
+{
+	return _File_downloadNode || (_File_downloadNode = document.createElement('a'));
+}
+
+var _File_download = F3(function(name, mime, content)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var blob = new Blob([content], {type: mime});
+
+		// for IE10+
+		if (navigator.msSaveOrOpenBlob)
+		{
+			navigator.msSaveOrOpenBlob(blob, name);
+			return;
+		}
+
+		// for HTML5
+		var node = _File_getDownloadNode();
+		var objectUrl = URL.createObjectURL(blob);
+		node.href = objectUrl;
+		node.download = name;
+		_File_click(node);
+		URL.revokeObjectURL(objectUrl);
+	});
+});
+
+function _File_downloadUrl(href)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var node = _File_getDownloadNode();
+		node.href = href;
+		node.download = '';
+		node.origin === location.origin || (node.target = '_blank');
+		_File_click(node);
+	});
+}
+
+
+// IE COMPATIBILITY
+
+function _File_makeBytesSafeForInternetExplorer(bytes)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/10
+	// all other browsers can just run `new Blob([bytes])` directly with no problem
+	//
+	return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+}
+
+function _File_click(node)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/11
+	// all other browsers have MouseEvent and do not need this conditional stuff
+	//
+	if (typeof MouseEvent === 'function')
+	{
+		node.dispatchEvent(new MouseEvent('click'));
+	}
+	else
+	{
+		var event = document.createEvent('MouseEvents');
+		event.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+		document.body.appendChild(node);
+		node.dispatchEvent(event);
+		document.body.removeChild(node);
+	}
+}
+
+
+// UPLOAD
+
+var _File_node;
+
+function _File_uploadOne(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.accept = A2(elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			callback(_Scheduler_succeed(event.target.files[0]));
+		});
+		_File_click(_File_node);
+	});
+}
+
+function _File_uploadOneOrMore(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.multiple = true;
+		_File_node.accept = A2(elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			var elmFiles = _List_fromArray(event.target.files);
+			callback(_Scheduler_succeed(_Utils_Tuple2(elmFiles.a, elmFiles.b)));
+		});
+		_File_click(_File_node);
+	});
+}
+
+
+// CONTENT
+
+function _File_toString(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsText(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toBytes(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(new DataView(reader.result)));
+		});
+		reader.readAsArrayBuffer(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toUrl(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsDataURL(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+
+
+
+
+// STRINGS
+
+
+var _Parser_isSubString = F5(function(smallString, offset, row, col, bigString)
+{
+	var smallLength = smallString.length;
+	var isGood = offset + smallLength <= bigString.length;
+
+	for (var i = 0; isGood && i < smallLength; )
+	{
+		var code = bigString.charCodeAt(offset);
+		isGood =
+			smallString[i++] === bigString[offset++]
+			&& (
+				code === 0x000A /* \n */
+					? ( row++, col=1 )
+					: ( col++, (code & 0xF800) === 0xD800 ? smallString[i++] === bigString[offset++] : 1 )
+			)
+	}
+
+	return _Utils_Tuple3(isGood ? offset : -1, row, col);
+});
+
+
+
+// CHARS
+
+
+var _Parser_isSubChar = F3(function(predicate, offset, string)
+{
+	return (
+		string.length <= offset
+			? -1
+			:
+		(string.charCodeAt(offset) & 0xF800) === 0xD800
+			? (predicate(_Utils_chr(string.substr(offset, 2))) ? offset + 2 : -1)
+			:
+		(predicate(_Utils_chr(string[offset]))
+			? ((string[offset] === '\n') ? -2 : (offset + 1))
+			: -1
+		)
+	);
+});
+
+
+var _Parser_isAsciiCode = F3(function(code, offset, string)
+{
+	return string.charCodeAt(offset) === code;
+});
+
+
+
+// NUMBERS
+
+
+var _Parser_chompBase10 = F2(function(offset, string)
+{
+	for (; offset < string.length; offset++)
+	{
+		var code = string.charCodeAt(offset);
+		if (code < 0x30 || 0x39 < code)
+		{
+			return offset;
+		}
+	}
+	return offset;
+});
+
+
+var _Parser_consumeBase = F3(function(base, offset, string)
+{
+	for (var total = 0; offset < string.length; offset++)
+	{
+		var digit = string.charCodeAt(offset) - 0x30;
+		if (digit < 0 || base <= digit) break;
+		total = base * total + digit;
+	}
+	return _Utils_Tuple2(offset, total);
+});
+
+
+var _Parser_consumeBase16 = F2(function(offset, string)
+{
+	for (var total = 0; offset < string.length; offset++)
+	{
+		var code = string.charCodeAt(offset);
+		if (0x30 <= code && code <= 0x39)
+		{
+			total = 16 * total + code - 0x30;
+		}
+		else if (0x41 <= code && code <= 0x46)
+		{
+			total = 16 * total + code - 55;
+		}
+		else if (0x61 <= code && code <= 0x66)
+		{
+			total = 16 * total + code - 87;
+		}
+		else
+		{
+			break;
+		}
+	}
+	return _Utils_Tuple2(offset, total);
+});
+
+
+
+// FIND STRING
+
+
+var _Parser_findSubString = F5(function(smallString, offset, row, col, bigString)
+{
+	var newOffset = bigString.indexOf(smallString, offset);
+	var target = newOffset < 0 ? bigString.length : newOffset + smallString.length;
+
+	while (offset < target)
+	{
+		var code = bigString.charCodeAt(offset++);
+		code === 0x000A /* \n */
+			? ( col=1, row++ )
+			: ( col++, (code & 0xF800) === 0xD800 && offset++ )
+	}
+
+	return _Utils_Tuple3(newOffset, row, col);
+});
+var author$project$Main$Model = F4(
+	function (sidePanelExpanded, records, oldRecords, filename) {
+		return {filename: filename, oldRecords: oldRecords, records: records, sidePanelExpanded: sidePanelExpanded};
+	});
 var elm$core$Basics$False = {$: 'False'};
 var elm$core$Basics$True = {$: 'True'};
 var elm$core$Result$isOk = function (result) {
@@ -4789,13 +5101,111 @@ var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var author$project$Main$init = function (_n0) {
 	return _Utils_Tuple2(
-		{},
+		A4(author$project$Main$Model, false, _List_Nil, _List_Nil, ''),
 		elm$core$Platform$Cmd$none);
 };
 var elm$core$Platform$Sub$batch = _Platform_batch;
 var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
 var author$project$Main$subscriptions = function (_n0) {
 	return elm$core$Platform$Sub$none;
+};
+var author$project$Main$CsvLoaded = F3(
+	function (a, b, c) {
+		return {$: 'CsvLoaded', a: a, b: b, c: c};
+	});
+var author$project$Main$CsvSelected = F2(
+	function (a, b) {
+		return {$: 'CsvSelected', a: a, b: b};
+	});
+var author$project$Main$ScrollInfo = function (a) {
+	return {$: 'ScrollInfo', a: a};
+};
+var author$project$Main$csv_mime = 'text/csv';
+var author$project$Main$HandleErrorEvent = function (a) {
+	return {$: 'HandleErrorEvent', a: a};
+};
+var author$project$Main$handleError = F2(
+	function (onSuccess, result) {
+		if (result.$ === 'Err') {
+			var message = result.a.a;
+			return author$project$Main$HandleErrorEvent(message);
+		} else {
+			var value = result.a;
+			return onSuccess(value);
+		}
+	});
+var author$project$Main$OldRecord = F4(
+	function (lotNo, vendor, description, reserve) {
+		return {description: description, lotNo: lotNo, reserve: reserve, vendor: vendor};
+	});
+var elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2(elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var author$project$Main$pad = F3(
+	function (n, def, list) {
+		return _Utils_ap(
+			list,
+			A2(
+				elm$core$List$repeat,
+				A2(
+					elm$core$Basics$max,
+					n - elm$core$List$length(list),
+					0),
+				def));
+	});
+var author$project$Main$listToOldRecord = function (list) {
+	var _n0 = A3(author$project$Main$pad, 4, '', list);
+	if (((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) {
+		var a = _n0.a;
+		var _n1 = _n0.b;
+		var b = _n1.a;
+		var _n2 = _n1.b;
+		var c = _n2.a;
+		var _n3 = _n2.b;
+		var d = _n3.a;
+		var xs = _n3.b;
+		return A4(author$project$Main$OldRecord, a, b, c, d);
+	} else {
+		return A4(author$project$Main$OldRecord, 'ERROR', 'ERROR', 'ERROR', 'ERROR');
+	}
+};
+var author$project$Main$Record = F5(
+	function (oldLotNo, lotNo, vendor, description, reserve) {
+		return {description: description, lotNo: lotNo, oldLotNo: oldLotNo, reserve: reserve, vendor: vendor};
+	});
+var author$project$Main$listToRecord = function (list) {
+	var _n0 = A3(author$project$Main$pad, 4, '', list);
+	if (((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) {
+		var a = _n0.a;
+		var _n1 = _n0.b;
+		var b = _n1.a;
+		var _n2 = _n1.b;
+		var c = _n2.a;
+		var _n3 = _n2.b;
+		var d = _n3.a;
+		var xs = _n3.b;
+		return A5(author$project$Main$Record, '', a, b, c, d);
+	} else {
+		return A5(author$project$Main$Record, 'ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR');
+	}
 };
 var elm$core$Basics$always = F2(
 	function (a, _n0) {
@@ -4813,300 +5223,7 @@ var author$project$Main$print = F2(
 				'',
 				elm$core$Debug$toString(a)));
 	});
-var author$project$Main$update = F2(
-	function (msg, model) {
-		switch (msg.$) {
-			case 'NoOp':
-				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
-			case 'HandleErrorEvent':
-				var message = msg.a;
-				return _Utils_Tuple2(
-					A2(author$project$Main$print, message, model),
-					elm$core$Platform$Cmd$none);
-			default:
-				var message = msg.a;
-				var keyboardEvent = msg.b;
-				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
-		}
-	});
-var elm$core$Basics$identity = function (x) {
-	return x;
-};
-var elm$json$Json$Decode$map = _Json_map1;
-var elm$json$Json$Decode$map2 = _Json_map2;
-var elm$json$Json$Decode$succeed = _Json_succeed;
-var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
-	switch (handler.$) {
-		case 'Normal':
-			return 0;
-		case 'MayStopPropagation':
-			return 1;
-		case 'MayPreventDefault':
-			return 2;
-		default:
-			return 3;
-	}
-};
-var elm$html$Html$button = _VirtualDom_node('button');
-var elm$html$Html$col = _VirtualDom_node('col');
-var elm$html$Html$div = _VirtualDom_node('div');
-var elm$html$Html$i = _VirtualDom_node('i');
-var elm$html$Html$table = _VirtualDom_node('table');
-var elm$html$Html$tbody = _VirtualDom_node('tbody');
-var elm$html$Html$td = _VirtualDom_node('td');
-var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
-var elm$html$Html$th = _VirtualDom_node('th');
-var elm$html$Html$thead = _VirtualDom_node('thead');
-var elm$html$Html$tr = _VirtualDom_node('tr');
-var elm$virtual_dom$VirtualDom$attribute = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_attribute,
-			_VirtualDom_noOnOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlUri(value));
-	});
-var elm$html$Html$Attributes$attribute = elm$virtual_dom$VirtualDom$attribute;
-var elm$json$Json$Encode$string = _Json_wrap;
-var elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$string(string));
-	});
-var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
-var author$project$Main$vieww = function (model) {
-	return A2(
-		elm$html$Html$div,
-		_List_fromArray(
-			[
-				elm$html$Html$Attributes$class('ui two column grid remove-gutters')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				elm$html$Html$div,
-				_List_fromArray(
-					[
-						elm$html$Html$Attributes$class('row')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						elm$html$Html$div,
-						_List_fromArray(
-							[
-								elm$html$Html$Attributes$class('fifteen wide column')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								elm$html$Html$div,
-								_List_fromArray(
-									[
-										elm$html$Html$Attributes$class('table-sticky')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										elm$html$Html$table,
-										_List_fromArray(
-											[
-												elm$html$Html$Attributes$class('ui single line fixed unstackable celled striped compact table header-color row-height-fix')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												elm$html$Html$col,
-												_List_fromArray(
-													[
-														A2(elm$html$Html$Attributes$attribute, 'width', '100px')
-													]),
-												_List_Nil),
-												A2(
-												elm$html$Html$col,
-												_List_fromArray(
-													[
-														A2(elm$html$Html$Attributes$attribute, 'width', '100px')
-													]),
-												_List_Nil),
-												A2(
-												elm$html$Html$col,
-												_List_fromArray(
-													[
-														A2(elm$html$Html$Attributes$attribute, 'width', '100px')
-													]),
-												_List_Nil),
-												A2(
-												elm$html$Html$col,
-												_List_fromArray(
-													[
-														A2(elm$html$Html$Attributes$attribute, 'width', '300px')
-													]),
-												_List_Nil),
-												A2(
-												elm$html$Html$col,
-												_List_fromArray(
-													[
-														A2(elm$html$Html$Attributes$attribute, 'width', '100px')
-													]),
-												_List_Nil),
-												A2(
-												elm$html$Html$thead,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														elm$html$Html$tr,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																elm$html$Html$th,
-																_List_Nil,
-																_List_fromArray(
-																	[
-																		elm$html$Html$text('Old Lot No.')
-																	])),
-																A2(
-																elm$html$Html$th,
-																_List_Nil,
-																_List_fromArray(
-																	[
-																		elm$html$Html$text('Lot No.')
-																	])),
-																A2(
-																elm$html$Html$th,
-																_List_Nil,
-																_List_fromArray(
-																	[
-																		elm$html$Html$text('Vendor')
-																	])),
-																A2(
-																elm$html$Html$th,
-																_List_Nil,
-																_List_fromArray(
-																	[
-																		elm$html$Html$text('Item Description')
-																	])),
-																A2(
-																elm$html$Html$th,
-																_List_Nil,
-																_List_fromArray(
-																	[
-																		elm$html$Html$text('Reserve')
-																	]))
-															]))
-													])),
-												A2(
-												elm$html$Html$tbody,
-												_List_fromArray(
-													[
-														elm$html$Html$Attributes$class('first-row-height-fix')
-													]),
-												_List_fromArray(
-													[
-														A2(
-														elm$html$Html$tr,
-														_List_fromArray(
-															[
-																elm$html$Html$Attributes$class('positive')
-															]),
-														_List_fromArray(
-															[
-																A2(elm$html$Html$td, _List_Nil, _List_Nil),
-																A2(elm$html$Html$td, _List_Nil, _List_Nil),
-																A2(elm$html$Html$td, _List_Nil, _List_Nil),
-																A2(elm$html$Html$td, _List_Nil, _List_Nil),
-																A2(elm$html$Html$td, _List_Nil, _List_Nil)
-															]))
-													]))
-											]))
-									]))
-							])),
-						A2(
-						elm$html$Html$div,
-						_List_fromArray(
-							[
-								elm$html$Html$Attributes$class('one wide column')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								elm$html$Html$div,
-								_List_fromArray(
-									[
-										elm$html$Html$Attributes$class('ui segment horizontal-center')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										elm$html$Html$button,
-										_List_fromArray(
-											[
-												elm$html$Html$Attributes$class('huge circular blue ui icon button')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												elm$html$Html$i,
-												_List_fromArray(
-													[
-														elm$html$Html$Attributes$class('angle left icon')
-													]),
-												_List_Nil)
-											]))
-									]))
-							]))
-					]))
-			]));
-};
-var elm$browser$Browser$Document = F2(
-	function (title, body) {
-		return {body: body, title: title};
-	});
-var elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
-	});
-var elm$core$List$singleton = function (value) {
-	return _List_fromArray(
-		[value]);
-};
-var elm$virtual_dom$VirtualDom$lazy = _VirtualDom_lazy;
-var elm$html$Html$Lazy$lazy = elm$virtual_dom$VirtualDom$lazy;
-var author$project$Main$view = A2(
-	elm$core$Basics$composeR,
-	elm$html$Html$Lazy$lazy(author$project$Main$vieww),
-	A2(
-		elm$core$Basics$composeR,
-		elm$core$List$singleton,
-		elm$browser$Browser$Document('Otter')));
-var elm$browser$Browser$External = function (a) {
-	return {$: 'External', a: a};
-};
-var elm$browser$Browser$Internal = function (a) {
-	return {$: 'Internal', a: a};
-};
-var elm$browser$Browser$Dom$NotFound = function (a) {
-	return {$: 'NotFound', a: a};
-};
-var elm$core$Basics$never = function (_n0) {
-	never:
-	while (true) {
-		var nvr = _n0.a;
-		var $temp$_n0 = nvr;
-		_n0 = $temp$_n0;
-		continue never;
-	}
-};
-var elm$core$Task$Perform = function (a) {
-	return {$: 'Perform', a: a};
-};
-var elm$core$Task$succeed = _Scheduler_succeed;
-var elm$core$Task$init = elm$core$Task$succeed(_Utils_Tuple0);
+var author$project$Main$windows_newline = '\r\n';
 var elm$core$List$foldrHelper = F4(
 	function (fn, acc, ctr, ls) {
 		if (!ls.b) {
@@ -5176,6 +5293,50 @@ var elm$core$List$map = F2(
 			_List_Nil,
 			xs);
 	});
+var author$project$Main$recordsToCsv = function (records) {
+	var recordToCsv = function (_n0) {
+		var oldLotNo = _n0.oldLotNo;
+		var lotNo = _n0.lotNo;
+		var vendor = _n0.vendor;
+		var description = _n0.description;
+		var reserve = _n0.reserve;
+		return A2(
+			elm$core$String$join,
+			',',
+			_List_fromArray(
+				[lotNo, vendor, description, reserve]));
+	};
+	return A2(
+		elm$core$String$join,
+		author$project$Main$windows_newline,
+		A2(elm$core$List$map, recordToCsv, records));
+};
+var elm$browser$Browser$External = function (a) {
+	return {$: 'External', a: a};
+};
+var elm$browser$Browser$Internal = function (a) {
+	return {$: 'Internal', a: a};
+};
+var elm$browser$Browser$Dom$NotFound = function (a) {
+	return {$: 'NotFound', a: a};
+};
+var elm$core$Basics$never = function (_n0) {
+	never:
+	while (true) {
+		var nvr = _n0.a;
+		var $temp$_n0 = nvr;
+		_n0 = $temp$_n0;
+		continue never;
+	}
+};
+var elm$core$Basics$identity = function (x) {
+	return x;
+};
+var elm$core$Task$Perform = function (a) {
+	return {$: 'Perform', a: a};
+};
+var elm$core$Task$succeed = _Scheduler_succeed;
+var elm$core$Task$init = elm$core$Task$succeed(_Utils_Tuple0);
 var elm$core$Task$andThen = _Scheduler_andThen;
 var elm$core$Task$map = F2(
 	function (func, taskA) {
@@ -5250,6 +5411,21 @@ var elm$core$Task$perform = F2(
 			elm$core$Task$Perform(
 				A2(elm$core$Task$map, toMessage, task)));
 	});
+var elm$json$Json$Decode$map = _Json_map1;
+var elm$json$Json$Decode$map2 = _Json_map2;
+var elm$json$Json$Decode$succeed = _Json_succeed;
+var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
+	switch (handler.$) {
+		case 'Normal':
+			return 0;
+		case 'MayStopPropagation':
+			return 1;
+		case 'MayPreventDefault':
+			return 2;
+		default:
+			return 3;
+	}
+};
 var elm$core$String$length = _String_length;
 var elm$core$String$slice = _String_slice;
 var elm$core$String$dropLeft = F2(
@@ -5379,6 +5555,1352 @@ var elm$url$Url$fromString = function (str) {
 		elm$url$Url$Https,
 		A2(elm$core$String$dropLeft, 8, str)) : elm$core$Maybe$Nothing);
 };
+var elm$browser$Browser$Dom$getViewportOf = _Browser_getViewportOf;
+var elm$core$Basics$not = _Basics_not;
+var elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var elm$core$Task$onError = _Scheduler_onError;
+var elm$core$Task$attempt = F2(
+	function (resultToMessage, task) {
+		return elm$core$Task$command(
+			elm$core$Task$Perform(
+				A2(
+					elm$core$Task$onError,
+					A2(
+						elm$core$Basics$composeL,
+						A2(elm$core$Basics$composeL, elm$core$Task$succeed, resultToMessage),
+						elm$core$Result$Err),
+					A2(
+						elm$core$Task$andThen,
+						A2(
+							elm$core$Basics$composeL,
+							A2(elm$core$Basics$composeL, elm$core$Task$succeed, resultToMessage),
+							elm$core$Result$Ok),
+						task))));
+	});
+var elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var elm$time$Time$millisToPosix = elm$time$Time$Posix;
+var elm$file$File$name = _File_name;
+var elm$file$File$toString = _File_toString;
+var elm$file$File$Download$string = F3(
+	function (name, mime, content) {
+		return A2(
+			elm$core$Task$perform,
+			elm$core$Basics$never,
+			A3(_File_download, name, mime, content));
+	});
+var elm$file$File$Select$file = F2(
+	function (mimes, toMsg) {
+		return A2(
+			elm$core$Task$perform,
+			toMsg,
+			_File_uploadOne(mimes));
+	});
+var elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var elm$parser$Parser$DeadEnd = F3(
+	function (row, col, problem) {
+		return {col: col, problem: problem, row: row};
+	});
+var elm$parser$Parser$problemToDeadEnd = function (p) {
+	return A3(elm$parser$Parser$DeadEnd, p.row, p.col, p.problem);
+};
+var elm$parser$Parser$Advanced$bagToList = F2(
+	function (bag, list) {
+		bagToList:
+		while (true) {
+			switch (bag.$) {
+				case 'Empty':
+					return list;
+				case 'AddRight':
+					var bag1 = bag.a;
+					var x = bag.b;
+					var $temp$bag = bag1,
+						$temp$list = A2(elm$core$List$cons, x, list);
+					bag = $temp$bag;
+					list = $temp$list;
+					continue bagToList;
+				default:
+					var bag1 = bag.a;
+					var bag2 = bag.b;
+					var $temp$bag = bag1,
+						$temp$list = A2(elm$parser$Parser$Advanced$bagToList, bag2, list);
+					bag = $temp$bag;
+					list = $temp$list;
+					continue bagToList;
+			}
+		}
+	});
+var elm$parser$Parser$Advanced$run = F2(
+	function (_n0, src) {
+		var parse = _n0.a;
+		var _n1 = parse(
+			{col: 1, context: _List_Nil, indent: 1, offset: 0, row: 1, src: src});
+		if (_n1.$ === 'Good') {
+			var value = _n1.b;
+			return elm$core$Result$Ok(value);
+		} else {
+			var bag = _n1.b;
+			return elm$core$Result$Err(
+				A2(elm$parser$Parser$Advanced$bagToList, bag, _List_Nil));
+		}
+	});
+var elm$parser$Parser$run = F2(
+	function (parser, source) {
+		var _n0 = A2(elm$parser$Parser$Advanced$run, parser, source);
+		if (_n0.$ === 'Ok') {
+			var a = _n0.a;
+			return elm$core$Result$Ok(a);
+		} else {
+			var problems = _n0.a;
+			return elm$core$Result$Err(
+				A2(elm$core$List$map, elm$parser$Parser$problemToDeadEnd, problems));
+		}
+	});
+var elm$core$String$endsWith = _String_endsWith;
+var periodic$elm_csv$Csv$crs = '\u000d';
+var periodic$elm_csv$Csv$addTrailingLineSep = function (str) {
+	return (!(A2(elm$core$String$endsWith, '\n', str) || A2(elm$core$String$endsWith, periodic$elm_csv$Csv$crs, str))) ? (str + (periodic$elm_csv$Csv$crs + '\n')) : str;
+};
+var elm$parser$Parser$Advanced$Bad = F2(
+	function (a, b) {
+		return {$: 'Bad', a: a, b: b};
+	});
+var elm$parser$Parser$Advanced$Good = F3(
+	function (a, b, c) {
+		return {$: 'Good', a: a, b: b, c: c};
+	});
+var elm$parser$Parser$Advanced$Parser = function (a) {
+	return {$: 'Parser', a: a};
+};
+var elm$parser$Parser$Advanced$map2 = F3(
+	function (func, _n0, _n1) {
+		var parseA = _n0.a;
+		var parseB = _n1.a;
+		return elm$parser$Parser$Advanced$Parser(
+			function (s0) {
+				var _n2 = parseA(s0);
+				if (_n2.$ === 'Bad') {
+					var p = _n2.a;
+					var x = _n2.b;
+					return A2(elm$parser$Parser$Advanced$Bad, p, x);
+				} else {
+					var p1 = _n2.a;
+					var a = _n2.b;
+					var s1 = _n2.c;
+					var _n3 = parseB(s1);
+					if (_n3.$ === 'Bad') {
+						var p2 = _n3.a;
+						var x = _n3.b;
+						return A2(elm$parser$Parser$Advanced$Bad, p1 || p2, x);
+					} else {
+						var p2 = _n3.a;
+						var b = _n3.b;
+						var s2 = _n3.c;
+						return A3(
+							elm$parser$Parser$Advanced$Good,
+							p1 || p2,
+							A2(func, a, b),
+							s2);
+					}
+				}
+			});
+	});
+var elm$parser$Parser$Advanced$keeper = F2(
+	function (parseFunc, parseArg) {
+		return A3(elm$parser$Parser$Advanced$map2, elm$core$Basics$apL, parseFunc, parseArg);
+	});
+var elm$parser$Parser$keeper = elm$parser$Parser$Advanced$keeper;
+var elm$parser$Parser$Advanced$map = F2(
+	function (func, _n0) {
+		var parse = _n0.a;
+		return elm$parser$Parser$Advanced$Parser(
+			function (s0) {
+				var _n1 = parse(s0);
+				if (_n1.$ === 'Good') {
+					var p = _n1.a;
+					var a = _n1.b;
+					var s1 = _n1.c;
+					return A3(
+						elm$parser$Parser$Advanced$Good,
+						p,
+						func(a),
+						s1);
+				} else {
+					var p = _n1.a;
+					var x = _n1.b;
+					return A2(elm$parser$Parser$Advanced$Bad, p, x);
+				}
+			});
+	});
+var elm$parser$Parser$map = elm$parser$Parser$Advanced$map;
+var elm$parser$Parser$Advanced$Done = function (a) {
+	return {$: 'Done', a: a};
+};
+var elm$parser$Parser$Advanced$Loop = function (a) {
+	return {$: 'Loop', a: a};
+};
+var elm$parser$Parser$toAdvancedStep = function (step) {
+	if (step.$ === 'Loop') {
+		var s = step.a;
+		return elm$parser$Parser$Advanced$Loop(s);
+	} else {
+		var a = step.a;
+		return elm$parser$Parser$Advanced$Done(a);
+	}
+};
+var elm$parser$Parser$Advanced$loopHelp = F4(
+	function (p, state, callback, s0) {
+		loopHelp:
+		while (true) {
+			var _n0 = callback(state);
+			var parse = _n0.a;
+			var _n1 = parse(s0);
+			if (_n1.$ === 'Good') {
+				var p1 = _n1.a;
+				var step = _n1.b;
+				var s1 = _n1.c;
+				if (step.$ === 'Loop') {
+					var newState = step.a;
+					var $temp$p = p || p1,
+						$temp$state = newState,
+						$temp$callback = callback,
+						$temp$s0 = s1;
+					p = $temp$p;
+					state = $temp$state;
+					callback = $temp$callback;
+					s0 = $temp$s0;
+					continue loopHelp;
+				} else {
+					var result = step.a;
+					return A3(elm$parser$Parser$Advanced$Good, p || p1, result, s1);
+				}
+			} else {
+				var p1 = _n1.a;
+				var x = _n1.b;
+				return A2(elm$parser$Parser$Advanced$Bad, p || p1, x);
+			}
+		}
+	});
+var elm$parser$Parser$Advanced$loop = F2(
+	function (state, callback) {
+		return elm$parser$Parser$Advanced$Parser(
+			function (s) {
+				return A4(elm$parser$Parser$Advanced$loopHelp, false, state, callback, s);
+			});
+	});
+var elm$parser$Parser$loop = F2(
+	function (state, callback) {
+		return A2(
+			elm$parser$Parser$Advanced$loop,
+			state,
+			function (s) {
+				return A2(
+					elm$parser$Parser$map,
+					elm$parser$Parser$toAdvancedStep,
+					callback(s));
+			});
+	});
+var elm$parser$Parser$Advanced$succeed = function (a) {
+	return elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return A3(elm$parser$Parser$Advanced$Good, false, a, s);
+		});
+};
+var elm$parser$Parser$succeed = elm$parser$Parser$Advanced$succeed;
+var periodic$elm_csv$Csv$Csv = F2(
+	function (headers, records) {
+		return {headers: headers, records: records};
+	});
+var elm$core$String$cons = _String_cons;
+var elm$core$String$fromChar = function (_char) {
+	return A2(elm$core$String$cons, _char, '');
+};
+var elm$parser$Parser$Done = function (a) {
+	return {$: 'Done', a: a};
+};
+var elm$parser$Parser$Loop = function (a) {
+	return {$: 'Loop', a: a};
+};
+var elm$parser$Parser$Advanced$backtrackable = function (_n0) {
+	var parse = _n0.a;
+	return elm$parser$Parser$Advanced$Parser(
+		function (s0) {
+			var _n1 = parse(s0);
+			if (_n1.$ === 'Bad') {
+				var x = _n1.b;
+				return A2(elm$parser$Parser$Advanced$Bad, false, x);
+			} else {
+				var a = _n1.b;
+				var s1 = _n1.c;
+				return A3(elm$parser$Parser$Advanced$Good, false, a, s1);
+			}
+		});
+};
+var elm$parser$Parser$backtrackable = elm$parser$Parser$Advanced$backtrackable;
+var elm$parser$Parser$Advanced$ignorer = F2(
+	function (keepParser, ignoreParser) {
+		return A3(elm$parser$Parser$Advanced$map2, elm$core$Basics$always, keepParser, ignoreParser);
+	});
+var elm$parser$Parser$ignorer = elm$parser$Parser$Advanced$ignorer;
+var elm$parser$Parser$Advanced$Empty = {$: 'Empty'};
+var elm$parser$Parser$Advanced$Append = F2(
+	function (a, b) {
+		return {$: 'Append', a: a, b: b};
+	});
+var elm$parser$Parser$Advanced$oneOfHelp = F3(
+	function (s0, bag, parsers) {
+		oneOfHelp:
+		while (true) {
+			if (!parsers.b) {
+				return A2(elm$parser$Parser$Advanced$Bad, false, bag);
+			} else {
+				var parse = parsers.a.a;
+				var remainingParsers = parsers.b;
+				var _n1 = parse(s0);
+				if (_n1.$ === 'Good') {
+					var step = _n1;
+					return step;
+				} else {
+					var step = _n1;
+					var p = step.a;
+					var x = step.b;
+					if (p) {
+						return step;
+					} else {
+						var $temp$s0 = s0,
+							$temp$bag = A2(elm$parser$Parser$Advanced$Append, bag, x),
+							$temp$parsers = remainingParsers;
+						s0 = $temp$s0;
+						bag = $temp$bag;
+						parsers = $temp$parsers;
+						continue oneOfHelp;
+					}
+				}
+			}
+		}
+	});
+var elm$parser$Parser$Advanced$oneOf = function (parsers) {
+	return elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return A3(elm$parser$Parser$Advanced$oneOfHelp, s, elm$parser$Parser$Advanced$Empty, parsers);
+		});
+};
+var elm$parser$Parser$oneOf = elm$parser$Parser$Advanced$oneOf;
+var elm$parser$Parser$ExpectingSymbol = function (a) {
+	return {$: 'ExpectingSymbol', a: a};
+};
+var elm$parser$Parser$Advanced$Token = F2(
+	function (a, b) {
+		return {$: 'Token', a: a, b: b};
+	});
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var elm$parser$Parser$Advanced$AddRight = F2(
+	function (a, b) {
+		return {$: 'AddRight', a: a, b: b};
+	});
+var elm$parser$Parser$Advanced$DeadEnd = F4(
+	function (row, col, problem, contextStack) {
+		return {col: col, contextStack: contextStack, problem: problem, row: row};
+	});
+var elm$parser$Parser$Advanced$fromState = F2(
+	function (s, x) {
+		return A2(
+			elm$parser$Parser$Advanced$AddRight,
+			elm$parser$Parser$Advanced$Empty,
+			A4(elm$parser$Parser$Advanced$DeadEnd, s.row, s.col, x, s.context));
+	});
+var elm$parser$Parser$Advanced$isSubString = _Parser_isSubString;
+var elm$parser$Parser$Advanced$token = function (_n0) {
+	var str = _n0.a;
+	var expecting = _n0.b;
+	var progress = !elm$core$String$isEmpty(str);
+	return elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			var _n1 = A5(elm$parser$Parser$Advanced$isSubString, str, s.offset, s.row, s.col, s.src);
+			var newOffset = _n1.a;
+			var newRow = _n1.b;
+			var newCol = _n1.c;
+			return _Utils_eq(newOffset, -1) ? A2(
+				elm$parser$Parser$Advanced$Bad,
+				false,
+				A2(elm$parser$Parser$Advanced$fromState, s, expecting)) : A3(
+				elm$parser$Parser$Advanced$Good,
+				progress,
+				_Utils_Tuple0,
+				{col: newCol, context: s.context, indent: s.indent, offset: newOffset, row: newRow, src: s.src});
+		});
+};
+var elm$parser$Parser$Advanced$symbol = elm$parser$Parser$Advanced$token;
+var elm$parser$Parser$symbol = function (str) {
+	return elm$parser$Parser$Advanced$symbol(
+		A2(
+			elm$parser$Parser$Advanced$Token,
+			str,
+			elm$parser$Parser$ExpectingSymbol(str)));
+};
+var periodic$elm_csv$Csv$doubleQuote = elm$parser$Parser$symbol('\"');
+var elm$core$String$concat = function (strings) {
+	return A2(elm$core$String$join, '', strings);
+};
+var elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			elm$core$String$join,
+			after,
+			A2(elm$core$String$split, before, string));
+	});
+var elm$parser$Parser$Advanced$mapChompedString = F2(
+	function (func, _n0) {
+		var parse = _n0.a;
+		return elm$parser$Parser$Advanced$Parser(
+			function (s0) {
+				var _n1 = parse(s0);
+				if (_n1.$ === 'Bad') {
+					var p = _n1.a;
+					var x = _n1.b;
+					return A2(elm$parser$Parser$Advanced$Bad, p, x);
+				} else {
+					var p = _n1.a;
+					var a = _n1.b;
+					var s1 = _n1.c;
+					return A3(
+						elm$parser$Parser$Advanced$Good,
+						p,
+						A2(
+							func,
+							A3(elm$core$String$slice, s0.offset, s1.offset, s0.src),
+							a),
+						s1);
+				}
+			});
+	});
+var elm$parser$Parser$Advanced$getChompedString = function (parser) {
+	return A2(elm$parser$Parser$Advanced$mapChompedString, elm$core$Basics$always, parser);
+};
+var elm$parser$Parser$getChompedString = elm$parser$Parser$Advanced$getChompedString;
+var periodic$elm_csv$Csv$comma = elm$parser$Parser$symbol(',');
+var periodic$elm_csv$Csv$cr = elm$parser$Parser$symbol(periodic$elm_csv$Csv$crs);
+var periodic$elm_csv$Csv$doubleDoubleQuote = A2(elm$parser$Parser$ignorer, periodic$elm_csv$Csv$doubleQuote, periodic$elm_csv$Csv$doubleQuote);
+var periodic$elm_csv$Csv$lf = elm$parser$Parser$symbol('\n');
+var elm$parser$Parser$UnexpectedChar = {$: 'UnexpectedChar'};
+var elm$parser$Parser$Advanced$isSubChar = _Parser_isSubChar;
+var elm$parser$Parser$Advanced$chompIf = F2(
+	function (isGood, expecting) {
+		return elm$parser$Parser$Advanced$Parser(
+			function (s) {
+				var newOffset = A3(elm$parser$Parser$Advanced$isSubChar, isGood, s.offset, s.src);
+				return _Utils_eq(newOffset, -1) ? A2(
+					elm$parser$Parser$Advanced$Bad,
+					false,
+					A2(elm$parser$Parser$Advanced$fromState, s, expecting)) : (_Utils_eq(newOffset, -2) ? A3(
+					elm$parser$Parser$Advanced$Good,
+					true,
+					_Utils_Tuple0,
+					{col: 1, context: s.context, indent: s.indent, offset: s.offset + 1, row: s.row + 1, src: s.src}) : A3(
+					elm$parser$Parser$Advanced$Good,
+					true,
+					_Utils_Tuple0,
+					{col: s.col + 1, context: s.context, indent: s.indent, offset: newOffset, row: s.row, src: s.src}));
+			});
+	});
+var elm$parser$Parser$chompIf = function (isGood) {
+	return A2(elm$parser$Parser$Advanced$chompIf, isGood, elm$parser$Parser$UnexpectedChar);
+};
+var elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var periodic$elm_csv$Csv$crc = _Utils_chr('\u000d');
+var periodic$elm_csv$Csv$textChar = F2(
+	function (sepChar, c) {
+		return !A2(
+			elm$core$List$member,
+			c,
+			_List_fromArray(
+				[
+					_Utils_chr('\"'),
+					sepChar,
+					_Utils_chr('\n'),
+					periodic$elm_csv$Csv$crc
+				]));
+	});
+var periodic$elm_csv$Csv$textData = function (sepChar) {
+	return elm$parser$Parser$chompIf(
+		periodic$elm_csv$Csv$textChar(sepChar));
+};
+var periodic$elm_csv$Csv$innerChar = function (sepChar) {
+	return A2(
+		elm$parser$Parser$map,
+		A2(elm$core$String$replace, '\"\"', '\"'),
+		elm$parser$Parser$backtrackable(
+			elm$parser$Parser$getChompedString(
+				elm$parser$Parser$oneOf(
+					_List_fromArray(
+						[
+							periodic$elm_csv$Csv$textData(sepChar),
+							periodic$elm_csv$Csv$comma,
+							periodic$elm_csv$Csv$cr,
+							periodic$elm_csv$Csv$lf,
+							periodic$elm_csv$Csv$doubleDoubleQuote
+						])))));
+};
+var periodic$elm_csv$Csv$innerString = F2(
+	function (sepChar, strs) {
+		return elm$parser$Parser$oneOf(
+			_List_fromArray(
+				[
+					A2(
+					elm$parser$Parser$keeper,
+					elm$parser$Parser$succeed(
+						function (str) {
+							return elm$parser$Parser$Loop(
+								A2(elm$core$List$cons, str, strs));
+						}),
+					periodic$elm_csv$Csv$innerChar(sepChar)),
+					A2(
+					elm$parser$Parser$map,
+					function (_n0) {
+						return elm$parser$Parser$Done(
+							elm$core$String$concat(
+								elm$core$List$reverse(strs)));
+					},
+					elm$parser$Parser$succeed(_Utils_Tuple0))
+				]));
+	});
+var periodic$elm_csv$Csv$escaped = function (sepChar) {
+	return A2(
+		elm$parser$Parser$keeper,
+		A2(
+			elm$parser$Parser$ignorer,
+			elm$parser$Parser$succeed(elm$core$Basics$identity),
+			periodic$elm_csv$Csv$doubleQuote),
+		A2(
+			elm$parser$Parser$ignorer,
+			A2(
+				elm$parser$Parser$loop,
+				_List_Nil,
+				periodic$elm_csv$Csv$innerString(sepChar)),
+			periodic$elm_csv$Csv$doubleQuote));
+};
+var elm$parser$Parser$Advanced$chompWhileHelp = F5(
+	function (isGood, offset, row, col, s0) {
+		chompWhileHelp:
+		while (true) {
+			var newOffset = A3(elm$parser$Parser$Advanced$isSubChar, isGood, offset, s0.src);
+			if (_Utils_eq(newOffset, -1)) {
+				return A3(
+					elm$parser$Parser$Advanced$Good,
+					_Utils_cmp(s0.offset, offset) < 0,
+					_Utils_Tuple0,
+					{col: col, context: s0.context, indent: s0.indent, offset: offset, row: row, src: s0.src});
+			} else {
+				if (_Utils_eq(newOffset, -2)) {
+					var $temp$isGood = isGood,
+						$temp$offset = offset + 1,
+						$temp$row = row + 1,
+						$temp$col = 1,
+						$temp$s0 = s0;
+					isGood = $temp$isGood;
+					offset = $temp$offset;
+					row = $temp$row;
+					col = $temp$col;
+					s0 = $temp$s0;
+					continue chompWhileHelp;
+				} else {
+					var $temp$isGood = isGood,
+						$temp$offset = newOffset,
+						$temp$row = row,
+						$temp$col = col + 1,
+						$temp$s0 = s0;
+					isGood = $temp$isGood;
+					offset = $temp$offset;
+					row = $temp$row;
+					col = $temp$col;
+					s0 = $temp$s0;
+					continue chompWhileHelp;
+				}
+			}
+		}
+	});
+var elm$parser$Parser$Advanced$chompWhile = function (isGood) {
+	return elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return A5(elm$parser$Parser$Advanced$chompWhileHelp, isGood, s.offset, s.row, s.col, s);
+		});
+};
+var elm$parser$Parser$chompWhile = elm$parser$Parser$Advanced$chompWhile;
+var periodic$elm_csv$Csv$nonEscaped = function (sepChar) {
+	return elm$parser$Parser$getChompedString(
+		elm$parser$Parser$chompWhile(
+			periodic$elm_csv$Csv$textChar(sepChar)));
+};
+var periodic$elm_csv$Csv$field = function (sepChar) {
+	return elm$parser$Parser$oneOf(
+		_List_fromArray(
+			[
+				periodic$elm_csv$Csv$escaped(sepChar),
+				periodic$elm_csv$Csv$nonEscaped(sepChar)
+			]));
+};
+var periodic$elm_csv$Csv$lineSep = elm$parser$Parser$oneOf(
+	_List_fromArray(
+		[
+			elm$parser$Parser$backtrackable(
+			A2(elm$parser$Parser$ignorer, periodic$elm_csv$Csv$cr, periodic$elm_csv$Csv$lf)),
+			periodic$elm_csv$Csv$cr,
+			periodic$elm_csv$Csv$lf
+		]));
+var periodic$elm_csv$Csv$recordHelper = F2(
+	function (sepChar, strs) {
+		return elm$parser$Parser$oneOf(
+			_List_fromArray(
+				[
+					elm$parser$Parser$backtrackable(
+					A2(
+						elm$parser$Parser$keeper,
+						elm$parser$Parser$succeed(
+							function (str) {
+								return elm$parser$Parser$Loop(
+									A2(elm$core$List$cons, str, strs));
+							}),
+						A2(
+							elm$parser$Parser$ignorer,
+							periodic$elm_csv$Csv$field(sepChar),
+							elm$parser$Parser$symbol(
+								elm$core$String$fromChar(sepChar))))),
+					A2(
+					elm$parser$Parser$keeper,
+					elm$parser$Parser$succeed(
+						function (str) {
+							return elm$parser$Parser$Done(
+								elm$core$List$reverse(
+									A2(elm$core$List$cons, str, strs)));
+						}),
+					A2(
+						elm$parser$Parser$ignorer,
+						periodic$elm_csv$Csv$field(sepChar),
+						periodic$elm_csv$Csv$lineSep))
+				]));
+	});
+var periodic$elm_csv$Csv$record = function (sepChar) {
+	return A2(
+		elm$parser$Parser$loop,
+		_List_Nil,
+		periodic$elm_csv$Csv$recordHelper(sepChar));
+};
+var periodic$elm_csv$Csv$recordsHelper = F2(
+	function (sepChar, records) {
+		return elm$parser$Parser$oneOf(
+			_List_fromArray(
+				[
+					A2(
+					elm$parser$Parser$keeper,
+					elm$parser$Parser$succeed(
+						function (rec) {
+							return elm$parser$Parser$Loop(
+								A2(elm$core$List$cons, rec, records));
+						}),
+					periodic$elm_csv$Csv$record(sepChar)),
+					A2(
+					elm$parser$Parser$map,
+					function (_n0) {
+						return elm$parser$Parser$Done(
+							elm$core$List$reverse(records));
+					},
+					elm$parser$Parser$succeed(_Utils_Tuple0))
+				]));
+	});
+var periodic$elm_csv$Csv$file = function (sepChar) {
+	return A2(
+		elm$parser$Parser$keeper,
+		A2(
+			elm$parser$Parser$keeper,
+			elm$parser$Parser$succeed(periodic$elm_csv$Csv$Csv),
+			periodic$elm_csv$Csv$record(sepChar)),
+		A2(
+			elm$parser$Parser$loop,
+			_List_Nil,
+			periodic$elm_csv$Csv$recordsHelper(sepChar)));
+};
+var periodic$elm_csv$Csv$parseWith = function (c) {
+	return A2(
+		elm$core$Basics$composeR,
+		periodic$elm_csv$Csv$addTrailingLineSep,
+		elm$parser$Parser$run(
+			periodic$elm_csv$Csv$file(c)));
+};
+var periodic$elm_csv$Csv$parse = function (s) {
+	return A2(
+		periodic$elm_csv$Csv$parseWith,
+		_Utils_chr(','),
+		s);
+};
+var author$project$Main$update = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'NoOp':
+				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+			case 'HandleErrorEvent':
+				var message = msg.a;
+				return _Utils_Tuple2(
+					A2(author$project$Main$print, message, model),
+					elm$core$Platform$Cmd$none);
+			case 'HandleKeyboardEvent':
+				var eventType = msg.a;
+				var event = msg.b;
+				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+			case 'ToggleSidePanel':
+				var newExpanded = !model.sidePanelExpanded;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{sidePanelExpanded: newExpanded}),
+					elm$core$Platform$Cmd$none);
+			case 'CsvRequested':
+				var suggestion = msg.a;
+				return _Utils_Tuple2(
+					model,
+					A2(
+						elm$file$File$Select$file,
+						_List_fromArray(
+							[author$project$Main$csv_mime]),
+						author$project$Main$CsvSelected(suggestion)));
+			case 'CsvSelected':
+				var suggestion = msg.a;
+				var file = msg.b;
+				return _Utils_Tuple2(
+					model,
+					A2(
+						elm$core$Task$perform,
+						A2(
+							author$project$Main$CsvLoaded,
+							suggestion,
+							elm$file$File$name(file)),
+						elm$file$File$toString(file)));
+			case 'CsvLoaded':
+				var suggestion = msg.a;
+				var fileName = msg.b;
+				var fileContent = msg.c;
+				return _Utils_Tuple2(
+					function () {
+						var _n1 = periodic$elm_csv$Csv$parse(fileContent);
+						if (_n1.$ === 'Err') {
+							return model;
+						} else {
+							var csv = _n1.a;
+							return suggestion ? _Utils_update(
+								model,
+								{
+									oldRecords: A2(elm$core$List$map, author$project$Main$listToOldRecord, csv.records)
+								}) : _Utils_update(
+								model,
+								{
+									records: _Utils_ap(
+										model.records,
+										A2(elm$core$List$map, author$project$Main$listToRecord, csv.records))
+								});
+						}
+					}(),
+					elm$core$Platform$Cmd$none);
+			case 'CsvExported':
+				return _Utils_Tuple2(
+					model,
+					A3(
+						elm$file$File$Download$string,
+						((model.filename === '') ? 'export' : model.filename) + '.csv',
+						author$project$Main$csv_mime,
+						author$project$Main$recordsToCsv(model.records)));
+			case 'ClearAll':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{records: _List_Nil}),
+					elm$core$Platform$Cmd$none);
+			case 'FilenameEdited':
+				var newText = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{filename: newText}),
+					elm$core$Platform$Cmd$none);
+			case 'TableScrolled':
+				return _Utils_Tuple2(
+					model,
+					A2(
+						elm$core$Task$attempt,
+						author$project$Main$handleError(author$project$Main$ScrollInfo),
+						elm$browser$Browser$Dom$getViewportOf('table-container')));
+			default:
+				var viewport = msg.a;
+				return _Utils_Tuple2(
+					A2(author$project$Main$print, viewport.viewport.y, model),
+					elm$core$Platform$Cmd$none);
+		}
+	});
+var author$project$Main$ClearAll = {$: 'ClearAll'};
+var author$project$Main$CsvExported = {$: 'CsvExported'};
+var author$project$Main$CsvRequested = function (a) {
+	return {$: 'CsvRequested', a: a};
+};
+var author$project$Main$FilenameEdited = function (a) {
+	return {$: 'FilenameEdited', a: a};
+};
+var author$project$Main$TableScrolled = {$: 'TableScrolled'};
+var author$project$Main$ToggleSidePanel = {$: 'ToggleSidePanel'};
+var elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var author$project$Main$onScroll = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'scroll',
+		elm$json$Json$Decode$succeed(msg));
+};
+var elm$html$Html$td = _VirtualDom_node('td');
+var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var elm$html$Html$tr = _VirtualDom_node('tr');
+var author$project$Main$recordToRow = function (_n0) {
+	var oldLotNo = _n0.oldLotNo;
+	var lotNo = _n0.lotNo;
+	var vendor = _n0.vendor;
+	var description = _n0.description;
+	var reserve = _n0.reserve;
+	return A2(
+		elm$html$Html$tr,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$td,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text(oldLotNo)
+					])),
+				A2(
+				elm$html$Html$td,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text(lotNo)
+					])),
+				A2(
+				elm$html$Html$td,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text(vendor)
+					])),
+				A2(
+				elm$html$Html$td,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text(description)
+					])),
+				A2(
+				elm$html$Html$td,
+				_List_Nil,
+				_List_fromArray(
+					[
+						elm$html$Html$text(reserve)
+					]))
+			]));
+};
+var elm$html$Html$button = _VirtualDom_node('button');
+var elm$html$Html$col = _VirtualDom_node('col');
+var elm$html$Html$div = _VirtualDom_node('div');
+var elm$html$Html$h1 = _VirtualDom_node('h1');
+var elm$html$Html$i = _VirtualDom_node('i');
+var elm$html$Html$input = _VirtualDom_node('input');
+var elm$html$Html$table = _VirtualDom_node('table');
+var elm$html$Html$tbody = _VirtualDom_node('tbody');
+var elm$html$Html$th = _VirtualDom_node('th');
+var elm$html$Html$thead = _VirtualDom_node('thead');
+var elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
+	});
+var elm$html$Html$Attributes$attribute = elm$virtual_dom$VirtualDom$attribute;
+var elm$json$Json$Encode$string = _Json_wrap;
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
+var elm$html$Html$Attributes$id = elm$html$Html$Attributes$stringProperty('id');
+var elm$html$Html$Attributes$placeholder = elm$html$Html$Attributes$stringProperty('placeholder');
+var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
+var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
+var elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'click',
+		elm$json$Json$Decode$succeed(msg));
+};
+var elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
+	});
+var elm$json$Json$Decode$string = _Json_decodeString;
+var elm$html$Html$Events$targetValue = A2(
+	elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	elm$json$Json$Decode$string);
+var elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			elm$json$Json$Decode$map,
+			elm$html$Html$Events$alwaysStop,
+			A2(elm$json$Json$Decode$map, tagger, elm$html$Html$Events$targetValue)));
+};
+var author$project$Main$vieww = function (model) {
+	return A2(
+		elm$html$Html$div,
+		_List_fromArray(
+			[
+				elm$html$Html$Attributes$class('ui two column grid remove-gutters')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$div,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$class('row')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						elm$html$Html$div,
+						_List_fromArray(
+							[
+								elm$html$Html$Attributes$class(
+								(model.sidePanelExpanded ? 'twelve' : 'fifteen') + ' wide column')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								elm$html$Html$div,
+								_List_fromArray(
+									[
+										elm$html$Html$Attributes$class('table-sticky'),
+										author$project$Main$onScroll(author$project$Main$TableScrolled),
+										elm$html$Html$Attributes$id('table-container')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										elm$html$Html$table,
+										_List_fromArray(
+											[
+												elm$html$Html$Attributes$class('ui single line fixed unstackable celled striped compact table header-color row-height-fix')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												elm$html$Html$col,
+												_List_fromArray(
+													[
+														A2(elm$html$Html$Attributes$attribute, 'width', '100px')
+													]),
+												_List_Nil),
+												A2(
+												elm$html$Html$col,
+												_List_fromArray(
+													[
+														A2(elm$html$Html$Attributes$attribute, 'width', '100px')
+													]),
+												_List_Nil),
+												A2(
+												elm$html$Html$col,
+												_List_fromArray(
+													[
+														A2(elm$html$Html$Attributes$attribute, 'width', '100px')
+													]),
+												_List_Nil),
+												A2(
+												elm$html$Html$col,
+												_List_fromArray(
+													[
+														A2(elm$html$Html$Attributes$attribute, 'width', '300px')
+													]),
+												_List_Nil),
+												A2(
+												elm$html$Html$col,
+												_List_fromArray(
+													[
+														A2(elm$html$Html$Attributes$attribute, 'width', '100px')
+													]),
+												_List_Nil),
+												A2(
+												elm$html$Html$thead,
+												_List_Nil,
+												_List_fromArray(
+													[
+														A2(
+														elm$html$Html$tr,
+														_List_Nil,
+														_List_fromArray(
+															[
+																A2(
+																elm$html$Html$th,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		elm$html$Html$text('Old Lot No.')
+																	])),
+																A2(
+																elm$html$Html$th,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		elm$html$Html$text('Lot No.')
+																	])),
+																A2(
+																elm$html$Html$th,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		elm$html$Html$text('Vendor')
+																	])),
+																A2(
+																elm$html$Html$th,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		elm$html$Html$text('Item Description')
+																	])),
+																A2(
+																elm$html$Html$th,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		elm$html$Html$text('Reserve')
+																	]))
+															]))
+													])),
+												A2(
+												elm$html$Html$tbody,
+												_List_fromArray(
+													[
+														elm$html$Html$Attributes$class('first-row-height-fix')
+													]),
+												_Utils_ap(
+													A2(elm$core$List$map, author$project$Main$recordToRow, model.records),
+													_List_fromArray(
+														[
+															A2(
+															elm$html$Html$tr,
+															_List_fromArray(
+																[
+																	elm$html$Html$Attributes$class('positive')
+																]),
+															_List_fromArray(
+																[
+																	A2(elm$html$Html$td, _List_Nil, _List_Nil),
+																	A2(elm$html$Html$td, _List_Nil, _List_Nil),
+																	A2(elm$html$Html$td, _List_Nil, _List_Nil),
+																	A2(elm$html$Html$td, _List_Nil, _List_Nil),
+																	A2(elm$html$Html$td, _List_Nil, _List_Nil)
+																]))
+														])))
+											]))
+									]))
+							])),
+						A2(
+						elm$html$Html$div,
+						_List_fromArray(
+							[
+								elm$html$Html$Attributes$class(
+								(model.sidePanelExpanded ? 'four' : 'one') + ' wide column')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								elm$html$Html$div,
+								_List_fromArray(
+									[
+										elm$html$Html$Attributes$class('ui segments')
+									]),
+								_List_fromArray(
+									[
+										model.sidePanelExpanded ? A2(
+										elm$html$Html$div,
+										_List_fromArray(
+											[
+												elm$html$Html$Attributes$class('ui segment')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												elm$html$Html$h1,
+												_List_fromArray(
+													[
+														elm$html$Html$Attributes$class('ui header horizontal-center')
+													]),
+												_List_fromArray(
+													[
+														elm$html$Html$text('Otter')
+													])),
+												A2(
+												elm$html$Html$div,
+												_List_fromArray(
+													[
+														elm$html$Html$Attributes$class('ui form')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														elm$html$Html$div,
+														_List_fromArray(
+															[
+																elm$html$Html$Attributes$class('field')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		elm$html$Html$Attributes$class('ui right labeled input')
+																	]),
+																_List_fromArray(
+																	[
+																		A2(
+																		elm$html$Html$input,
+																		_List_fromArray(
+																			[
+																				elm$html$Html$Attributes$placeholder('Filename'),
+																				elm$html$Html$Events$onInput(author$project$Main$FilenameEdited),
+																				elm$html$Html$Attributes$type_('text'),
+																				elm$html$Html$Attributes$value(model.filename)
+																			]),
+																		_List_Nil),
+																		A2(
+																		elm$html$Html$div,
+																		_List_fromArray(
+																			[
+																				elm$html$Html$Attributes$class('ui label')
+																			]),
+																		_List_fromArray(
+																			[
+																				elm$html$Html$text('.csv')
+																			]))
+																	]))
+															])),
+														A2(
+														elm$html$Html$div,
+														_List_fromArray(
+															[
+																elm$html$Html$Attributes$class('field')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		elm$html$Html$Attributes$class('ui buttons')
+																	]),
+																_List_fromArray(
+																	[
+																		A2(
+																		elm$html$Html$button,
+																		_List_fromArray(
+																			[
+																				elm$html$Html$Attributes$class('ui button blue'),
+																				elm$html$Html$Events$onClick(author$project$Main$ClearAll)
+																			]),
+																		_List_fromArray(
+																			[
+																				A2(
+																				elm$html$Html$i,
+																				_List_fromArray(
+																					[
+																						elm$html$Html$Attributes$class('asterisk icon')
+																					]),
+																				_List_Nil),
+																				elm$html$Html$text('New')
+																			])),
+																		A2(
+																		elm$html$Html$button,
+																		_List_fromArray(
+																			[
+																				elm$html$Html$Attributes$class('ui button yellow'),
+																				elm$html$Html$Events$onClick(
+																				author$project$Main$CsvRequested(true))
+																			]),
+																		_List_fromArray(
+																			[
+																				A2(
+																				elm$html$Html$i,
+																				_List_fromArray(
+																					[
+																						elm$html$Html$Attributes$class('certificate icon')
+																					]),
+																				_List_Nil),
+																				elm$html$Html$text('Add Suggestions')
+																			])),
+																		A2(
+																		elm$html$Html$button,
+																		_List_fromArray(
+																			[
+																				elm$html$Html$Attributes$class('ui button green'),
+																				elm$html$Html$Events$onClick(author$project$Main$CsvExported)
+																			]),
+																		_List_fromArray(
+																			[
+																				A2(
+																				elm$html$Html$i,
+																				_List_fromArray(
+																					[
+																						elm$html$Html$Attributes$class('file export icon')
+																					]),
+																				_List_Nil),
+																				elm$html$Html$text('Save')
+																			])),
+																		A2(
+																		elm$html$Html$button,
+																		_List_fromArray(
+																			[
+																				elm$html$Html$Attributes$class('ui button purple'),
+																				elm$html$Html$Events$onClick(
+																				author$project$Main$CsvRequested(false))
+																			]),
+																		_List_fromArray(
+																			[
+																				A2(
+																				elm$html$Html$i,
+																				_List_fromArray(
+																					[
+																						elm$html$Html$Attributes$class('file import icon')
+																					]),
+																				_List_Nil),
+																				elm$html$Html$text('Import')
+																			]))
+																	]))
+															]))
+													]))
+											])) : A2(elm$html$Html$div, _List_Nil, _List_Nil),
+										A2(
+										elm$html$Html$div,
+										_List_fromArray(
+											[
+												elm$html$Html$Attributes$class('ui segment horizontal-center')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												elm$html$Html$button,
+												_List_fromArray(
+													[
+														elm$html$Html$Attributes$class('huge circular blue ui icon button'),
+														elm$html$Html$Events$onClick(author$project$Main$ToggleSidePanel)
+													]),
+												_List_fromArray(
+													[
+														A2(
+														elm$html$Html$i,
+														_List_fromArray(
+															[
+																elm$html$Html$Attributes$class(
+																'angle ' + ((model.sidePanelExpanded ? 'right' : 'left') + ' icon'))
+															]),
+														_List_Nil)
+													]))
+											]))
+									]))
+							]))
+					]))
+			]));
+};
+var elm$browser$Browser$Document = F2(
+	function (title, body) {
+		return {body: body, title: title};
+	});
+var elm$core$List$singleton = function (value) {
+	return _List_fromArray(
+		[value]);
+};
+var elm$virtual_dom$VirtualDom$lazy = _VirtualDom_lazy;
+var elm$html$Html$Lazy$lazy = elm$virtual_dom$VirtualDom$lazy;
+var author$project$Main$view = A2(
+	elm$core$Basics$composeR,
+	elm$html$Html$Lazy$lazy(author$project$Main$vieww),
+	A2(
+		elm$core$Basics$composeR,
+		elm$core$List$singleton,
+		elm$browser$Browser$Document('Otter')));
 var elm$browser$Browser$document = _Browser_document;
 var author$project$Main$main = elm$browser$Browser$document(
 	{init: author$project$Main$init, subscriptions: author$project$Main$subscriptions, update: author$project$Main$update, view: author$project$Main$view});
