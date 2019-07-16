@@ -33,7 +33,7 @@ import File.Select exposing (file)
 import File.Download exposing (string)
 import Task exposing (perform, attempt)
 import Maybe exposing (withDefault)
-import List exposing (length, repeat, map)
+import List exposing (length, repeat, map, filter, indexedMap)
 
 --Special
 import Csv exposing (Csv, parse)
@@ -54,12 +54,14 @@ main =
 
 --==================================================================== MODEL
 
-type alias Model = {sidePanelExpanded : Bool, records : List Record, oldRecords : List OldRecord, filename : String}
+type alias Model = {sidePanelExpanded : Bool, records : List Record, oldRecords : List OldRecord, filename : String, visibleRows : VisibleRows}
 type alias Record = {oldLotNo : String, lotNo : String, vendor : String, description : String, reserve : String}
 type alias OldRecord = {lotNo : String, vendor : String, description : String, reserve : String}
+type alias VisibleRows = {start : Int, end : Int}
 
 type Msg
-  = NoOp
+  = Initialize
+  | NoOp
   | HandleErrorEvent String
   | HandleKeyboardEvent KeyboardEventType KeyboardEvent
 
@@ -75,14 +77,17 @@ type Msg
   | FilenameEdited String
 
   | TableScrolled
-  | ScrollInfo Viewport
+  | UpdateVisibleRows Viewport
 
 type KeyboardEventType = KeyboardEventType
 
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
-init _ = (Model False [] [] "", Cmd.none)
+init _ = update Initialize <| Model False [] [] "" <| VisibleRows 0 0
+
+emptyViewport : Viewport
+emptyViewport = Viewport {width = 0, height = 0} {x = 0, y = 0, width = 0, height = 0}
 
 --==================================================================== VIEW
 
@@ -94,8 +99,8 @@ vieww model =
   div [ class "ui two column grid remove-gutters" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "twelve" else "fifteen") ++ " wide column" ]
-            [ div [ class "table-sticky", onScroll TableScrolled, id "table-container" ]
-                [ table [ class "ui single line fixed unstackable celled striped compact table header-color row-height-fix" ]
+            [ div [ class "table-sticky", id "table-container" ] --, onScroll TableScrolled
+                [ table [ class "ui single line fixed unstackable celled compact table header-color row-height-fix" ]
                     [ col [ attribute "width" "100px" ] []
                     , col [ attribute "width" "100px" ] []
                     , col [ attribute "width" "100px" ] []
@@ -111,15 +116,12 @@ vieww model =
                             ]
                         ]
                     , tbody [ class "first-row-height-fix" ]
-                        (List.map recordToRow model.records
-                    ++  [ tr [ class "positive" ]
-                            [ td [] []
-                            , td [] []
-                            , td [] []
-                            , td [] []
-                            , td [] []
+                        (   [ tr [] [ div [ style "height" <| (String.fromInt <| model.visibleRows.start * row_height) ++ "px" ] [] ] ]
+                        ++  (List.map recordToRow <| filterVisible model.visibleRows model.records)
+                        ++  [ tr [] [ div [ style "height" <| (String.fromInt <| (length model.records - model.visibleRows.end - 1) * row_height) ++ "px" ] [] ]
+                            , tr [ class "positive" ] [td [] [], td [] [], td [] [], td [] [], td [] []]
                             ]
-                        ])
+                        )
                     ]
                 ]
             ]
@@ -158,12 +160,26 @@ vieww model =
                         ]
                     ]
                   else
-                  div [] []
+                  html_empty
                 , div [ class "ui segment horizontal-center" ]
                     [ button [ class "huge circular blue ui icon button", onClick ToggleSidePanel ]
                         [ i [ class <| "angle " ++ (if model.sidePanelExpanded then "right" else "left") ++ " icon" ] []
                         ]
                     ]
+                , if model.sidePanelExpanded && debug then
+                  div [ class "ui segment" ]
+                    [ div [ class "ui form" ]
+                        [ div [ class "field" ]
+                            [ div [ class "ui buttons" ]
+                                [ button [ class "ui button blue", onClick TableScrolled ]
+                                    [ text "Scroll"
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                  else
+                  html_empty
                 ]
             ]
         ]
@@ -179,6 +195,11 @@ recordToRow {oldLotNo, lotNo, vendor, description, reserve} =
     , td [] [ text reserve ]
     ]
 
+filterVisible : VisibleRows -> List Record -> List Record
+filterVisible {start, end} list =
+  let filterRange index elem = if index >= start && index <= end then Just elem else Nothing
+   in indexedMap filterRange list |> filter isJust |> List.map (withDefault <| Record "ERROR" "ERROR" "ERROR" "ERROR" "ERROR")
+
 --e.g. onKeyboardEvent MovingCursor "keydown"
 onKeyboardEvent : KeyboardEventType -> String -> Attribute Msg
 onKeyboardEvent eventType eventName =
@@ -192,6 +213,7 @@ onScroll msg = on "scroll" (succeed msg)
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    Initialize -> (model, attempt (handleError UpdateVisibleRows) <| getViewportOf "table-container")
     NoOp -> (model, Cmd.none)
     HandleErrorEvent message -> (print message model, Cmd.none)
     HandleKeyboardEvent eventType event -> (model, Cmd.none)
@@ -201,13 +223,11 @@ update msg model =
     CsvRequested suggestion -> (model, file [ csv_mime ] <| CsvSelected suggestion)
     CsvSelected suggestion file -> (model, Task.perform (CsvLoaded suggestion <| File.name file) (File.toString file))
     CsvLoaded suggestion fileName fileContent ->
-      ( case parse fileContent of
-          Err _ -> model
+      case parse fileContent of
+          Err _ -> (model, Cmd.none)
           Ok csv -> if suggestion
-                    then {model | oldRecords = List.map listToOldRecord csv.records}
-                    else {model | records = model.records ++ List.map listToRecord csv.records}
-      , Cmd.none
-      )
+                    then ({model | oldRecords = List.map listToOldRecord csv.records}, Cmd.none)
+                    else update TableScrolled {model | records = model.records ++ List.map listToRecord csv.records}
     CsvExported ->
       ( model
       , string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records)
@@ -217,8 +237,17 @@ update msg model =
 
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
-    TableScrolled -> (model, attempt (handleError ScrollInfo) <| getViewportOf "table-container")
-    ScrollInfo viewport -> (print viewport.viewport.y model, Cmd.none)
+    TableScrolled -> (model, attempt (handleError UpdateVisibleRows) <| getViewportOf "table-container")
+    UpdateVisibleRows viewport ->
+      ( {model | visibleRows = getVisibleRows (length model.records) viewport}
+      , Cmd.none
+      )
+
+getVisibleRows : Int -> Viewport -> VisibleRows
+getVisibleRows numRecords viewport =
+  VisibleRows
+    ((flip (-) 1) <| Basics.max 1 <| floor <| viewport.viewport.y / row_height)
+    ((flip (-) 1) <| Basics.min (numRecords + 1) <| (flip (-) 1) <| ceiling <| (viewport.viewport.y + viewport.viewport.height) / row_height)
 
 listToOldRecord : List String -> OldRecord
 listToOldRecord list =
@@ -284,6 +313,12 @@ pad : Int -> a -> List a -> List a
 pad n def list =
   list ++ repeat (Basics.max (n - length list) 0) def
 
+isJust : Maybe a -> Bool
+isJust m =
+  case m of
+    Just _ -> True
+    Nothing -> False
+
 --==================================================================== DEBUGGING
 
 print : a -> b -> b
@@ -299,3 +334,12 @@ windows_newline = "\r\n"
 
 csv_mime : String
 csv_mime = "text/csv"
+
+row_height : number
+row_height = 34
+
+html_empty : Html Msg
+html_empty = div [] []
+
+debug : Bool
+debug = True
