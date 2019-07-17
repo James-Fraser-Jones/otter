@@ -41,6 +41,9 @@ import Json.Decode exposing (map, succeed)
 import Keyboard.Event exposing (KeyboardEvent, decodeKeyboardEvent)
 import Keyboard.Key exposing (Key(..))
 
+--Module
+import Ports exposing (scrollTable)
+
 --==================================================================== MAIN
 
 main : Program () Model Msg
@@ -54,7 +57,7 @@ main =
 
 --==================================================================== MODEL
 
-type alias Model = {sidePanelExpanded : Bool, records : List Record, oldRecords : List OldRecord, filename : String, visibleRows : VisibleRows}
+type alias Model = {sidePanelExpanded : Bool, records : List Record, oldRecords : List OldRecord, filename : String, visibleRows : VisibleRows, viewportY : Float}
 type alias Record = {oldLotNo : String, lotNo : String, vendor : String, description : String, reserve : String}
 type alias OldRecord = {lotNo : String, vendor : String, description : String, reserve : String}
 type alias VisibleRows = {start : Int, end : Int}
@@ -79,12 +82,16 @@ type Msg
   | TableScrolled
   | UpdateVisibleRows Viewport
 
+  | ScrollDown
+  | ScrollDownNext Viewport
+  | VisibleDown
+
 type KeyboardEventType = KeyboardEventType
 
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
-init _ = update Initialize <| Model False [] [] "" <| VisibleRows 0 0
+init _ = update Initialize <| Model False [] [] "" (VisibleRows 0 0) 0
 
 emptyViewport : Viewport
 emptyViewport = Viewport {width = 0, height = 0} {x = 0, y = 0, width = 0, height = 0}
@@ -99,7 +106,7 @@ vieww model =
   div [ class "ui two column grid remove-gutters" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "twelve" else "fifteen") ++ " wide column" ]
-            [ div [ class "table-sticky", id "table-container" ] --, onScroll TableScrolled
+            [ div [ class "table-sticky", id table_container ] -- , onScroll TableScrolled
                 [ table [ class "ui single line fixed unstackable celled compact table header-color row-height-fix" ]
                     [ col [ attribute "width" "100px" ] []
                     , col [ attribute "width" "100px" ] []
@@ -116,9 +123,9 @@ vieww model =
                             ]
                         ]
                     , tbody [ class "first-row-height-fix" ]
-                        (   [ tr [] [ div [ style "height" <| (String.fromInt <| model.visibleRows.start * row_height) ++ "px" ] [] ] ]
+                        (   [ tr [] [ div [ style "height" <| (String.fromInt <| model.visibleRows.start * row_height) ++ "px", style "background-color" "red" ] [] ] ]
                         ++  (List.map recordToRow <| filterVisible model.visibleRows model.records)
-                        ++  [ tr [] [ div [ style "height" <| (String.fromInt <| (length model.records - model.visibleRows.end - 1) * row_height) ++ "px" ] [] ]
+                        ++  [ tr [] [ div [ style "height" <| (String.fromInt <| (length model.records - 1 - model.visibleRows.end) * row_height) ++ "px", style "background-color" "blue" ] [] ]
                             , tr [ class "positive" ] [td [] [], td [] [], td [] [], td [] [], td [] []]
                             ]
                         )
@@ -171,9 +178,9 @@ vieww model =
                     [ div [ class "ui form" ]
                         [ div [ class "field" ]
                             [ div [ class "ui buttons" ]
-                                [ button [ class "ui button blue", onClick TableScrolled ]
-                                    [ text "Scroll"
-                                    ]
+                                [ button [ class "ui button blue", onClick TableScrolled ] [ text "Scroll" ]
+                                , button [ class "ui button blue", onClick ScrollDown ] [ text "Scroll Down" ]
+                                , button [ class "ui button blue", onClick VisibleDown ] [ text "Visible Down" ]
                                 ]
                             ]
                         ]
@@ -213,7 +220,7 @@ onScroll msg = on "scroll" (succeed msg)
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Initialize -> (model, attempt (handleError UpdateVisibleRows) <| getViewportOf "table-container")
+    Initialize -> (model, attempt (handleError UpdateVisibleRows) <| getViewportOf table_container)
     NoOp -> (model, Cmd.none)
     HandleErrorEvent message -> (print message model, Cmd.none)
     HandleKeyboardEvent eventType event -> (model, Cmd.none)
@@ -237,17 +244,23 @@ update msg model =
 
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
-    TableScrolled -> (model, attempt (handleError UpdateVisibleRows) <| getViewportOf "table-container")
+    TableScrolled -> (model, attempt (handleError UpdateVisibleRows) <| getViewportOf table_container)
     UpdateVisibleRows viewport ->
-      ( {model | visibleRows = getVisibleRows (length model.records) viewport}
-      , Cmd.none
+      ( {model | visibleRows = getVisibleRows (length model.records) viewport, viewportY = viewport.viewport.y}
+      , let diff = Basics.round <| viewport.viewport.y - model.viewportY in
+          if diff >= row_height then scrollTable (-diff) else Cmd.none
       )
+
+    ScrollDown -> (model, attempt (handleError ScrollDownNext) <| getViewportOf table_container)
+    ScrollDownNext viewport ->
+      (model, attempt (handleError <| always NoOp) <| setViewportOf table_container viewport.viewport.x (viewport.viewport.y + withDefault 0 (String.toFloat model.filename)))
+    VisibleDown -> let num = withDefault 0 (String.toInt model.filename) in ({model | visibleRows = VisibleRows (model.visibleRows.start + num) (model.visibleRows.end + num)}, Cmd.none)
 
 getVisibleRows : Int -> Viewport -> VisibleRows
 getVisibleRows numRecords viewport =
   VisibleRows
-    ((flip (-) 1) <| Basics.max 1 <| floor <| viewport.viewport.y / row_height)
-    ((flip (-) 1) <| Basics.min (numRecords + 1) <| (flip (-) 1) <| ceiling <| (viewport.viewport.y + viewport.viewport.height) / row_height)
+    (pred <| Basics.max 1 <| floor <| viewport.viewport.y / row_height)
+    (pred <| Basics.min (numRecords + 1) <| pred <| ceiling <| (viewport.viewport.y + viewport.viewport.height) / row_height)
 
 listToOldRecord : List String -> OldRecord
 listToOldRecord list =
@@ -319,6 +332,12 @@ isJust m =
     Just _ -> True
     Nothing -> False
 
+succ : number -> number
+succ = (+) 1
+
+pred : number -> number
+pred = flip (-) 1
+
 --==================================================================== DEBUGGING
 
 print : a -> b -> b
@@ -343,3 +362,6 @@ html_empty = div [] []
 
 debug : Bool
 debug = True
+
+table_container : String
+table_container = "table-container"

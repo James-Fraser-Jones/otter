@@ -1165,197 +1165,6 @@ function _String_fromList(chars)
 
 
 
-// TASKS
-
-function _Scheduler_succeed(value)
-{
-	return {
-		$: 0,
-		a: value
-	};
-}
-
-function _Scheduler_fail(error)
-{
-	return {
-		$: 1,
-		a: error
-	};
-}
-
-function _Scheduler_binding(callback)
-{
-	return {
-		$: 2,
-		b: callback,
-		c: null
-	};
-}
-
-var _Scheduler_andThen = F2(function(callback, task)
-{
-	return {
-		$: 3,
-		b: callback,
-		d: task
-	};
-});
-
-var _Scheduler_onError = F2(function(callback, task)
-{
-	return {
-		$: 4,
-		b: callback,
-		d: task
-	};
-});
-
-function _Scheduler_receive(callback)
-{
-	return {
-		$: 5,
-		b: callback
-	};
-}
-
-
-// PROCESSES
-
-var _Scheduler_guid = 0;
-
-function _Scheduler_rawSpawn(task)
-{
-	var proc = {
-		$: 0,
-		e: _Scheduler_guid++,
-		f: task,
-		g: null,
-		h: []
-	};
-
-	_Scheduler_enqueue(proc);
-
-	return proc;
-}
-
-function _Scheduler_spawn(task)
-{
-	return _Scheduler_binding(function(callback) {
-		callback(_Scheduler_succeed(_Scheduler_rawSpawn(task)));
-	});
-}
-
-function _Scheduler_rawSend(proc, msg)
-{
-	proc.h.push(msg);
-	_Scheduler_enqueue(proc);
-}
-
-var _Scheduler_send = F2(function(proc, msg)
-{
-	return _Scheduler_binding(function(callback) {
-		_Scheduler_rawSend(proc, msg);
-		callback(_Scheduler_succeed(_Utils_Tuple0));
-	});
-});
-
-function _Scheduler_kill(proc)
-{
-	return _Scheduler_binding(function(callback) {
-		var task = proc.f;
-		if (task.$ === 2 && task.c)
-		{
-			task.c();
-		}
-
-		proc.f = null;
-
-		callback(_Scheduler_succeed(_Utils_Tuple0));
-	});
-}
-
-
-/* STEP PROCESSES
-
-type alias Process =
-  { $ : tag
-  , id : unique_id
-  , root : Task
-  , stack : null | { $: SUCCEED | FAIL, a: callback, b: stack }
-  , mailbox : [msg]
-  }
-
-*/
-
-
-var _Scheduler_working = false;
-var _Scheduler_queue = [];
-
-
-function _Scheduler_enqueue(proc)
-{
-	_Scheduler_queue.push(proc);
-	if (_Scheduler_working)
-	{
-		return;
-	}
-	_Scheduler_working = true;
-	while (proc = _Scheduler_queue.shift())
-	{
-		_Scheduler_step(proc);
-	}
-	_Scheduler_working = false;
-}
-
-
-function _Scheduler_step(proc)
-{
-	while (proc.f)
-	{
-		var rootTag = proc.f.$;
-		if (rootTag === 0 || rootTag === 1)
-		{
-			while (proc.g && proc.g.$ !== rootTag)
-			{
-				proc.g = proc.g.i;
-			}
-			if (!proc.g)
-			{
-				return;
-			}
-			proc.f = proc.g.b(proc.f.a);
-			proc.g = proc.g.i;
-		}
-		else if (rootTag === 2)
-		{
-			proc.f.c = proc.f.b(function(newRoot) {
-				proc.f = newRoot;
-				_Scheduler_enqueue(proc);
-			});
-			return;
-		}
-		else if (rootTag === 5)
-		{
-			if (proc.h.length === 0)
-			{
-				return;
-			}
-			proc.f = proc.f.b(proc.h.shift());
-		}
-		else // if (rootTag === 3 || rootTag === 4)
-		{
-			proc.g = {
-				$: rootTag === 3 ? 0 : 1,
-				b: proc.f.b,
-				i: proc.g
-			};
-			proc.f = proc.f.d;
-		}
-	}
-}
-
-
-
 function _Char_toCode(char)
 {
 	var code = char.charCodeAt(0);
@@ -1832,6 +1641,197 @@ function _Json_addEntry(func)
 }
 
 var _Json_encodeNull = _Json_wrap(null);
+
+
+
+// TASKS
+
+function _Scheduler_succeed(value)
+{
+	return {
+		$: 0,
+		a: value
+	};
+}
+
+function _Scheduler_fail(error)
+{
+	return {
+		$: 1,
+		a: error
+	};
+}
+
+function _Scheduler_binding(callback)
+{
+	return {
+		$: 2,
+		b: callback,
+		c: null
+	};
+}
+
+var _Scheduler_andThen = F2(function(callback, task)
+{
+	return {
+		$: 3,
+		b: callback,
+		d: task
+	};
+});
+
+var _Scheduler_onError = F2(function(callback, task)
+{
+	return {
+		$: 4,
+		b: callback,
+		d: task
+	};
+});
+
+function _Scheduler_receive(callback)
+{
+	return {
+		$: 5,
+		b: callback
+	};
+}
+
+
+// PROCESSES
+
+var _Scheduler_guid = 0;
+
+function _Scheduler_rawSpawn(task)
+{
+	var proc = {
+		$: 0,
+		e: _Scheduler_guid++,
+		f: task,
+		g: null,
+		h: []
+	};
+
+	_Scheduler_enqueue(proc);
+
+	return proc;
+}
+
+function _Scheduler_spawn(task)
+{
+	return _Scheduler_binding(function(callback) {
+		callback(_Scheduler_succeed(_Scheduler_rawSpawn(task)));
+	});
+}
+
+function _Scheduler_rawSend(proc, msg)
+{
+	proc.h.push(msg);
+	_Scheduler_enqueue(proc);
+}
+
+var _Scheduler_send = F2(function(proc, msg)
+{
+	return _Scheduler_binding(function(callback) {
+		_Scheduler_rawSend(proc, msg);
+		callback(_Scheduler_succeed(_Utils_Tuple0));
+	});
+});
+
+function _Scheduler_kill(proc)
+{
+	return _Scheduler_binding(function(callback) {
+		var task = proc.f;
+		if (task.$ === 2 && task.c)
+		{
+			task.c();
+		}
+
+		proc.f = null;
+
+		callback(_Scheduler_succeed(_Utils_Tuple0));
+	});
+}
+
+
+/* STEP PROCESSES
+
+type alias Process =
+  { $ : tag
+  , id : unique_id
+  , root : Task
+  , stack : null | { $: SUCCEED | FAIL, a: callback, b: stack }
+  , mailbox : [msg]
+  }
+
+*/
+
+
+var _Scheduler_working = false;
+var _Scheduler_queue = [];
+
+
+function _Scheduler_enqueue(proc)
+{
+	_Scheduler_queue.push(proc);
+	if (_Scheduler_working)
+	{
+		return;
+	}
+	_Scheduler_working = true;
+	while (proc = _Scheduler_queue.shift())
+	{
+		_Scheduler_step(proc);
+	}
+	_Scheduler_working = false;
+}
+
+
+function _Scheduler_step(proc)
+{
+	while (proc.f)
+	{
+		var rootTag = proc.f.$;
+		if (rootTag === 0 || rootTag === 1)
+		{
+			while (proc.g && proc.g.$ !== rootTag)
+			{
+				proc.g = proc.g.i;
+			}
+			if (!proc.g)
+			{
+				return;
+			}
+			proc.f = proc.g.b(proc.f.a);
+			proc.g = proc.g.i;
+		}
+		else if (rootTag === 2)
+		{
+			proc.f.c = proc.f.b(function(newRoot) {
+				proc.f = newRoot;
+				_Scheduler_enqueue(proc);
+			});
+			return;
+		}
+		else if (rootTag === 5)
+		{
+			if (proc.h.length === 0)
+			{
+				return;
+			}
+			proc.f = proc.f.b(proc.h.shift());
+		}
+		else // if (rootTag === 3 || rootTag === 4)
+		{
+			proc.g = {
+				$: rootTag === 3 ? 0 : 1,
+				b: proc.f.b,
+				i: proc.g
+			};
+			proc.f = proc.f.d;
+		}
+	}
+}
 
 
 
@@ -4619,9 +4619,9 @@ var _Parser_findSubString = F5(function(smallString, offset, row, col, bigString
 	return _Utils_Tuple3(newOffset, row, col);
 });
 var author$project$Main$Initialize = {$: 'Initialize'};
-var author$project$Main$Model = F5(
-	function (sidePanelExpanded, records, oldRecords, filename, visibleRows) {
-		return {filename: filename, oldRecords: oldRecords, records: records, sidePanelExpanded: sidePanelExpanded, visibleRows: visibleRows};
+var author$project$Main$Model = F6(
+	function (sidePanelExpanded, records, oldRecords, filename, visibleRows, viewportY) {
+		return {filename: filename, oldRecords: oldRecords, records: records, sidePanelExpanded: sidePanelExpanded, viewportY: viewportY, visibleRows: visibleRows};
 	});
 var author$project$Main$VisibleRows = F2(
 	function (start, end) {
@@ -4635,6 +4635,10 @@ var author$project$Main$CsvSelected = F2(
 	function (a, b) {
 		return {$: 'CsvSelected', a: a, b: b};
 	});
+var author$project$Main$NoOp = {$: 'NoOp'};
+var author$project$Main$ScrollDownNext = function (a) {
+	return {$: 'ScrollDownNext', a: a};
+};
 var author$project$Main$TableScrolled = {$: 'TableScrolled'};
 var author$project$Main$UpdateVisibleRows = function (a) {
 	return {$: 'UpdateVisibleRows', a: a};
@@ -4644,7 +4648,6 @@ var author$project$Main$flip = F3(
 	function (f, a, b) {
 		return A2(f, b, a);
 	});
-var author$project$Main$row_height = 34;
 var elm$core$Basics$EQ = {$: 'EQ'};
 var elm$core$Basics$GT = {$: 'GT'};
 var elm$core$Basics$LT = {$: 'LT'};
@@ -4725,6 +4728,9 @@ var elm$core$Array$foldr = F3(
 var elm$core$Array$toList = function (array) {
 	return A3(elm$core$Array$foldr, elm$core$List$cons, _List_Nil, array);
 };
+var elm$core$Basics$sub = _Basics_sub;
+var author$project$Main$pred = A2(author$project$Main$flip, elm$core$Basics$sub, 1);
+var author$project$Main$row_height = 34;
 var elm$core$Basics$add = _Basics_add;
 var elm$core$Basics$apL = F2(
 	function (f, x) {
@@ -4743,30 +4749,20 @@ var elm$core$Basics$min = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) < 0) ? x : y;
 	});
-var elm$core$Basics$sub = _Basics_sub;
 var author$project$Main$getVisibleRows = F2(
 	function (numRecords, viewport) {
 		return A2(
 			author$project$Main$VisibleRows,
-			A3(
-				author$project$Main$flip,
-				elm$core$Basics$sub,
-				1,
+			author$project$Main$pred(
 				A2(
 					elm$core$Basics$max,
 					1,
 					elm$core$Basics$floor(viewport.viewport.y / author$project$Main$row_height))),
-			A3(
-				author$project$Main$flip,
-				elm$core$Basics$sub,
-				1,
+			author$project$Main$pred(
 				A2(
 					elm$core$Basics$min,
 					numRecords + 1,
-					A3(
-						author$project$Main$flip,
-						elm$core$Basics$sub,
-						1,
+					author$project$Main$pred(
 						elm$core$Basics$ceiling((viewport.viewport.y + viewport.viewport.height) / author$project$Main$row_height)))));
 	});
 var author$project$Main$HandleErrorEvent = function (a) {
@@ -5004,78 +5000,7 @@ var author$project$Main$recordsToCsv = function (records) {
 		author$project$Main$windows_newline,
 		A2(elm$core$List$map, recordToCsv, records));
 };
-var elm$browser$Browser$External = function (a) {
-	return {$: 'External', a: a};
-};
-var elm$browser$Browser$Internal = function (a) {
-	return {$: 'Internal', a: a};
-};
-var elm$browser$Browser$Dom$NotFound = function (a) {
-	return {$: 'NotFound', a: a};
-};
-var elm$core$Basics$never = function (_n0) {
-	never:
-	while (true) {
-		var nvr = _n0.a;
-		var $temp$_n0 = nvr;
-		_n0 = $temp$_n0;
-		continue never;
-	}
-};
-var elm$core$Basics$False = {$: 'False'};
-var elm$core$Basics$True = {$: 'True'};
-var elm$core$Result$isOk = function (result) {
-	if (result.$ === 'Ok') {
-		return true;
-	} else {
-		return false;
-	}
-};
-var elm$core$Basics$identity = function (x) {
-	return x;
-};
-var elm$core$Task$Perform = function (a) {
-	return {$: 'Perform', a: a};
-};
-var elm$core$Task$succeed = _Scheduler_succeed;
-var elm$core$Task$init = elm$core$Task$succeed(_Utils_Tuple0);
-var elm$core$Basics$apR = F2(
-	function (x, f) {
-		return f(x);
-	});
-var elm$core$Task$andThen = _Scheduler_andThen;
-var elm$core$Task$map = F2(
-	function (func, taskA) {
-		return A2(
-			elm$core$Task$andThen,
-			function (a) {
-				return elm$core$Task$succeed(
-					func(a));
-			},
-			taskA);
-	});
-var elm$core$Task$map2 = F3(
-	function (func, taskA, taskB) {
-		return A2(
-			elm$core$Task$andThen,
-			function (a) {
-				return A2(
-					elm$core$Task$andThen,
-					function (b) {
-						return elm$core$Task$succeed(
-							A2(func, a, b));
-					},
-					taskB);
-			},
-			taskA);
-	});
-var elm$core$Task$sequence = function (tasks) {
-	return A3(
-		elm$core$List$foldr,
-		elm$core$Task$map2(elm$core$List$cons),
-		elm$core$Task$succeed(_List_Nil),
-		tasks);
-};
+var author$project$Main$table_container = 'table-container';
 var elm$core$Array$branchFactor = 32;
 var elm$core$Array$Array_elm_builtin = F4(
 	function (a, b, c, d) {
@@ -5118,6 +5043,10 @@ var elm$core$Array$compressNodes = F2(
 				continue compressNodes;
 			}
 		}
+	});
+var elm$core$Basics$apR = F2(
+	function (x, f) {
+		return f(x);
 	});
 var elm$core$Basics$eq = _Utils_equal;
 var elm$core$Tuple$first = function (_n0) {
@@ -5165,6 +5094,7 @@ var elm$core$Array$builderToArray = F2(
 				builder.tail);
 		}
 	});
+var elm$core$Basics$False = {$: 'False'};
 var elm$core$Basics$idiv = _Basics_idiv;
 var elm$core$Elm$JsArray$initialize = _JsArray_initialize;
 var elm$core$Array$initializeHelp = F5(
@@ -5210,6 +5140,14 @@ var elm$core$Result$Err = function (a) {
 };
 var elm$core$Result$Ok = function (a) {
 	return {$: 'Ok', a: a};
+};
+var elm$core$Basics$True = {$: 'True'};
+var elm$core$Result$isOk = function (result) {
+	if (result.$ === 'Ok') {
+		return true;
+	} else {
+		return false;
+	}
 };
 var elm$json$Json$Decode$Failure = F2(
 	function (a, b) {
@@ -5398,6 +5336,67 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 			}
 		}
 	});
+var elm$json$Json$Encode$int = _Json_wrap;
+var author$project$Ports$scrollTable = _Platform_outgoingPort('scrollTable', elm$json$Json$Encode$int);
+var elm$browser$Browser$External = function (a) {
+	return {$: 'External', a: a};
+};
+var elm$browser$Browser$Internal = function (a) {
+	return {$: 'Internal', a: a};
+};
+var elm$browser$Browser$Dom$NotFound = function (a) {
+	return {$: 'NotFound', a: a};
+};
+var elm$core$Basics$never = function (_n0) {
+	never:
+	while (true) {
+		var nvr = _n0.a;
+		var $temp$_n0 = nvr;
+		_n0 = $temp$_n0;
+		continue never;
+	}
+};
+var elm$core$Basics$identity = function (x) {
+	return x;
+};
+var elm$core$Task$Perform = function (a) {
+	return {$: 'Perform', a: a};
+};
+var elm$core$Task$succeed = _Scheduler_succeed;
+var elm$core$Task$init = elm$core$Task$succeed(_Utils_Tuple0);
+var elm$core$Task$andThen = _Scheduler_andThen;
+var elm$core$Task$map = F2(
+	function (func, taskA) {
+		return A2(
+			elm$core$Task$andThen,
+			function (a) {
+				return elm$core$Task$succeed(
+					func(a));
+			},
+			taskA);
+	});
+var elm$core$Task$map2 = F3(
+	function (func, taskA, taskB) {
+		return A2(
+			elm$core$Task$andThen,
+			function (a) {
+				return A2(
+					elm$core$Task$andThen,
+					function (b) {
+						return elm$core$Task$succeed(
+							A2(func, a, b));
+					},
+					taskB);
+			},
+			taskA);
+	});
+var elm$core$Task$sequence = function (tasks) {
+	return A3(
+		elm$core$List$foldr,
+		elm$core$Task$map2(elm$core$List$cons),
+		elm$core$Task$succeed(_List_Nil),
+		tasks);
+};
 var elm$core$Platform$sendToApp = _Platform_sendToApp;
 var elm$core$Task$spawnCmd = F2(
 	function (router, _n0) {
@@ -5584,9 +5583,25 @@ var elm$url$Url$fromString = function (str) {
 		A2(elm$core$String$dropLeft, 8, str)) : elm$core$Maybe$Nothing);
 };
 var elm$browser$Browser$Dom$getViewportOf = _Browser_getViewportOf;
+var elm$browser$Browser$Dom$setViewportOf = _Browser_setViewportOf;
+var elm$core$Basics$ge = _Utils_ge;
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
 var elm$core$Basics$not = _Basics_not;
+var elm$core$Basics$round = _Basics_round;
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
+var elm$core$String$toFloat = _String_toFloat;
 var elm$core$Basics$composeL = F3(
 	function (g, f, x) {
 		return g(
@@ -5932,9 +5947,6 @@ var elm$parser$Parser$Advanced$Token = F2(
 	function (a, b) {
 		return {$: 'Token', a: a, b: b};
 	});
-var elm$core$Basics$negate = function (n) {
-	return -n;
-};
 var elm$parser$Parser$Advanced$AddRight = F2(
 	function (a, b) {
 		return {$: 'AddRight', a: a, b: b};
@@ -6313,7 +6325,7 @@ var author$project$Main$update = F2(
 						A2(
 							elm$core$Task$attempt,
 							author$project$Main$handleError(author$project$Main$UpdateVisibleRows),
-							elm$browser$Browser$Dom$getViewportOf('table-container')));
+							elm$browser$Browser$Dom$getViewportOf(author$project$Main$table_container)));
 				case 'NoOp':
 					return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
 				case 'HandleErrorEvent':
@@ -6411,17 +6423,56 @@ var author$project$Main$update = F2(
 						A2(
 							elm$core$Task$attempt,
 							author$project$Main$handleError(author$project$Main$UpdateVisibleRows),
-							elm$browser$Browser$Dom$getViewportOf('table-container')));
-				default:
+							elm$browser$Browser$Dom$getViewportOf(author$project$Main$table_container)));
+				case 'UpdateVisibleRows':
 					var viewport = msg.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
+								viewportY: viewport.viewport.y,
 								visibleRows: A2(
 									author$project$Main$getVisibleRows,
 									elm$core$List$length(model.records),
 									viewport)
+							}),
+						function () {
+							var diff = elm$core$Basics$round(viewport.viewport.y - model.viewportY);
+							return (_Utils_cmp(diff, author$project$Main$row_height) > -1) ? author$project$Ports$scrollTable(-diff) : elm$core$Platform$Cmd$none;
+						}());
+				case 'ScrollDown':
+					return _Utils_Tuple2(
+						model,
+						A2(
+							elm$core$Task$attempt,
+							author$project$Main$handleError(author$project$Main$ScrollDownNext),
+							elm$browser$Browser$Dom$getViewportOf(author$project$Main$table_container)));
+				case 'ScrollDownNext':
+					var viewport = msg.a;
+					return _Utils_Tuple2(
+						model,
+						A2(
+							elm$core$Task$attempt,
+							author$project$Main$handleError(
+								elm$core$Basics$always(author$project$Main$NoOp)),
+							A3(
+								elm$browser$Browser$Dom$setViewportOf,
+								author$project$Main$table_container,
+								viewport.viewport.x,
+								viewport.viewport.y + A2(
+									elm$core$Maybe$withDefault,
+									0,
+									elm$core$String$toFloat(model.filename)))));
+				default:
+					var num = A2(
+						elm$core$Maybe$withDefault,
+						0,
+						elm$core$String$toInt(model.filename));
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								visibleRows: A2(author$project$Main$VisibleRows, model.visibleRows.start + num, model.visibleRows.end + num)
 							}),
 						elm$core$Platform$Cmd$none);
 			}
@@ -6431,13 +6482,14 @@ var author$project$Main$init = function (_n0) {
 	return A2(
 		author$project$Main$update,
 		author$project$Main$Initialize,
-		A5(
+		A6(
 			author$project$Main$Model,
 			false,
 			_List_Nil,
 			_List_Nil,
 			'',
-			A2(author$project$Main$VisibleRows, 0, 0)));
+			A2(author$project$Main$VisibleRows, 0, 0),
+			0));
 };
 var elm$core$Platform$Sub$batch = _Platform_batch;
 var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
@@ -6452,7 +6504,9 @@ var author$project$Main$CsvRequested = function (a) {
 var author$project$Main$FilenameEdited = function (a) {
 	return {$: 'FilenameEdited', a: a};
 };
+var author$project$Main$ScrollDown = {$: 'ScrollDown'};
 var author$project$Main$ToggleSidePanel = {$: 'ToggleSidePanel'};
+var author$project$Main$VisibleDown = {$: 'VisibleDown'};
 var author$project$Main$debug = true;
 var author$project$Main$isJust = function (m) {
 	if (m.$ === 'Just') {
@@ -6461,7 +6515,6 @@ var author$project$Main$isJust = function (m) {
 		return false;
 	}
 };
-var elm$core$Basics$ge = _Utils_ge;
 var elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -6472,15 +6525,6 @@ var elm$core$List$filter = F2(
 				}),
 			_List_Nil,
 			list);
-	});
-var elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
 	});
 var author$project$Main$filterVisible = F2(
 	function (_n0, list) {
@@ -6666,7 +6710,7 @@ var author$project$Main$vieww = function (model) {
 								_List_fromArray(
 									[
 										elm$html$Html$Attributes$class('table-sticky'),
-										elm$html$Html$Attributes$id('table-container')
+										elm$html$Html$Attributes$id(author$project$Main$table_container)
 									]),
 								_List_fromArray(
 									[
@@ -6781,7 +6825,8 @@ var author$project$Main$vieww = function (model) {
 																			A2(
 																			elm$html$Html$Attributes$style,
 																			'height',
-																			elm$core$String$fromInt(model.visibleRows.start * author$project$Main$row_height) + 'px')
+																			elm$core$String$fromInt(model.visibleRows.start * author$project$Main$row_height) + 'px'),
+																			A2(elm$html$Html$Attributes$style, 'background-color', 'red')
 																		]),
 																	_List_Nil)
 																]))
@@ -6806,7 +6851,8 @@ var author$project$Main$vieww = function (model) {
 																				elm$html$Html$Attributes$style,
 																				'height',
 																				elm$core$String$fromInt(
-																					((elm$core$List$length(model.records) - model.visibleRows.end) - 1) * author$project$Main$row_height) + 'px')
+																					((elm$core$List$length(model.records) - 1) - model.visibleRows.end) * author$project$Main$row_height) + 'px'),
+																				A2(elm$html$Html$Attributes$style, 'background-color', 'blue')
 																			]),
 																		_List_Nil)
 																	])),
@@ -7072,6 +7118,28 @@ var author$project$Main$vieww = function (model) {
 																		_List_fromArray(
 																			[
 																				elm$html$Html$text('Scroll')
+																			])),
+																		A2(
+																		elm$html$Html$button,
+																		_List_fromArray(
+																			[
+																				elm$html$Html$Attributes$class('ui button blue'),
+																				elm$html$Html$Events$onClick(author$project$Main$ScrollDown)
+																			]),
+																		_List_fromArray(
+																			[
+																				elm$html$Html$text('Scroll Down')
+																			])),
+																		A2(
+																		elm$html$Html$button,
+																		_List_fromArray(
+																			[
+																				elm$html$Html$Attributes$class('ui button blue'),
+																				elm$html$Html$Events$onClick(author$project$Main$VisibleDown)
+																			]),
+																		_List_fromArray(
+																			[
+																				elm$html$Html$text('Visible Down')
 																			]))
 																	]))
 															]))
