@@ -31,9 +31,10 @@ import Browser.Dom exposing (..)
 import File exposing (File)
 import File.Select exposing (file)
 import File.Download exposing (string)
-import Task exposing (perform, attempt)
+import Task exposing (Task, perform, attempt)
 import Maybe exposing (withDefault)
 import List exposing (length, repeat, map, filter, indexedMap)
+import Process exposing (sleep)
 
 --Special
 import Csv exposing (Csv, parse)
@@ -57,7 +58,7 @@ main =
 
 --==================================================================== MODEL
 
-type alias Model = {sidePanelExpanded : Bool, records : List Record, oldRecords : List OldRecord, filename : String, visibleRows : VisibleRows, viewportY : Float}
+type alias Model = {sidePanelExpanded : Bool, records : List Record, oldRecords : List OldRecord, filename : String, visibleRows : VisibleRows, viewportY : Float, scrollLock : Bool}
 type alias Record = {oldLotNo : String, lotNo : String, vendor : String, description : String, reserve : String}
 type alias OldRecord = {lotNo : String, vendor : String, description : String, reserve : String}
 type alias VisibleRows = {start : Int, end : Int}
@@ -91,7 +92,7 @@ type KeyboardEventType = KeyboardEventType
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
-init _ = update Initialize <| Model False [] [] "" (VisibleRows 0 0) 0
+init _ = update Initialize <| Model False [] [] "" (VisibleRows 0 0) 0 False
 
 emptyViewport : Viewport
 emptyViewport = Viewport {width = 0, height = 0} {x = 0, y = 0, width = 0, height = 0}
@@ -99,14 +100,14 @@ emptyViewport = Viewport {width = 0, height = 0} {x = 0, y = 0, width = 0, heigh
 --==================================================================== VIEW
 
 view : Model -> Document Msg
-view = lazy vieww >> List.singleton >> Document "Otter"
+view = lazy vieww >> List.singleton >> Document "Otter" --lazy
 
 vieww : Model -> Html Msg
 vieww model =
   div [ class "ui two column grid remove-gutters" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "twelve" else "fifteen") ++ " wide column" ]
-            [ div [ class "table-sticky", id table_container ] -- , onScroll TableScrolled
+            [ div [ class "table-sticky", id table_container, onScroll TableScrolled, style "position" "fixed" ] --
                 [ table [ class "ui single line fixed unstackable celled compact table header-color row-height-fix" ]
                     [ col [ attribute "width" "100px" ] []
                     , col [ attribute "width" "100px" ] []
@@ -244,11 +245,15 @@ update msg model =
 
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
-    TableScrolled -> (model, attempt (handleError UpdateVisibleRows) <| getViewportOf table_container)
+    TableScrolled ->
+      if model.scrollLock
+      then (model, Cmd.none)
+      else ( {model | scrollLock = True}
+           , attempt (handleError UpdateVisibleRows) <| (delay 400 <| getViewportOf table_container)
+           )
     UpdateVisibleRows viewport ->
-      ( {model | visibleRows = getVisibleRows (length model.records) viewport, viewportY = viewport.viewport.y}
-      , let diff = Basics.round <| viewport.viewport.y - model.viewportY in
-          if diff >= row_height then scrollTable (-diff) else Cmd.none
+      ( {model | visibleRows = getVisibleRows (length model.records) viewport, viewportY = viewport.viewport.y, scrollLock = False}
+      , Cmd.none --let diff = Basics.round <| viewport.viewport.y - model.viewportY in if diff >= row_height then scrollTable (-diff) else Cmd.none
       )
 
     ScrollDown -> (model, attempt (handleError ScrollDownNext) <| getViewportOf table_container)
@@ -285,6 +290,11 @@ recordsToCsv : List Record -> String
 recordsToCsv records =
   let recordToCsv {oldLotNo, lotNo, vendor, description, reserve} = String.join "," [lotNo, vendor, description, reserve]
    in String.join windows_newline <| List.map recordToCsv records
+
+delay : Float -> Task x a -> Task x a
+delay time task =
+  Process.sleep time
+  |> Task.andThen (always task)
 
 --==================================================================== SUBSCRIPTIONS
 
