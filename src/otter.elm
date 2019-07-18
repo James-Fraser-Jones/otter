@@ -46,6 +46,9 @@ import Json.Decode exposing (map, succeed)
 import Keyboard.Event exposing (KeyboardEvent, decodeKeyboardEvent)
 import Keyboard.Key exposing (Key(..))
 
+--Modules
+import Ports
+
 --==================================================================== MAIN
 
 main : Program () Model Msg

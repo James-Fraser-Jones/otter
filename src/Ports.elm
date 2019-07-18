@@ -1,3 +1,3 @@
 port module Ports exposing (..)
 
-port scrollTable : Int -> Cmd msg
+port example : String -> Cmd msg
