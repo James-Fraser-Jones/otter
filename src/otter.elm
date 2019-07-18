@@ -211,13 +211,6 @@ filterVisible start end list =
   let filterRange index elem = if index >= start && index <= end then Just elem else Nothing
    in List.indexedMap filterRange list |> List.filter isJust |> List.map (Maybe.withDefault errorRecord)
 
--- | HandleKeyboardEvent KeyboardEventType KeyboardEvent
---HandleKeyboardEvent eventType event -> (model, Cmd.none)
---e.g. onKeyboardEvent MovingCursor "keydown"
--- onKeyboardEvent : KeyboardEventType -> String -> Attribute Msg
--- onKeyboardEvent eventType eventName =
---   on eventName <| map (HandleKeyboardEvent eventType) decodeKeyboardEvent
-
 --==================================================================== UPDATE
 
 update : Msg -> Model -> (Model, Cmd Msg)
