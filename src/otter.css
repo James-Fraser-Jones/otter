@@ -2,7 +2,7 @@
 /*Make table header sticky*/
 
 .table-sticky {
-  overflow: auto !important;
+  overflow: hidden !important;
   height: 100vh !important;
 }
 
@@ -20,9 +20,16 @@
 }
 
 /***********************************/
-/*Forces header and subsequent rows to be same height*/
+/*Make table position relative*/
 
-/*Remove top and bottom borders from table to prevent them from influencing row height calculations*/
+.table-relative {
+  position: relative !important;
+}
+
+/***********************************/
+/*Prevent table from being larger height than its rows*/
+/*Force header and subsequent rows to be same height*/
+
 .row-height-fix {
   border-top-width: 0 !important;
   border-bottom-width: 0 !important;
@@ -45,7 +52,7 @@
 }
 
 /***********************************/
-/*Removes grid gutters*/
+/*Remove grid gutters*/
 
 .remove-gutters {
   margin: 0 !important;
@@ -60,6 +67,7 @@
 }
 
 /***********************************/
+/*Horizontally align stuff*/
 
 .horizontal-center {
   text-align: center !important;

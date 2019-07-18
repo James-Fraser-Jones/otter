@@ -1,6 +1,5 @@
 <!DOCTYPE HTML>
 <html>
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -17,8 +16,8 @@
   <div class="ui two column grid remove-gutters">
     <div class="row">
       <div class="fifteen wide column">
-        <div class="table-sticky">
-          <table class="ui single line fixed unstackable celled striped compact table header-color row-height-fix", style="height:2215px;">
+        <div class="table-sticky" id="table-container">
+          <table class="ui single line fixed unstackable celled compact table header-color row-height-fix table-relative">
             <col width="100px">
             <col width="100px">
             <col width="100px">
@@ -33,8 +32,8 @@
                 <th>Reserve</th>
               </tr>
             </thead>
-            <tbody class="first-row-height-fix">
-              <tr style="height:500px"><div></div><tr>
+            <tbody>
+              <tr style="height:500px" id="top-buffer"></tr>
               <tr> <td>a</td> <td>b</td> <td>c</td> <td>d</td> <td>e</td> </tr>
               <tr> <td>f</td> <td>g</td> <td>h</td> <td>i</td> <td>j</td> </tr>
               <tr> <td>k</td> <td>l</td> <td>m</td> <td>n</td> <td>o</td> </tr>
@@ -85,6 +84,7 @@
               <tr> <td>k</td> <td>l</td> <td>m</td> <td>n</td> <td>o</td> </tr>
               <tr> <td>p</td> <td>q</td> <td>r</td> <td>s</td> <td>t</td> </tr>
               <tr> <td>u</td> <td>v</td> <td>w</td> <td>x</td> <td>y</td> </tr>
+              <tr style="height:500px" id="bottom-buffer"></tr>
               <tr class="positive"><td></td> <td></td> <td></td> <td></td> <td></td> </tr>
             </tbody>
           </table>
@@ -101,3 +101,13 @@
   </div>
 </body>
 </html>
+
+<!--
+document.getElementById("top-buffer").style.height = "300px"; document.getElementById("bottom-buffer").style.height = "700px";
+document.getElementById("top-buffer").style.height = "500px"; document.getElementById("bottom-buffer").style.height = "500px";
+document.getElementById("top-buffer").style.height = "700px"; document.getElementById("bottom-buffer").style.height = "300px";
+
+document.getElementById("table-container").addEventListener("scroll", e => {
+	console.log(e);
+});
+-->

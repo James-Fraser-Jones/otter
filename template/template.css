@@ -2,7 +2,7 @@
 /*Make table header sticky*/
 
 .table-sticky {
-  overflow: auto !important;
+  overflow: hidden !important;
   height: 100vh !important;
 }
 
@@ -22,19 +22,26 @@
 /***********************************/
 /*Forces header and subsequent rows to be same height*/
 
-/*Add 1px top border back onto top non-header row*/
-.first-row-height-fix tr:first-child td {
-  border-top: 1px solid rgba(34,36,38,.1) !important;
+/*Remove top and bottom borders from table to prevent them from influencing row height calculations*/
+.row-height-fix {
+  border-top-width: 0 !important;
+  border-bottom-width: 0 !important;
 }
 
-/*Force header to have same vertical padding as other rows*/
 .row-height-fix th {
+  height: 35px !important;
+  border-bottom: 1px solid rgba(34,36,38,.1) !important;
+  border-top-width: 0 !important;
   padding-top: 7px !important;
   padding-bottom: 7px !important;
 }
 
 .row-height-fix td {
   height: 35px !important;
+  border-bottom: 1px solid rgba(34,36,38,.1) !important;
+  border-top-width: 0 !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
 }
 
 /***********************************/
@@ -56,4 +63,11 @@
 
 .horizontal-center {
   text-align: center !important;
+}
+
+/***********************************/
+
+.table-relative {
+  position: relative !important;
+  top: 0px !important;
 }

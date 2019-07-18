@@ -35,6 +35,8 @@ import Task exposing (Task, perform, attempt)
 import Maybe exposing (withDefault)
 import List exposing (length, repeat, map, filter, indexedMap)
 import Process exposing (sleep)
+import Json.Decode exposing (bool, field, maybe)
+import Html.Events.Extra.Wheel as Wheel
 
 --Special
 import Csv exposing (Csv, parse)
@@ -43,7 +45,7 @@ import Keyboard.Event exposing (KeyboardEvent, decodeKeyboardEvent)
 import Keyboard.Key exposing (Key(..))
 
 --Module
-import Ports exposing (scrollTable)
+--import Ports exposing (scrollTable)
 
 --==================================================================== MAIN
 
@@ -58,7 +60,7 @@ main =
 
 --==================================================================== MODEL
 
-type alias Model = {sidePanelExpanded : Bool, records : List Record, oldRecords : List OldRecord, filename : String, visibleRows : VisibleRows, viewportY : Float, scrollLock : Bool}
+type alias Model = {sidePanelExpanded : Bool, records : List Record, oldRecords : List OldRecord, filename : String, visibleRows : VisibleRows, viewportY : Int, scrollLock : Bool}
 type alias Record = {oldLotNo : String, lotNo : String, vendor : String, description : String, reserve : String}
 type alias OldRecord = {lotNo : String, vendor : String, description : String, reserve : String}
 type alias VisibleRows = {start : Int, end : Int}
@@ -80,12 +82,12 @@ type Msg
 
   | FilenameEdited String
 
-  | TableScrolled
+  | TableScrolled Wheel.Event
   | UpdateVisibleRows Viewport
 
-  | ScrollDown
-  | ScrollDownNext Viewport
-  | VisibleDown
+  -- | ScrollDown
+  -- | ScrollDownNext Viewport
+  -- | VisibleDown
 
 type KeyboardEventType = KeyboardEventType
 
@@ -100,15 +102,15 @@ emptyViewport = Viewport {width = 0, height = 0} {x = 0, y = 0, width = 0, heigh
 --==================================================================== VIEW
 
 view : Model -> Document Msg
-view = lazy vieww >> List.singleton >> Document "Otter" --lazy
+view = lazy vieww >> List.singleton >> Document "Otter"
 
 vieww : Model -> Html Msg
 vieww model =
   div [ class "ui two column grid remove-gutters" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "twelve" else "fifteen") ++ " wide column" ]
-            [ div [ class "table-sticky", id table_container, onScroll TableScrolled, style "position" "fixed" ] --
-                [ table [ class "ui single line fixed unstackable celled compact table header-color row-height-fix" ]
+            [ div [ class "table-sticky", id table_container, Wheel.onWheel TableScrolled ]
+                [ table [ class "ui single line fixed unstackable celled compact table header-color row-height-fix table-relative", style "top" ("-" ++ String.fromInt model.viewportY ++ "px") ]
                     [ col [ attribute "width" "100px" ] []
                     , col [ attribute "width" "100px" ] []
                     , col [ attribute "width" "100px" ] []
@@ -123,7 +125,7 @@ vieww model =
                             , th [] [ text "Reserve" ]
                             ]
                         ]
-                    , tbody [ class "first-row-height-fix" ]
+                    , tbody []
                         (   [ tr [] [ div [ style "height" <| (String.fromInt <| model.visibleRows.start * row_height) ++ "px", style "background-color" "red" ] [] ] ]
                         ++  (List.map recordToRow <| filterVisible model.visibleRows model.records)
                         ++  [ tr [] [ div [ style "height" <| (String.fromInt <| (length model.records - 1 - model.visibleRows.end) * row_height) ++ "px", style "background-color" "blue" ] [] ]
@@ -179,9 +181,9 @@ vieww model =
                     [ div [ class "ui form" ]
                         [ div [ class "field" ]
                             [ div [ class "ui buttons" ]
-                                [ button [ class "ui button blue", onClick TableScrolled ] [ text "Scroll" ]
-                                , button [ class "ui button blue", onClick ScrollDown ] [ text "Scroll Down" ]
-                                , button [ class "ui button blue", onClick VisibleDown ] [ text "Visible Down" ]
+                                [ button [ class "ui button blue", onClick NoOp ] [ text "Test" ]
+                                --, button [ class "ui button blue", onClick ScrollDown ] [ text "Scroll Down" ]
+                                --, button [ class "ui button blue", onClick VisibleDown ] [ text "Visible Down" ]
                                 ]
                             ]
                         ]
@@ -235,7 +237,7 @@ update msg model =
           Err _ -> (model, Cmd.none)
           Ok csv -> if suggestion
                     then ({model | oldRecords = List.map listToOldRecord csv.records}, Cmd.none)
-                    else update TableScrolled {model | records = model.records ++ List.map listToRecord csv.records}
+                    else ({model | records = model.records ++ List.map listToRecord csv.records, scrollLock = True}, updateVisibleRows)
     CsvExported ->
       ( model
       , string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records)
@@ -245,27 +247,32 @@ update msg model =
 
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
-    TableScrolled ->
-      if model.scrollLock
-      then (model, Cmd.none)
-      else ( {model | scrollLock = True}
-           , attempt (handleError UpdateVisibleRows) <| (delay 400 <| getViewportOf table_container)
-           )
+    TableScrolled event ->
+      let dir = if event.deltaY >= 0 then 1 else -1 in
+        ( {model | viewportY = Basics.clamp 0 ((length model.records + 1) * row_height - 969) (model.viewportY + dir * row_height), scrollLock = True}
+        , if model.scrollLock then Cmd.none else updateVisibleRows
+        )
+
     UpdateVisibleRows viewport ->
-      ( {model | visibleRows = getVisibleRows (length model.records) viewport, viewportY = viewport.viewport.y, scrollLock = False}
+      ( {model | visibleRows = getVisibleRows (length model.records) viewport model.viewportY, scrollLock = False}
       , Cmd.none --let diff = Basics.round <| viewport.viewport.y - model.viewportY in if diff >= row_height then scrollTable (-diff) else Cmd.none
       )
 
-    ScrollDown -> (model, attempt (handleError ScrollDownNext) <| getViewportOf table_container)
-    ScrollDownNext viewport ->
-      (model, attempt (handleError <| always NoOp) <| setViewportOf table_container viewport.viewport.x (viewport.viewport.y + withDefault 0 (String.toFloat model.filename)))
-    VisibleDown -> let num = withDefault 0 (String.toInt model.filename) in ({model | visibleRows = VisibleRows (model.visibleRows.start + num) (model.visibleRows.end + num)}, Cmd.none)
+    -- ScrollDown -> (model, attempt (handleError ScrollDownNext) <| getViewportOf table_container)
+    -- ScrollDownNext viewport ->
+    --   (model, attempt (handleError <| always NoOp) <| setViewportOf table_container viewport.viewport.x (viewport.viewport.y + withDefault 0 (String.toFloat model.filename)))
+    -- VisibleDown -> let num = withDefault 0 (String.toInt model.filename) in ({model | visibleRows = VisibleRows (model.visibleRows.start + num) (model.visibleRows.end + num)}, Cmd.none)
 
-getVisibleRows : Int -> Viewport -> VisibleRows
-getVisibleRows numRecords viewport =
-  VisibleRows
-    (pred <| Basics.max 1 <| floor <| viewport.viewport.y / row_height)
-    (pred <| Basics.min (numRecords + 1) <| pred <| ceiling <| (viewport.viewport.y + viewport.viewport.height) / row_height)
+updateVisibleRows : Cmd Msg
+updateVisibleRows =
+  attempt (handleError UpdateVisibleRows) <| (delay 400 <| getViewportOf table_container)
+
+getVisibleRows : Int -> Viewport -> Int -> VisibleRows
+getVisibleRows numRecords viewport viewportY =
+    let
+      bottom = (pred <| Basics.max 1 <| floor <| toFloat viewportY / row_height)
+      top = (pred <| Basics.min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + round viewport.viewport.height) / row_height)
+    in VisibleRows bottom top
 
 listToOldRecord : List String -> OldRecord
 listToOldRecord list =
@@ -375,3 +382,8 @@ debug = True
 
 table_container : String
 table_container = "table-container"
+
+--==================================================================== DECODERS
+
+-- onTrustedScroll : Attribute Msg
+-- onTrustedScroll = on "scroll" <| map (TableScrolled << ((==) <| Just True)) <| maybe <| field "isTrusted" bool
