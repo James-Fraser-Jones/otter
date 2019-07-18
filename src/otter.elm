@@ -25,17 +25,19 @@
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import Html.Lazy exposing (lazy)
-import Browser exposing (Document, document)
-import Browser.Dom exposing (..)
-import File exposing (File)
-import File.Select exposing (file)
-import File.Download exposing (string)
-import Task exposing (Task, perform, attempt)
-import Maybe exposing (withDefault)
-import List exposing (length, repeat, map, filter, indexedMap)
-import Process exposing (sleep)
-import Json.Decode exposing (bool, field, maybe)
+
+import Html.Lazy as Lazy
+import Browser
+import Browser.Dom as Dom
+import Browser.Events as BEvent
+import File
+import File.Select as Select
+import File.Download as Download
+import Task
+import Maybe
+import List
+import Process
+import Json.Decode as Decode
 import Html.Events.Extra.Wheel as Wheel
 
 --Special
@@ -43,9 +45,6 @@ import Csv exposing (Csv, parse)
 import Json.Decode exposing (map, succeed)
 import Keyboard.Event exposing (KeyboardEvent, decodeKeyboardEvent)
 import Keyboard.Key exposing (Key(..))
-
---Module
---import Ports exposing (scrollTable)
 
 --==================================================================== MAIN
 
@@ -60,49 +59,53 @@ main =
 
 --==================================================================== MODEL
 
-type alias Model = {sidePanelExpanded : Bool, records : List Record, oldRecords : List OldRecord, filename : String, visibleRows : VisibleRows, viewportY : Int, scrollLock : Bool}
 type alias Record = {oldLotNo : String, lotNo : String, vendor : String, description : String, reserve : String}
 type alias OldRecord = {lotNo : String, vendor : String, description : String, reserve : String}
-type alias VisibleRows = {start : Int, end : Int}
+
+type KeyboardEventType = KeyboardEventType
+
+type alias Model = { sidePanelExpanded : Bool     --Settings
+                   , filename : String
+
+                   , records : List Record        --Data
+                   , oldRecords : List OldRecord
+
+                   , enableVirtualization : Bool  --Virtualization
+                   , scrollLock : Bool
+                   , visibleStartIndex : Int
+                   , visibleEndIndex : Int
+                   , viewportHeight : Int
+                   , viewportY : Int
+                   }
 
 type Msg
-  = Initialize
-  | NoOp
+  = NoOp  --Standard
   | HandleErrorEvent String
-  | HandleKeyboardEvent KeyboardEventType KeyboardEvent
 
-  | ToggleSidePanel
+  | ToggleSidePanel --Simple
+  | ClearAll
+  | FilenameEdited String
 
-  | CsvRequested Bool
-  | CsvSelected Bool File
+  | CsvRequested Bool --CSV Import/Export
+  | CsvSelected Bool File.File
   | CsvLoaded Bool String String
   | CsvExported
 
-  | ClearAll
-
-  | FilenameEdited String
-
-  | TableScrolled Wheel.Event
-  | UpdateVisibleRows Viewport
-
-  -- | ScrollDown
-  -- | ScrollDownNext Viewport
-  -- | VisibleDown
-
-type KeyboardEventType = KeyboardEventType
+  | TableScrolled Wheel.Event --Virtualization
+  | UpdateVisibleRows
+  | CheckTableContainer
+  | TableContainerSize Dom.Viewport
+  | ToggleVirualization
 
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
-init _ = update Initialize <| Model False [] [] "" (VisibleRows 0 0) 0 False
-
-emptyViewport : Viewport
-emptyViewport = Viewport {width = 0, height = 0} {x = 0, y = 0, width = 0, height = 0}
+init _ = update CheckTableContainer <| Model False "" [] [] True False 0 0 0 0
 
 --==================================================================== VIEW
 
-view : Model -> Document Msg
-view = lazy vieww >> List.singleton >> Document "Otter"
+view : Model -> Browser.Document Msg
+view = Lazy.lazy vieww >> List.singleton >> Browser.Document "Otter"
 
 vieww : Model -> Html Msg
 vieww model =
@@ -126,11 +129,11 @@ vieww model =
                             ]
                         ]
                     , tbody []
-                        (   [ tr [] [ div [ style "height" <| (String.fromInt <| model.visibleRows.start * row_height) ++ "px", style "background-color" "red" ] [] ] ]
-                        ++  (List.map recordToRow <| filterVisible model.visibleRows model.records)
-                        ++  [ tr [] [ div [ style "height" <| (String.fromInt <| (length model.records - 1 - model.visibleRows.end) * row_height) ++ "px", style "background-color" "blue" ] [] ]
-                            , tr [ class "positive" ] [td [] [], td [] [], td [] [], td [] [], td [] []]
-                            ]
+                        (  [ tr [] [ div [ style "height" <| (String.fromInt <| model.visibleStartIndex * row_height) ++ "px" ] [] ] ]
+                        ++ (List.map recordToRow <| filterVisible model.visibleStartIndex model.visibleEndIndex model.records)
+                        ++ [ tr [] [ div [ style "height" <| (String.fromInt <| (List.length model.records - 1 - model.visibleEndIndex) * row_height) ++ "px" ] [] ]
+                           , tr [ class "positive" ] [td [] [], td [] [], td [] [], td [] [], td [] []]
+                           ]
                         )
                     ]
                 ]
@@ -181,9 +184,7 @@ vieww model =
                     [ div [ class "ui form" ]
                         [ div [ class "field" ]
                             [ div [ class "ui buttons" ]
-                                [ button [ class "ui button blue", onClick NoOp ] [ text "Test" ]
-                                --, button [ class "ui button blue", onClick ScrollDown ] [ text "Scroll Down" ]
-                                --, button [ class "ui button blue", onClick VisibleDown ] [ text "Visible Down" ]
+                                [ button [ class "ui button blue", onClick ToggleVirualization ] [ text "Toggle Virtualization" ]
                                 ]
                             ]
                         ]
@@ -205,32 +206,31 @@ recordToRow {oldLotNo, lotNo, vendor, description, reserve} =
     , td [] [ text reserve ]
     ]
 
-filterVisible : VisibleRows -> List Record -> List Record
-filterVisible {start, end} list =
+filterVisible : Int -> Int -> List Record -> List Record
+filterVisible start end list =
   let filterRange index elem = if index >= start && index <= end then Just elem else Nothing
-   in indexedMap filterRange list |> filter isJust |> List.map (withDefault <| Record "ERROR" "ERROR" "ERROR" "ERROR" "ERROR")
+   in List.indexedMap filterRange list |> List.filter isJust |> List.map (Maybe.withDefault errorRecord)
 
+-- | HandleKeyboardEvent KeyboardEventType KeyboardEvent
+--HandleKeyboardEvent eventType event -> (model, Cmd.none)
 --e.g. onKeyboardEvent MovingCursor "keydown"
-onKeyboardEvent : KeyboardEventType -> String -> Attribute Msg
-onKeyboardEvent eventType eventName =
-  on eventName <| map (HandleKeyboardEvent eventType) decodeKeyboardEvent
-
-onScroll : msg -> Attribute msg
-onScroll msg = on "scroll" (succeed msg)
+-- onKeyboardEvent : KeyboardEventType -> String -> Attribute Msg
+-- onKeyboardEvent eventType eventName =
+--   on eventName <| map (HandleKeyboardEvent eventType) decodeKeyboardEvent
 
 --==================================================================== UPDATE
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Initialize -> (model, attempt (handleError UpdateVisibleRows) <| getViewportOf table_container)
     NoOp -> (model, Cmd.none)
     HandleErrorEvent message -> (print message model, Cmd.none)
-    HandleKeyboardEvent eventType event -> (model, Cmd.none)
 
     ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
+    ClearAll -> ({model | records = []}, Cmd.none)
+    FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
-    CsvRequested suggestion -> (model, file [ csv_mime ] <| CsvSelected suggestion)
+    CsvRequested suggestion -> (model, Select.file [ csv_mime ] <| CsvSelected suggestion)
     CsvSelected suggestion file -> (model, Task.perform (CsvLoaded suggestion <| File.name file) (File.toString file))
     CsvLoaded suggestion fileName fileContent ->
       case parse fileContent of
@@ -240,57 +240,61 @@ update msg model =
                     else ({model | records = model.records ++ List.map listToRecord csv.records, scrollLock = True}, updateVisibleRows)
     CsvExported ->
       ( model
-      , string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records)
+      , Download.string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records)
       )
-
-    ClearAll -> ({model | records = []}, Cmd.none)
-
-    FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
     TableScrolled event ->
       let dir = if event.deltaY >= 0 then 1 else -1 in
-        ( {model | viewportY = Basics.clamp 0 ((length model.records + 1) * row_height - 969) (model.viewportY + dir * row_height), scrollLock = True}
+        ( {model | viewportY = Basics.clamp 0 ((List.length model.records + 2) * row_height - model.viewportHeight) (model.viewportY + dir * row_height), scrollLock = True}
         , if model.scrollLock then Cmd.none else updateVisibleRows
         )
+    UpdateVisibleRows ->
+      let
+        numRecords = List.length model.records
+        (bottom, top) = if model.enableVirtualization
+                          then getVisibleRows numRecords model.viewportHeight model.viewportY
+                          else (0, numRecords - 1)
+      in ({model | visibleStartIndex = bottom, visibleEndIndex = top, scrollLock = False}, Cmd.none)
+    CheckTableContainer -> (model, checkTableContainer)
+    TableContainerSize viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
+    ToggleVirualization -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
 
-    UpdateVisibleRows viewport ->
-      ( {model | visibleRows = getVisibleRows (length model.records) viewport model.viewportY, scrollLock = False}
-      , Cmd.none --let diff = Basics.round <| viewport.viewport.y - model.viewportY in if diff >= row_height then scrollTable (-diff) else Cmd.none
-      )
-
-    -- ScrollDown -> (model, attempt (handleError ScrollDownNext) <| getViewportOf table_container)
-    -- ScrollDownNext viewport ->
-    --   (model, attempt (handleError <| always NoOp) <| setViewportOf table_container viewport.viewport.x (viewport.viewport.y + withDefault 0 (String.toFloat model.filename)))
-    -- VisibleDown -> let num = withDefault 0 (String.toInt model.filename) in ({model | visibleRows = VisibleRows (model.visibleRows.start + num) (model.visibleRows.end + num)}, Cmd.none)
+checkTableContainer : Cmd Msg
+checkTableContainer = Task.attempt (handleError TableContainerSize) (Dom.getViewportOf table_container)
 
 updateVisibleRows : Cmd Msg
-updateVisibleRows =
-  attempt (handleError UpdateVisibleRows) <| (delay 400 <| getViewportOf table_container)
+updateVisibleRows = Task.perform (always UpdateVisibleRows) (Process.sleep scroll_wait)
 
-getVisibleRows : Int -> Viewport -> Int -> VisibleRows
-getVisibleRows numRecords viewport viewportY =
-    let
-      bottom = (pred <| Basics.max 1 <| floor <| toFloat viewportY / row_height)
-      top = (pred <| Basics.min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + round viewport.viewport.height) / row_height)
-    in VisibleRows bottom top
+getVisibleRows : Int -> Int -> Int -> (Int, Int)
+getVisibleRows numRecords viewportHeight viewportY =
+  let
+    bottom = (pred <| Basics.max 1 <| floor <| toFloat viewportY / row_height)
+    top = (pred <| Basics.min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + viewportHeight) / row_height)
+  in (bottom, top)
 
 listToOldRecord : List String -> OldRecord
 listToOldRecord list =
   case pad 4 "" list of
     (a :: b :: c :: d :: xs) -> OldRecord a b c d
-    _ -> OldRecord "ERROR" "ERROR" "ERROR" "ERROR"
+    _ -> errorOldRecord
 
 listToRecord : List String -> Record
 listToRecord list =
   case pad 4 "" list of
     (a :: b :: c :: d :: xs) -> Record "" a b c d
-    _ -> Record "ERROR" "ERROR" "ERROR" "ERROR" "ERROR"
+    _ -> errorRecord
+
+errorRecord : Record
+errorRecord = Record "ERROR" "ERROR" "ERROR" "ERROR" "ERROR"
+
+errorOldRecord : OldRecord
+errorOldRecord = OldRecord "ERROR" "ERROR" "ERROR" "ERROR"
 
 --e.g. Task.attempt handleError
-handleError : (a -> Msg) -> Result Error a -> Msg
+handleError : (a -> Msg) -> Result Dom.Error a -> Msg
 handleError onSuccess result =
   case result of
-    Err (NotFound message) -> HandleErrorEvent message
+    Err (Dom.NotFound message) -> HandleErrorEvent message
     Ok value -> onSuccess value
 
 recordsToCsv : List Record -> String
@@ -298,15 +302,10 @@ recordsToCsv records =
   let recordToCsv {oldLotNo, lotNo, vendor, description, reserve} = String.join "," [lotNo, vendor, description, reserve]
    in String.join windows_newline <| List.map recordToCsv records
 
-delay : Float -> Task x a -> Task x a
-delay time task =
-  Process.sleep time
-  |> Task.andThen (always task)
-
 --==================================================================== SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
-subscriptions _ = Sub.none
+subscriptions _ = BEvent.onResize (\_ _ -> CheckTableContainer)
 
 --==================================================================== PRELUDE
 
@@ -341,7 +340,7 @@ updateAt n f lst =
 
 pad : Int -> a -> List a -> List a
 pad n def list =
-  list ++ repeat (Basics.max (n - length list) 0) def
+  list ++ List.repeat (Basics.max (n - List.length list) 0) def
 
 isJust : Maybe a -> Bool
 isJust m =
@@ -377,13 +376,15 @@ row_height = 34
 html_empty : Html Msg
 html_empty = div [] []
 
-debug : Bool
-debug = True
-
 table_container : String
 table_container = "table-container"
 
---==================================================================== DECODERS
+--==================================================================== GLOBAL SETTINGS
 
--- onTrustedScroll : Attribute Msg
--- onTrustedScroll = on "scroll" <| map (TableScrolled << ((==) <| Just True)) <| maybe <| field "isTrusted" bool
+debug : Bool
+debug = True
+
+scroll_wait : number
+scroll_wait = 200
+
+--==================================================================== DECODERS
