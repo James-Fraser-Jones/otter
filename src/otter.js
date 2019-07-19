@@ -4618,7 +4618,6 @@ var _Parser_findSubString = F5(function(smallString, offset, row, col, bigString
 
 	return _Utils_Tuple3(newOffset, row, col);
 });
-var author$project$Main$CheckTableContainer = {$: 'CheckTableContainer'};
 var author$project$Main$Model = function (sidePanelExpanded) {
 	return function (filename) {
 		return function (records) {
@@ -4640,6 +4639,7 @@ var author$project$Main$Model = function (sidePanelExpanded) {
 		};
 	};
 };
+var author$project$Main$VirResize = {$: 'VirResize'};
 var author$project$Main$CsvLoaded = F3(
 	function (a, b, c) {
 		return {$: 'CsvLoaded', a: a, b: b, c: c};
@@ -4648,8 +4648,12 @@ var author$project$Main$CsvSelected = F2(
 	function (a, b) {
 		return {$: 'CsvSelected', a: a, b: b};
 	});
-var author$project$Main$TableContainerSize = function (a) {
-	return {$: 'TableContainerSize', a: a};
+var author$project$Main$VirScroll = F2(
+	function (a, b) {
+		return {$: 'VirScroll', a: a, b: b};
+	});
+var author$project$Main$VirScrollbarInfo = function (a) {
+	return {$: 'VirScrollbarInfo', a: a};
 };
 var author$project$Main$HandleErrorEvent = function (a) {
 	return {$: 'HandleErrorEvent', a: a};
@@ -4664,7 +4668,7 @@ var author$project$Main$handleError = F2(
 			return onSuccess(value);
 		}
 	});
-var author$project$Main$table_container = 'table-container';
+var author$project$Main$scroll_bar = 'scroll-bar';
 var elm$browser$Browser$External = function (a) {
 	return {$: 'External', a: a};
 };
@@ -5478,9 +5482,17 @@ var elm$core$Task$attempt = F2(
 							elm$core$Result$Ok),
 						task))));
 	});
+var author$project$Main$checkScrollbar = A2(
+	elm$core$Task$attempt,
+	author$project$Main$handleError(author$project$Main$VirScrollbarInfo),
+	elm$browser$Browser$Dom$getViewportOf(author$project$Main$scroll_bar));
+var author$project$Main$VirContainerInfo = function (a) {
+	return {$: 'VirContainerInfo', a: a};
+};
+var author$project$Main$table_container = 'table-container';
 var author$project$Main$checkTableContainer = A2(
 	elm$core$Task$attempt,
-	author$project$Main$handleError(author$project$Main$TableContainerSize),
+	author$project$Main$handleError(author$project$Main$VirContainerInfo),
 	elm$browser$Browser$Dom$getViewportOf(author$project$Main$table_container));
 var author$project$Main$csv_mime = 'text/csv';
 var author$project$Main$flip = F3(
@@ -5621,12 +5633,21 @@ var author$project$Main$recordsToCsv = function (records) {
 var author$project$Main$tableHeight = function (model) {
 	return (elm$core$List$length(model.records) + 2) * author$project$Main$row_height;
 };
-var author$project$Main$UpdateVisibleRows = {$: 'UpdateVisibleRows'};
-var author$project$Main$scroll_wait = 200;
+var author$project$Main$NoOp = {$: 'NoOp'};
+var elm$browser$Browser$Dom$setViewportOf = _Browser_setViewportOf;
+var author$project$Main$updateScrollBar = function (newViewportY) {
+	return A2(
+		elm$core$Task$attempt,
+		author$project$Main$handleError(
+			elm$core$Basics$always(author$project$Main$NoOp)),
+		A3(elm$browser$Browser$Dom$setViewportOf, author$project$Main$scroll_bar, 0, newViewportY));
+};
+var author$project$Main$VirUpdate = {$: 'VirUpdate'};
+var author$project$Main$scroll_wait = 100;
 var elm$core$Process$sleep = _Process_sleep;
 var author$project$Main$updateVisibleRows = A2(
 	elm$core$Task$perform,
-	elm$core$Basics$always(author$project$Main$UpdateVisibleRows),
+	elm$core$Basics$always(author$project$Main$VirUpdate),
 	elm$core$Process$sleep(author$project$Main$scroll_wait));
 var elm$core$Basics$clamp = F3(
 	function (low, high, number) {
@@ -6330,138 +6351,170 @@ var periodic$elm_csv$Csv$parse = function (s) {
 };
 var author$project$Main$update = F2(
 	function (msg, model) {
-		switch (msg.$) {
-			case 'NoOp':
-				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
-			case 'HandleErrorEvent':
-				var message = msg.a;
-				return _Utils_Tuple2(
-					A2(author$project$Main$print, message, model),
-					elm$core$Platform$Cmd$none);
-			case 'ToggleSidePanel':
-				var newExpanded = !model.sidePanelExpanded;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{sidePanelExpanded: newExpanded}),
-					elm$core$Platform$Cmd$none);
-			case 'ClearAll':
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{records: _List_Nil}),
-					elm$core$Platform$Cmd$none);
-			case 'FilenameEdited':
-				var newText = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{filename: newText}),
-					elm$core$Platform$Cmd$none);
-			case 'CsvRequested':
-				var suggestion = msg.a;
-				return _Utils_Tuple2(
-					model,
-					A2(
-						elm$file$File$Select$file,
-						_List_fromArray(
-							[author$project$Main$csv_mime]),
-						author$project$Main$CsvSelected(suggestion)));
-			case 'CsvSelected':
-				var suggestion = msg.a;
-				var file = msg.b;
-				return _Utils_Tuple2(
-					model,
-					A2(
-						elm$core$Task$perform,
-						A2(
-							author$project$Main$CsvLoaded,
-							suggestion,
-							elm$file$File$name(file)),
-						elm$file$File$toString(file)));
-			case 'CsvLoaded':
-				var suggestion = msg.a;
-				var fileName = msg.b;
-				var fileContent = msg.c;
-				var _n1 = periodic$elm_csv$Csv$parse(fileContent);
-				if (_n1.$ === 'Err') {
+		update:
+		while (true) {
+			switch (msg.$) {
+				case 'NoOp':
 					return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
-				} else {
-					var csv = _n1.a;
-					return suggestion ? _Utils_Tuple2(
+				case 'HandleErrorEvent':
+					var message = msg.a;
+					return _Utils_Tuple2(
+						A2(author$project$Main$print, message, model),
+						elm$core$Platform$Cmd$none);
+				case 'ToggleSidePanel':
+					var newExpanded = !model.sidePanelExpanded;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{sidePanelExpanded: newExpanded}),
+						elm$core$Platform$Cmd$none);
+				case 'ClearAllRecords':
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{records: _List_Nil, viewportY: 0, visibleEndIndex: -1, visibleStartIndex: -1}),
+						elm$core$Platform$Cmd$none);
+				case 'FilenameEdited':
+					var newText = msg.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{filename: newText}),
+						elm$core$Platform$Cmd$none);
+				case 'CsvRequested':
+					var suggestion = msg.a;
+					return _Utils_Tuple2(
+						model,
+						A2(
+							elm$file$File$Select$file,
+							_List_fromArray(
+								[author$project$Main$csv_mime]),
+							author$project$Main$CsvSelected(suggestion)));
+				case 'CsvSelected':
+					var suggestion = msg.a;
+					var file = msg.b;
+					return _Utils_Tuple2(
+						model,
+						A2(
+							elm$core$Task$perform,
+							A2(
+								author$project$Main$CsvLoaded,
+								suggestion,
+								elm$file$File$name(file)),
+							elm$file$File$toString(file)));
+				case 'CsvLoaded':
+					var suggestion = msg.a;
+					var fileName = msg.b;
+					var fileContent = msg.c;
+					var _n1 = periodic$elm_csv$Csv$parse(fileContent);
+					if (_n1.$ === 'Err') {
+						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+					} else {
+						var csv = _n1.a;
+						return suggestion ? _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									oldRecords: A2(elm$core$List$map, author$project$Main$listToOldRecord, csv.records)
+								}),
+							elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									records: _Utils_ap(
+										model.records,
+										A2(elm$core$List$map, author$project$Main$listToRecord, csv.records)),
+									scrollLock: true
+								}),
+							author$project$Main$updateVisibleRows);
+					}
+				case 'CsvExported':
+					return _Utils_Tuple2(
+						model,
+						A3(
+							elm$file$File$Download$string,
+							((model.filename === '') ? 'export' : model.filename) + '.csv',
+							author$project$Main$csv_mime,
+							author$project$Main$recordsToCsv(model.records)));
+				case 'VirWheelScroll':
+					var event = msg.a;
+					var $temp$msg = A2(
+						author$project$Main$VirScroll,
+						false,
+						A2(
+							author$project$Main$flip,
+							(event.deltaY >= 0) ? elm$core$Basics$add : elm$core$Basics$sub,
+							author$project$Main$row_height)),
+						$temp$model = model;
+					msg = $temp$msg;
+					model = $temp$model;
+					continue update;
+				case 'VirScrollbarScroll':
+					return _Utils_Tuple2(model, author$project$Main$checkScrollbar);
+				case 'VirScrollbarInfo':
+					var viewport = msg.a;
+					var $temp$msg = A2(
+						author$project$Main$VirScroll,
+						true,
+						elm$core$Basics$always(
+							elm$core$Basics$round(viewport.viewport.y))),
+						$temp$model = model;
+					msg = $temp$msg;
+					model = $temp$model;
+					continue update;
+				case 'VirScroll':
+					var fromScrollBar = msg.a;
+					var modify = msg.b;
+					var newViewportY = A3(
+						elm$core$Basics$clamp,
+						0,
+						author$project$Main$tableHeight(model) - model.viewportHeight,
+						modify(model.viewportY));
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{scrollLock: true, viewportY: newViewportY}),
+						elm$core$Platform$Cmd$batch(
+							_List_fromArray(
+								[
+									model.scrollLock ? elm$core$Platform$Cmd$none : author$project$Main$updateVisibleRows,
+									fromScrollBar ? elm$core$Platform$Cmd$none : author$project$Main$updateScrollBar(newViewportY)
+								])));
+				case 'VirUpdate':
+					var numRecords = elm$core$List$length(model.records);
+					var _n2 = model.enableVirtualization ? A3(author$project$Main$getVisibleRows, numRecords, model.viewportHeight, model.viewportY) : _Utils_Tuple2(0, numRecords - 1);
+					var bottom = _n2.a;
+					var top = _n2.b;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{scrollLock: false, visibleEndIndex: top, visibleStartIndex: bottom}),
+						elm$core$Platform$Cmd$none);
+				case 'VirResize':
+					return _Utils_Tuple2(model, author$project$Main$checkTableContainer);
+				case 'VirContainerInfo':
+					var viewport = msg.a;
+					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
-								oldRecords: A2(elm$core$List$map, author$project$Main$listToOldRecord, csv.records)
-							}),
-						elm$core$Platform$Cmd$none) : _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								records: _Utils_ap(
-									model.records,
-									A2(elm$core$List$map, author$project$Main$listToRecord, csv.records)),
-								scrollLock: true
+								viewportHeight: elm$core$Basics$round(viewport.viewport.height)
 							}),
 						author$project$Main$updateVisibleRows);
-				}
-			case 'CsvExported':
-				return _Utils_Tuple2(
-					model,
-					A3(
-						elm$file$File$Download$string,
-						((model.filename === '') ? 'export' : model.filename) + '.csv',
-						author$project$Main$csv_mime,
-						author$project$Main$recordsToCsv(model.records)));
-			case 'TableScrolled':
-				var event = msg.a;
-				var dir = (event.deltaY >= 0) ? 1 : (-1);
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							scrollLock: true,
-							viewportY: A3(
-								elm$core$Basics$clamp,
-								0,
-								author$project$Main$tableHeight(model) - model.viewportHeight,
-								model.viewportY + (dir * author$project$Main$row_height))
-						}),
-					model.scrollLock ? elm$core$Platform$Cmd$none : author$project$Main$updateVisibleRows);
-			case 'UpdateVisibleRows':
-				var numRecords = elm$core$List$length(model.records);
-				var _n2 = model.enableVirtualization ? A3(author$project$Main$getVisibleRows, numRecords, model.viewportHeight, model.viewportY) : _Utils_Tuple2(0, numRecords - 1);
-				var bottom = _n2.a;
-				var top = _n2.b;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{scrollLock: false, visibleEndIndex: top, visibleStartIndex: bottom}),
-					elm$core$Platform$Cmd$none);
-			case 'CheckTableContainer':
-				return _Utils_Tuple2(model, author$project$Main$checkTableContainer);
-			case 'TableContainerSize':
-				var viewport = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							viewportHeight: elm$core$Basics$round(viewport.viewport.height)
-						}),
-					author$project$Main$updateVisibleRows);
-			default:
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{enableVirtualization: !model.enableVirtualization}),
-					elm$core$Platform$Cmd$none);
+				default:
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{enableVirtualization: !model.enableVirtualization}),
+						elm$core$Platform$Cmd$none);
+			}
 		}
 	});
 var author$project$Main$init = function (_n0) {
 	return A2(
 		author$project$Main$update,
-		author$project$Main$CheckTableContainer,
-		author$project$Main$Model(true)('')(_List_Nil)(_List_Nil)(true)(false)(0)(0)(0)(0));
+		author$project$Main$VirResize,
+		author$project$Main$Model(true)('')(_List_Nil)(_List_Nil)(true)(false)(-1)(-1)(0)(0));
 };
 var elm$browser$Browser$Events$Window = {$: 'Window'};
 var elm$browser$Browser$Events$MySub = F3(
@@ -6883,10 +6936,10 @@ var author$project$Main$subscriptions = function (_n0) {
 	return elm$browser$Browser$Events$onResize(
 		F2(
 			function (_n1, _n2) {
-				return author$project$Main$CheckTableContainer;
+				return author$project$Main$VirResize;
 			}));
 };
-var author$project$Main$ClearAll = {$: 'ClearAll'};
+var author$project$Main$ClearAllRecords = {$: 'ClearAllRecords'};
 var author$project$Main$CsvExported = {$: 'CsvExported'};
 var author$project$Main$CsvRequested = function (a) {
 	return {$: 'CsvRequested', a: a};
@@ -6894,11 +6947,12 @@ var author$project$Main$CsvRequested = function (a) {
 var author$project$Main$FilenameEdited = function (a) {
 	return {$: 'FilenameEdited', a: a};
 };
-var author$project$Main$TableScrolled = function (a) {
-	return {$: 'TableScrolled', a: a};
-};
 var author$project$Main$ToggleSidePanel = {$: 'ToggleSidePanel'};
-var author$project$Main$ToggleVirualization = {$: 'ToggleVirualization'};
+var author$project$Main$VirScrollbarScroll = {$: 'VirScrollbarScroll'};
+var author$project$Main$VirToggle = {$: 'VirToggle'};
+var author$project$Main$VirWheelScroll = function (a) {
+	return {$: 'VirWheelScroll', a: a};
+};
 var author$project$Main$debug = true;
 var author$project$Main$isJust = function (m) {
 	if (m.$ === 'Just') {
@@ -6941,11 +6995,27 @@ var author$project$Main$filterVisible = F3(
 				author$project$Main$isJust,
 				A2(elm$core$List$indexedMap, filterRange, list)));
 	});
-var elm$html$Html$div = _VirtualDom_node('div');
-var author$project$Main$html_empty = A2(elm$html$Html$div, _List_Nil, _List_Nil);
-var elm$html$Html$td = _VirtualDom_node('td');
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var author$project$Main$html_empty = elm$html$Html$text('');
+var elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var author$project$Main$onScroll = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'scroll',
+		elm$json$Json$Decode$succeed(msg));
+};
+var elm$html$Html$td = _VirtualDom_node('td');
 var elm$html$Html$tr = _VirtualDom_node('tr');
 var author$project$Main$recordToRow = function (_n0) {
 	var oldLotNo = _n0.oldLotNo;
@@ -6995,8 +7065,10 @@ var author$project$Main$recordToRow = function (_n0) {
 					]))
 			]));
 };
+var elm$core$Basics$modBy = _Basics_modBy;
 var elm$html$Html$button = _VirtualDom_node('button');
 var elm$html$Html$col = _VirtualDom_node('col');
+var elm$html$Html$div = _VirtualDom_node('div');
 var elm$html$Html$h1 = _VirtualDom_node('h1');
 var elm$html$Html$i = _VirtualDom_node('i');
 var elm$html$Html$input = _VirtualDom_node('input');
@@ -7027,17 +7099,6 @@ var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
 var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
 var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
-var elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			elm$virtual_dom$VirtualDom$on,
-			event,
-			elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
 var elm$html$Html$Events$onClick = function (msg) {
 	return A2(
 		elm$html$Html$Events$on,
@@ -7239,7 +7300,7 @@ var author$project$Main$vieww = function (model) {
 									[
 										elm$html$Html$Attributes$class('table-sticky table-scrollbar'),
 										elm$html$Html$Attributes$id(author$project$Main$table_container),
-										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Main$TableScrolled)
+										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Main$VirWheelScroll)
 									]),
 								_List_fromArray(
 									[
@@ -7343,6 +7404,7 @@ var author$project$Main$vieww = function (model) {
 												_Utils_ap(
 													_List_fromArray(
 														[
+															((A2(elm$core$Basics$modBy, 2, model.visibleStartIndex) === 1) && model.enableVirtualization) ? A2(elm$html$Html$tr, _List_Nil, _List_Nil) : author$project$Main$html_empty,
 															A2(
 															elm$html$Html$tr,
 															_List_Nil,
@@ -7406,7 +7468,8 @@ var author$project$Main$vieww = function (model) {
 								_List_fromArray(
 									[
 										elm$html$Html$Attributes$class('scrollbar'),
-										elm$html$Html$Attributes$id('scroll-bar')
+										elm$html$Html$Attributes$id('scroll-bar'),
+										author$project$Main$onScroll(author$project$Main$VirScrollbarScroll)
 									]),
 								_List_fromArray(
 									[
@@ -7525,7 +7588,7 @@ var author$project$Main$vieww = function (model) {
 																		_List_fromArray(
 																			[
 																				elm$html$Html$Attributes$class('ui button blue'),
-																				elm$html$Html$Events$onClick(author$project$Main$ClearAll)
+																				elm$html$Html$Events$onClick(author$project$Main$ClearAllRecords)
 																			]),
 																		_List_fromArray(
 																			[
@@ -7662,7 +7725,7 @@ var author$project$Main$vieww = function (model) {
 																		_List_fromArray(
 																			[
 																				elm$html$Html$Attributes$class('ui button blue'),
-																				elm$html$Html$Events$onClick(author$project$Main$ToggleVirualization)
+																				elm$html$Html$Events$onClick(author$project$Main$VirToggle)
 																			]),
 																		_List_fromArray(
 																			[

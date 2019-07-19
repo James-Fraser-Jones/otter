@@ -1,1 +1,1 @@
-start chrome --app="file:///%~dp0otter.html"
+start chrome --app="file:///%~dp0otter.html" --disable-dev-tools

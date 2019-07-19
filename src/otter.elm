@@ -82,28 +82,40 @@ type alias Model = { sidePanelExpanded : Bool     --Settings
                    }
 
 type Msg
-  = NoOp  --Standard
+  --Standard
+  = NoOp
   | HandleErrorEvent String
 
-  | ToggleSidePanel --Simple
-  | ClearAll
+  --Simple
+  | ToggleSidePanel
+  | ClearAllRecords
   | FilenameEdited String
 
-  | CsvRequested Bool --CSV Import/Export
+  --CSV Import/Export
+  | CsvRequested Bool
   | CsvSelected Bool File.File
   | CsvLoaded Bool String String
   | CsvExported
 
-  | TableScrolled Wheel.Event --Virtualization
-  | UpdateVisibleRows
-  | CheckTableContainer
-  | TableContainerSize Dom.Viewport
-  | ToggleVirualization
+  --Virtualization
+  | VirWheelScroll Wheel.Event --Wheel Scroll Invoker
+
+  | VirScrollbarScroll --Scrollbar Scroll Invoker
+  | VirScrollbarInfo Dom.Viewport
+
+  | VirScroll Bool (Int -> Int) --Scroll Performer
+
+  | VirUpdate --Virtualization Update
+
+  | VirResize --Window Resize
+  | VirContainerInfo Dom.Viewport
+
+  | VirToggle --Toggle Virtualization
 
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
-init _ = update CheckTableContainer <| Model True "" [] [] True False 0 0 0 0
+init _ = update VirResize <| Model True "" [] [] True False (-1) (-1) 0 0
 
 --==================================================================== VIEW
 
@@ -115,7 +127,7 @@ vieww model =
   div [ class "ui two column grid remove-gutters" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "eleven" else "fifteen") ++ " wide column" ]
-            [ div [ class "table-sticky table-scrollbar", id table_container, Wheel.onWheel TableScrolled ]
+            [ div [ class "table-sticky table-scrollbar", id table_container, Wheel.onWheel VirWheelScroll ]
                 [ table
                     [ class "ui single line fixed unstackable celled striped compact table header-color row-height-fix table-relative"
                     , style "top" ("-" ++ String.fromInt model.viewportY ++ "px")
@@ -135,7 +147,9 @@ vieww model =
                             ]
                         ]
                     , tbody []
-                        (  [ tr [] [ div [ style "height" <| (String.fromInt <| model.visibleStartIndex * row_height) ++ "px" ] [] ] ]
+                        (  [ if modBy 2 model.visibleStartIndex == 1 && model.enableVirtualization then tr [] [] else html_empty
+                           , tr [] [ div [ style "height" <| (String.fromInt <| model.visibleStartIndex * row_height) ++ "px" ] [] ]
+                           ]
                         ++ (List.map recordToRow <| filterVisible model.visibleStartIndex model.visibleEndIndex model.records)
                         ++ [ tr [] [ div [ style "height" <| (String.fromInt <| (List.length model.records - 1 - model.visibleEndIndex) * row_height) ++ "px" ] [] ]
                            , tr [ class "positive" ] [td [] [], td [] [], td [] [], td [] [], td [] []]
@@ -143,7 +157,7 @@ vieww model =
                         )
                     ]
                 ]
-            , div [ class "scrollbar", id "scroll-bar" ]
+            , div [ class "scrollbar", id "scroll-bar", onScroll VirScrollbarScroll ]
                 [ div [ style "height" (String.fromInt (tableHeight model) ++ "px") ] []
                 ]
             ]
@@ -161,7 +175,7 @@ vieww model =
                             ]
                         , div [ class "field" ]
                             [ div [ class "ui buttons" ]
-                                [ button [ class "ui button blue", onClick ClearAll ]
+                                [ button [ class "ui button blue", onClick ClearAllRecords ]
                                     [ i [ class "asterisk icon" ] []
                                     , text "New"
                                     ]
@@ -193,7 +207,7 @@ vieww model =
                     [ div [ class "ui form" ]
                         [ div [ class "field" ]
                             [ div [ class "ui buttons" ]
-                                [ button [ class "ui button blue", onClick ToggleVirualization ] [ text "Toggle Virtualization" ]
+                                [ button [ class "ui button blue", onClick VirToggle ] [ text "Toggle Virtualization" ]
                                 ]
                             ]
                         ]
@@ -204,6 +218,9 @@ vieww model =
             ]
         ]
     ]
+
+onScroll : msg -> Attribute msg
+onScroll msg = on "scroll" (succeed msg)
 
 recordToRow : Record -> Html Msg
 recordToRow {oldLotNo, lotNo, vendor, description, reserve} =
@@ -229,7 +246,7 @@ update msg model =
     HandleErrorEvent message -> (print message model, Cmd.none)
 
     ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
-    ClearAll -> ({model | records = []}, Cmd.none)
+    ClearAllRecords -> ({model | records = [], visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0}, Cmd.none)
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
     CsvRequested suggestion -> (model, Select.file [ csv_mime ] <| CsvSelected suggestion)
@@ -245,34 +262,49 @@ update msg model =
       , Download.string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records)
       )
 
-    TableScrolled event ->
-      let dir = if event.deltaY >= 0 then 1 else -1 in
-        ( {model | viewportY = Basics.clamp 0 (tableHeight model - model.viewportHeight) (model.viewportY + dir * row_height), scrollLock = True}
-        , if model.scrollLock then Cmd.none else updateVisibleRows
-        )
-    UpdateVisibleRows ->
-      let
-        numRecords = List.length model.records
-        (bottom, top) = if model.enableVirtualization
+    VirWheelScroll event -> update (VirScroll False <| flip (if event.deltaY >= 0 then (+) else (-)) row_height) model
+
+    VirScrollbarScroll -> (model, checkScrollbar)
+
+    VirScrollbarInfo viewport -> update (VirScroll True <| always <| round viewport.viewport.y) model
+
+    VirScroll fromScrollBar modify ->
+      let newViewportY = Basics.clamp 0 (tableHeight model - model.viewportHeight) <| modify model.viewportY
+       in ( {model | scrollLock = True, viewportY = newViewportY}
+          , Cmd.batch [ if model.scrollLock then Cmd.none else updateVisibleRows
+                      , if fromScrollBar then Cmd.none else updateScrollBar newViewportY
+                      ]
+          )
+
+    VirUpdate ->
+      let numRecords = List.length model.records
+          (bottom, top) = if model.enableVirtualization
                           then getVisibleRows numRecords model.viewportHeight model.viewportY
                           else (0, numRecords - 1)
-      in ({model | visibleStartIndex = bottom, visibleEndIndex = top, scrollLock = False}, Cmd.none)
-    CheckTableContainer -> (model, checkTableContainer)
-    TableContainerSize viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
-    ToggleVirualization -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
+       in ({model | visibleStartIndex = bottom, visibleEndIndex = top, scrollLock = False}, Cmd.none)
+
+    VirResize -> (model, checkTableContainer)
+    VirContainerInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
+
+    VirToggle -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
 
 checkTableContainer : Cmd Msg
-checkTableContainer = Task.attempt (handleError TableContainerSize) (Dom.getViewportOf table_container)
+checkTableContainer = Task.attempt (handleError VirContainerInfo) (Dom.getViewportOf table_container)
+
+checkScrollbar : Cmd Msg
+checkScrollbar = Task.attempt (handleError VirScrollbarInfo) (Dom.getViewportOf scroll_bar)
 
 updateVisibleRows : Cmd Msg
-updateVisibleRows = Task.perform (always UpdateVisibleRows) (Process.sleep scroll_wait)
+updateVisibleRows = Task.perform (always VirUpdate) (Process.sleep scroll_wait)
+
+updateScrollBar : Int -> Cmd Msg
+updateScrollBar newViewportY = Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf scroll_bar 0 <| toFloat newViewportY
 
 getVisibleRows : Int -> Int -> Int -> (Int, Int)
 getVisibleRows numRecords viewportHeight viewportY =
-  let
-    bottom = (pred <| Basics.max 1 <| floor <| toFloat viewportY / row_height)
-    top = (pred <| Basics.min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + viewportHeight) / row_height)
-  in (bottom, top)
+  let bottom = pred <| Basics.max 1 <| floor <| toFloat viewportY / row_height
+      top = pred <| Basics.min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + viewportHeight) / row_height
+   in (bottom, top)
 
 listToOldRecord : List String -> OldRecord
 listToOldRecord list =
@@ -310,7 +342,7 @@ tableHeight model = (List.length model.records + 2) * row_height
 --==================================================================== SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
-subscriptions _ = BEvent.onResize (\_ _ -> CheckTableContainer)
+subscriptions _ = BEvent.onResize (\_ _ -> VirResize)
 
 --==================================================================== PRELUDE
 
@@ -379,10 +411,13 @@ row_height : number
 row_height = 34
 
 html_empty : Html Msg
-html_empty = div [] []
+html_empty = text ""
 
 table_container : String
 table_container = "table-container"
+
+scroll_bar : String
+scroll_bar = "scroll-bar"
 
 --==================================================================== GLOBAL SETTINGS
 
@@ -390,7 +425,7 @@ debug : Bool
 debug = True
 
 scroll_wait : number
-scroll_wait = 200
+scroll_wait = 100
 
 --==================================================================== DECODERS
 
