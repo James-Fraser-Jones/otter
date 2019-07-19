@@ -71,3 +71,19 @@
   position: relative !important;
   top: 0px !important;
 }
+
+/***********************************/
+
+.table-scrollbar {
+  width: calc(100% - 13px) !important;
+  vertical-align: top;
+  display: inline-block;
+}
+
+.scrollbar {
+  width: 10px !important;
+  height: 100vh !important;
+  overflow: scroll !important;
+  display: inline-block !important;
+  vertical-align: top !important;
+}

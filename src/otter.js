@@ -5618,6 +5618,9 @@ var author$project$Main$recordsToCsv = function (records) {
 		author$project$Main$windows_newline,
 		A2(elm$core$List$map, recordToCsv, records));
 };
+var author$project$Main$tableHeight = function (model) {
+	return (elm$core$List$length(model.records) + 2) * author$project$Main$row_height;
+};
 var author$project$Main$UpdateVisibleRows = {$: 'UpdateVisibleRows'};
 var author$project$Main$scroll_wait = 200;
 var elm$core$Process$sleep = _Process_sleep;
@@ -6421,7 +6424,7 @@ var author$project$Main$update = F2(
 							viewportY: A3(
 								elm$core$Basics$clamp,
 								0,
-								((elm$core$List$length(model.records) + 2) * author$project$Main$row_height) - model.viewportHeight,
+								author$project$Main$tableHeight(model) - model.viewportHeight,
 								model.viewportY + (dir * author$project$Main$row_height))
 						}),
 					model.scrollLock ? elm$core$Platform$Cmd$none : author$project$Main$updateVisibleRows);
@@ -6458,7 +6461,7 @@ var author$project$Main$init = function (_n0) {
 	return A2(
 		author$project$Main$update,
 		author$project$Main$CheckTableContainer,
-		author$project$Main$Model(false)('')(_List_Nil)(_List_Nil)(true)(false)(0)(0)(0)(0));
+		author$project$Main$Model(true)('')(_List_Nil)(_List_Nil)(true)(false)(0)(0)(0)(0));
 };
 var elm$browser$Browser$Events$Window = {$: 'Window'};
 var elm$browser$Browser$Events$MySub = F3(
@@ -7226,7 +7229,7 @@ var author$project$Main$vieww = function (model) {
 						_List_fromArray(
 							[
 								elm$html$Html$Attributes$class(
-								(model.sidePanelExpanded ? 'twelve' : 'fifteen') + ' wide column')
+								(model.sidePanelExpanded ? 'eleven' : 'fifteen') + ' wide column')
 							]),
 						_List_fromArray(
 							[
@@ -7234,7 +7237,7 @@ var author$project$Main$vieww = function (model) {
 								elm$html$Html$div,
 								_List_fromArray(
 									[
-										elm$html$Html$Attributes$class('table-sticky'),
+										elm$html$Html$Attributes$class('table-sticky table-scrollbar'),
 										elm$html$Html$Attributes$id(author$project$Main$table_container),
 										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Main$TableScrolled)
 									]),
@@ -7244,7 +7247,7 @@ var author$project$Main$vieww = function (model) {
 										elm$html$Html$table,
 										_List_fromArray(
 											[
-												elm$html$Html$Attributes$class('ui single line fixed unstackable celled compact table header-color row-height-fix table-relative'),
+												elm$html$Html$Attributes$class('ui single line fixed unstackable celled striped compact table header-color row-height-fix table-relative'),
 												A2(
 												elm$html$Html$Attributes$style,
 												'top',
@@ -7397,6 +7400,27 @@ var author$project$Main$vieww = function (model) {
 																	]))
 															]))))
 											]))
+									])),
+								A2(
+								elm$html$Html$div,
+								_List_fromArray(
+									[
+										elm$html$Html$Attributes$class('scrollbar'),
+										elm$html$Html$Attributes$id('scroll-bar')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										elm$html$Html$div,
+										_List_fromArray(
+											[
+												A2(
+												elm$html$Html$Attributes$style,
+												'height',
+												elm$core$String$fromInt(
+													author$project$Main$tableHeight(model)) + 'px')
+											]),
+										_List_Nil)
 									]))
 							])),
 						A2(
@@ -7404,7 +7428,7 @@ var author$project$Main$vieww = function (model) {
 						_List_fromArray(
 							[
 								elm$html$Html$Attributes$class(
-								(model.sidePanelExpanded ? 'four' : 'one') + ' wide column')
+								(model.sidePanelExpanded ? 'five' : 'one') + ' wide column')
 							]),
 						_List_fromArray(
 							[

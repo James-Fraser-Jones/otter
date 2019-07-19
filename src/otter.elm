@@ -103,7 +103,7 @@ type Msg
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
-init _ = update CheckTableContainer <| Model False "" [] [] True False 0 0 0 0
+init _ = update CheckTableContainer <| Model True "" [] [] True False 0 0 0 0
 
 --==================================================================== VIEW
 
@@ -114,9 +114,12 @@ vieww : Model -> Html Msg
 vieww model =
   div [ class "ui two column grid remove-gutters" ]
     [ div [ class "row" ]
-        [ div [ class <| (if model.sidePanelExpanded then "twelve" else "fifteen") ++ " wide column" ]
-            [ div [ class "table-sticky", id table_container, Wheel.onWheel TableScrolled ]
-                [ table [ class "ui single line fixed unstackable celled compact table header-color row-height-fix table-relative", style "top" ("-" ++ String.fromInt model.viewportY ++ "px") ]
+        [ div [ class <| (if model.sidePanelExpanded then "eleven" else "fifteen") ++ " wide column" ]
+            [ div [ class "table-sticky table-scrollbar", id table_container, Wheel.onWheel TableScrolled ]
+                [ table
+                    [ class "ui single line fixed unstackable celled striped compact table header-color row-height-fix table-relative"
+                    , style "top" ("-" ++ String.fromInt model.viewportY ++ "px")
+                    ]
                     [ col [ attribute "width" "100px" ] []
                     , col [ attribute "width" "100px" ] []
                     , col [ attribute "width" "100px" ] []
@@ -140,8 +143,11 @@ vieww model =
                         )
                     ]
                 ]
+            , div [ class "scrollbar", id "scroll-bar" ]
+                [ div [ style "height" (String.fromInt (tableHeight model) ++ "px") ] []
+                ]
             ]
-        , div [ class <| (if model.sidePanelExpanded then "four" else "one") ++ " wide column" ]
+        , div [ class <| (if model.sidePanelExpanded then "five" else "one") ++ " wide column" ]
             [ div [ class "ui segments" ]
                 [ if model.sidePanelExpanded then
                   div [ class "ui segment" ]
@@ -241,7 +247,7 @@ update msg model =
 
     TableScrolled event ->
       let dir = if event.deltaY >= 0 then 1 else -1 in
-        ( {model | viewportY = Basics.clamp 0 ((List.length model.records + 2) * row_height - model.viewportHeight) (model.viewportY + dir * row_height), scrollLock = True}
+        ( {model | viewportY = Basics.clamp 0 (tableHeight model - model.viewportHeight) (model.viewportY + dir * row_height), scrollLock = True}
         , if model.scrollLock then Cmd.none else updateVisibleRows
         )
     UpdateVisibleRows ->
@@ -297,6 +303,9 @@ recordsToCsv : List Record -> String
 recordsToCsv records =
   let recordToCsv {oldLotNo, lotNo, vendor, description, reserve} = String.join "," [lotNo, vendor, description, reserve]
    in String.join windows_newline <| List.map recordToCsv records
+
+tableHeight : Model -> Int
+tableHeight model = (List.length model.records + 2) * row_height
 
 --==================================================================== SUBSCRIPTIONS
 
@@ -384,3 +393,13 @@ scroll_wait : number
 scroll_wait = 200
 
 --==================================================================== DECODERS
+
+{-
+I am going to need to create a uniform scrolling API which knows how to consistently manage
+the complexity of: Virtualization, not going out of bounds, responding to window size changes, ensuring scrollbar is in sync with page etc..
+
+Effectively I need a function
+`modifyScroll : (Int -> Int) -> Cmd Msg`
+which all scrolling events (due to mousewheel, scrollbar drag, cursor focus, programatic, ...)
+will utilize when actually invoking a scroll
+-}
