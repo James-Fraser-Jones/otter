@@ -112,6 +112,9 @@ type Msg
 
   | VirToggle --Toggle Virtualization
 
+  --Debug
+  | PortExample
+
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
@@ -208,6 +211,7 @@ vieww model =
                         [ div [ class "field" ]
                             [ div [ class "ui buttons" ]
                                 [ button [ class "ui button blue", onClick VirToggle ] [ text "Toggle Virtualization" ]
+                                , button [ class "ui button blue", onClick PortExample ] [ text "Port Example" ]
                                 ]
                             ]
                         ]
@@ -287,6 +291,8 @@ update msg model =
     VirContainerInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
 
     VirToggle -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
+
+    PortExample -> (model, Ports.example model.filename)
 
 checkTableContainer : Cmd Msg
 checkTableContainer = Task.attempt (handleError VirContainerInfo) (Dom.getViewportOf table_container)

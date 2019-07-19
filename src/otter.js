@@ -5649,6 +5649,8 @@ var author$project$Main$updateVisibleRows = A2(
 	elm$core$Task$perform,
 	elm$core$Basics$always(author$project$Main$VirUpdate),
 	elm$core$Process$sleep(author$project$Main$scroll_wait));
+var elm$json$Json$Encode$string = _Json_wrap;
+var author$project$Ports$example = _Platform_outgoingPort('example', elm$json$Json$Encode$string);
 var elm$core$Basics$clamp = F3(
 	function (low, high, number) {
 		return (_Utils_cmp(number, low) < 0) ? low : ((_Utils_cmp(number, high) > 0) ? high : number);
@@ -6501,12 +6503,16 @@ var author$project$Main$update = F2(
 								viewportHeight: elm$core$Basics$round(viewport.viewport.height)
 							}),
 						author$project$Main$updateVisibleRows);
-				default:
+				case 'VirToggle':
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{enableVirtualization: !model.enableVirtualization}),
 						elm$core$Platform$Cmd$none);
+				default:
+					return _Utils_Tuple2(
+						model,
+						author$project$Ports$example(model.filename));
 			}
 		}
 	});
@@ -6947,6 +6953,7 @@ var author$project$Main$CsvRequested = function (a) {
 var author$project$Main$FilenameEdited = function (a) {
 	return {$: 'FilenameEdited', a: a};
 };
+var author$project$Main$PortExample = {$: 'PortExample'};
 var author$project$Main$ToggleSidePanel = {$: 'ToggleSidePanel'};
 var author$project$Main$VirScrollbarScroll = {$: 'VirScrollbarScroll'};
 var author$project$Main$VirToggle = {$: 'VirToggle'};
@@ -7084,7 +7091,6 @@ var elm$virtual_dom$VirtualDom$attribute = F2(
 			_VirtualDom_noJavaScriptOrHtmlUri(value));
 	});
 var elm$html$Html$Attributes$attribute = elm$virtual_dom$VirtualDom$attribute;
-var elm$json$Json$Encode$string = _Json_wrap;
 var elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -7730,6 +7736,17 @@ var author$project$Main$vieww = function (model) {
 																		_List_fromArray(
 																			[
 																				elm$html$Html$text('Toggle Virtualization')
+																			])),
+																		A2(
+																		elm$html$Html$button,
+																		_List_fromArray(
+																			[
+																				elm$html$Html$Attributes$class('ui button blue'),
+																				elm$html$Html$Events$onClick(author$project$Main$PortExample)
+																			]),
+																		_List_fromArray(
+																			[
+																				elm$html$Html$text('Port Example')
 																			]))
 																	]))
 															]))

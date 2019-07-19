@@ -2,7 +2,8 @@
 /*Make table header sticky*/
 
 .table-sticky {
-  overflow: hidden !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
   height: 100vh !important;
 }
 
@@ -83,7 +84,7 @@
 .scrollbar {
   width: 10px !important;
   height: 100vh !important;
-  overflow: scroll !important;
+  overflow-y: auto !important;
   display: inline-block !important;
   vertical-align: top !important;
 }
