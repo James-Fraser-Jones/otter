@@ -4622,15 +4622,17 @@ var author$project$Main$Model = function (sidePanelExpanded) {
 	return function (filename) {
 		return function (records) {
 			return function (oldRecords) {
-				return function (cursorX) {
-					return function (cursorY) {
-						return function (enableVirtualization) {
-							return function (scrollLock) {
-								return function (visibleStartIndex) {
-									return function (visibleEndIndex) {
-										return function (viewportHeight) {
-											return function (viewportY) {
-												return {cursorX: cursorX, cursorY: cursorY, enableVirtualization: enableVirtualization, filename: filename, oldRecords: oldRecords, records: records, scrollLock: scrollLock, sidePanelExpanded: sidePanelExpanded, viewportHeight: viewportHeight, viewportY: viewportY, visibleEndIndex: visibleEndIndex, visibleStartIndex: visibleStartIndex};
+				return function (newRecord) {
+					return function (cursorX) {
+						return function (cursorY) {
+							return function (enableVirtualization) {
+								return function (scrollLock) {
+									return function (visibleStartIndex) {
+										return function (visibleEndIndex) {
+											return function (viewportHeight) {
+												return function (viewportY) {
+													return {cursorX: cursorX, cursorY: cursorY, enableVirtualization: enableVirtualization, filename: filename, newRecord: newRecord, oldRecords: oldRecords, records: records, scrollLock: scrollLock, sidePanelExpanded: sidePanelExpanded, viewportHeight: viewportHeight, viewportY: viewportY, visibleEndIndex: visibleEndIndex, visibleStartIndex: visibleStartIndex};
+												};
 											};
 										};
 									};
@@ -4643,6 +4645,10 @@ var author$project$Main$Model = function (sidePanelExpanded) {
 		};
 	};
 };
+var author$project$Main$Record = F5(
+	function (oldLotNo, lotNo, vendor, description, reserve) {
+		return {description: description, lotNo: lotNo, oldLotNo: oldLotNo, reserve: reserve, vendor: vendor};
+	});
 var author$project$Main$VirResize = {$: 'VirResize'};
 var author$project$Main$CsvLoaded = F3(
 	function (a, b, c) {
@@ -5576,10 +5582,6 @@ var author$project$Main$listToOldRecord = function (list) {
 		return author$project$Main$errorOldRecord;
 	}
 };
-var author$project$Main$Record = F5(
-	function (oldLotNo, lotNo, vendor, description, reserve) {
-		return {description: description, lotNo: lotNo, oldLotNo: oldLotNo, reserve: reserve, vendor: vendor};
-	});
 var author$project$Main$errorRecord = A5(author$project$Main$Record, 'ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR');
 var author$project$Main$listToRecord = function (list) {
 	var _n0 = A3(author$project$Main$pad, 4, '', list);
@@ -6376,7 +6378,7 @@ var author$project$Main$update = F2(
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{cursorX: 0, cursorY: 0, records: _List_Nil, viewportY: 0, visibleEndIndex: -1, visibleStartIndex: -1}),
+							{cursorX: 0, cursorY: elm$core$Maybe$Nothing, records: _List_Nil, viewportY: 0, visibleEndIndex: -1, visibleStartIndex: -1}),
 						elm$core$Platform$Cmd$none);
 				case 'FilenameEdited':
 					var newText = msg.a;
@@ -6522,7 +6524,8 @@ var author$project$Main$init = function (_n0) {
 	return A2(
 		author$project$Main$update,
 		author$project$Main$VirResize,
-		author$project$Main$Model(true)('')(_List_Nil)(_List_Nil)(0)(0)(true)(false)(-1)(-1)(0)(0));
+		author$project$Main$Model(true)('')(_List_Nil)(_List_Nil)(
+			A5(author$project$Main$Record, '', '', '', '', ''))(0)(elm$core$Maybe$Nothing)(true)(false)(-1)(-1)(0)(0));
 };
 var elm$browser$Browser$Events$Window = {$: 'Window'};
 var elm$browser$Browser$Events$MySub = F3(
@@ -6963,47 +6966,6 @@ var author$project$Main$VirWheelScroll = function (a) {
 	return {$: 'VirWheelScroll', a: a};
 };
 var author$project$Main$debug = true;
-var author$project$Main$isJust = function (m) {
-	if (m.$ === 'Just') {
-		return true;
-	} else {
-		return false;
-	}
-};
-var elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
-var elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
-var author$project$Main$filterVisible = F3(
-	function (start, end, list) {
-		var filterRange = F2(
-			function (index, elem) {
-				return ((_Utils_cmp(index, start) > -1) && (_Utils_cmp(index, end) < 1)) ? elm$core$Maybe$Just(elem) : elm$core$Maybe$Nothing;
-			});
-		return A2(
-			elm$core$List$map,
-			elm$core$Maybe$withDefault(author$project$Main$errorRecord),
-			A2(
-				elm$core$List$filter,
-				author$project$Main$isJust,
-				A2(elm$core$List$indexedMap, filterRange, list)));
-	});
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var author$project$Main$html_empty = elm$html$Html$text('');
@@ -7024,63 +6986,191 @@ var author$project$Main$onScroll = function (msg) {
 		'scroll',
 		elm$json$Json$Decode$succeed(msg));
 };
+var elm$html$Html$div = _VirtualDom_node('div');
+var elm$html$Html$input = _VirtualDom_node('input');
 var elm$html$Html$td = _VirtualDom_node('td');
-var elm$html$Html$tr = _VirtualDom_node('tr');
-var author$project$Main$recordToRow = function (_n0) {
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
+var elm$html$Html$Attributes$id = elm$html$Html$Attributes$stringProperty('id');
+var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
+var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
+var author$project$Main$elemToCell = F2(
+	function (isCursor, content) {
+		return isCursor ? A2(
+			elm$html$Html$td,
+			_List_fromArray(
+				[
+					elm$html$Html$Attributes$id('cursor')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					elm$html$Html$div,
+					_List_fromArray(
+						[
+							elm$html$Html$Attributes$class('ui fluid input focus')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							elm$html$Html$input,
+							_List_fromArray(
+								[
+									elm$html$Html$Attributes$type_('text'),
+									elm$html$Html$Attributes$value(content)
+								]),
+							_List_Nil)
+						]))
+				])) : A2(
+			elm$html$Html$td,
+			_List_Nil,
+			_List_fromArray(
+				[
+					elm$html$Html$text(content)
+				]));
+	});
+var author$project$Main$recordToList = function (_n0) {
 	var oldLotNo = _n0.oldLotNo;
 	var lotNo = _n0.lotNo;
 	var vendor = _n0.vendor;
 	var description = _n0.description;
 	var reserve = _n0.reserve;
-	return A2(
-		elm$html$Html$tr,
-		_List_Nil,
-		_List_fromArray(
-			[
-				A2(
-				elm$html$Html$td,
-				_List_Nil,
-				_List_fromArray(
-					[
-						elm$html$Html$text(oldLotNo)
-					])),
-				A2(
-				elm$html$Html$td,
-				_List_Nil,
-				_List_fromArray(
-					[
-						elm$html$Html$text(lotNo)
-					])),
-				A2(
-				elm$html$Html$td,
-				_List_Nil,
-				_List_fromArray(
-					[
-						elm$html$Html$text(vendor)
-					])),
-				A2(
-				elm$html$Html$td,
-				_List_Nil,
-				_List_fromArray(
-					[
-						elm$html$Html$text(description)
-					])),
-				A2(
-				elm$html$Html$td,
-				_List_Nil,
-				_List_fromArray(
-					[
-						elm$html$Html$text(reserve)
-					]))
-			]));
+	return _List_fromArray(
+		[oldLotNo, lotNo, vendor, description, reserve]);
+};
+var author$project$Main$zipWith = F3(
+	function (f, a, b) {
+		var _n0 = _Utils_Tuple2(a, b);
+		if (!_n0.a.b) {
+			return _List_Nil;
+		} else {
+			if (!_n0.b.b) {
+				return _List_Nil;
+			} else {
+				var _n1 = _n0.a;
+				var x = _n1.a;
+				var xs = _n1.b;
+				var _n2 = _n0.b;
+				var y = _n2.a;
+				var ys = _n2.b;
+				return A2(
+					elm$core$List$cons,
+					A2(f, x, y),
+					A3(author$project$Main$zipWith, f, xs, ys));
+			}
+		}
+	});
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var elm$html$Html$tr = _VirtualDom_node('tr');
+var author$project$Main$recordToRow = F3(
+	function (positive, mCursorIndex, record) {
+		var makeBools = function (cursorIndex) {
+			return _Utils_ap(
+				A2(elm$core$List$repeat, cursorIndex, false),
+				_Utils_ap(
+					_List_fromArray(
+						[true]),
+					A2(elm$core$List$repeat, 4 - cursorIndex, false)));
+		};
+		var bools = A2(
+			elm$core$Maybe$withDefault,
+			A2(elm$core$List$repeat, 5, false),
+			A2(elm$core$Maybe$map, makeBools, mCursorIndex));
+		var cells = A3(
+			author$project$Main$zipWith,
+			author$project$Main$elemToCell,
+			bools,
+			author$project$Main$recordToList(record));
+		return A2(
+			elm$html$Html$tr,
+			positive ? _List_fromArray(
+				[
+					elm$html$Html$Attributes$class('positive')
+				]) : _List_Nil,
+			cells);
+	});
+var author$project$Main$isJust = function (m) {
+	if (m.$ === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var author$project$Main$filterVisible = F3(
+	function (start, end, list) {
+		var filterRange = F2(
+			function (index, elem) {
+				return ((_Utils_cmp(index, start) > -1) && (_Utils_cmp(index, end) < 1)) ? elm$core$Maybe$Just(elem) : elm$core$Maybe$Nothing;
+			});
+		return A2(
+			elm$core$List$map,
+			elm$core$Maybe$withDefault(author$project$Main$errorRecord),
+			A2(
+				elm$core$List$filter,
+				author$project$Main$isJust,
+				A2(elm$core$List$indexedMap, filterRange, list)));
+	});
+var author$project$Main$recordsToRows = F4(
+	function (visibleStartIndex, cursorY, cursorX, records) {
+		var cursorIndex = cursorY - visibleStartIndex;
+		var createRow = F2(
+			function (index, record) {
+				return A3(
+					author$project$Main$recordToRow,
+					false,
+					_Utils_eq(index, cursorIndex) ? elm$core$Maybe$Just(cursorX) : elm$core$Maybe$Nothing,
+					record);
+			});
+		return A2(elm$core$List$indexedMap, createRow, records);
+	});
+var author$project$Main$renderedRows = function (model) {
+	return A4(
+		author$project$Main$recordsToRows,
+		model.visibleStartIndex,
+		A2(elm$core$Maybe$withDefault, -1, model.cursorY),
+		model.cursorX,
+		A3(author$project$Main$filterVisible, model.visibleStartIndex, model.visibleEndIndex, model.records));
 };
 var elm$core$Basics$modBy = _Basics_modBy;
 var elm$html$Html$button = _VirtualDom_node('button');
 var elm$html$Html$col = _VirtualDom_node('col');
-var elm$html$Html$div = _VirtualDom_node('div');
 var elm$html$Html$h1 = _VirtualDom_node('h1');
 var elm$html$Html$i = _VirtualDom_node('i');
-var elm$html$Html$input = _VirtualDom_node('input');
 var elm$html$Html$table = _VirtualDom_node('table');
 var elm$html$Html$tbody = _VirtualDom_node('tbody');
 var elm$html$Html$th = _VirtualDom_node('th');
@@ -7093,20 +7183,9 @@ var elm$virtual_dom$VirtualDom$attribute = F2(
 			_VirtualDom_noJavaScriptOrHtmlUri(value));
 	});
 var elm$html$Html$Attributes$attribute = elm$virtual_dom$VirtualDom$attribute;
-var elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$string(string));
-	});
-var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
-var elm$html$Html$Attributes$id = elm$html$Html$Attributes$stringProperty('id');
 var elm$html$Html$Attributes$placeholder = elm$html$Html$Attributes$stringProperty('placeholder');
 var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
-var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
-var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
 var elm$html$Html$Events$onClick = function (msg) {
 	return A2(
 		elm$html$Html$Events$on,
@@ -7432,10 +7511,7 @@ var author$project$Main$vieww = function (model) {
 																]))
 														]),
 													_Utils_ap(
-														A2(
-															elm$core$List$map,
-															author$project$Main$recordToRow,
-															A3(author$project$Main$filterVisible, model.visibleStartIndex, model.visibleEndIndex, model.records)),
+														author$project$Main$renderedRows(model),
 														_List_fromArray(
 															[
 																A2(
@@ -7455,20 +7531,11 @@ var author$project$Main$vieww = function (model) {
 																			]),
 																		_List_Nil)
 																	])),
-																A2(
-																elm$html$Html$tr,
-																_List_fromArray(
-																	[
-																		elm$html$Html$Attributes$class('positive')
-																	]),
-																_List_fromArray(
-																	[
-																		A2(elm$html$Html$td, _List_Nil, _List_Nil),
-																		A2(elm$html$Html$td, _List_Nil, _List_Nil),
-																		A2(elm$html$Html$td, _List_Nil, _List_Nil),
-																		A2(elm$html$Html$td, _List_Nil, _List_Nil),
-																		A2(elm$html$Html$td, _List_Nil, _List_Nil)
-																	]))
+																A3(
+																author$project$Main$recordToRow,
+																true,
+																_Utils_eq(model.cursorY, elm$core$Maybe$Nothing) ? elm$core$Maybe$Just(model.cursorX) : elm$core$Maybe$Nothing,
+																model.newRecord)
 															]))))
 											]))
 									])),

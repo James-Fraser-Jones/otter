@@ -72,9 +72,10 @@ type alias Model = { sidePanelExpanded : Bool     --Settings
 
                    , records : List Record        --Data
                    , oldRecords : List OldRecord
+                   , newRecord : Record
 
                    , cursorX : Int --Cursor
-                   , cursorY : Int
+                   , cursorY : Maybe Int
 
                    , enableVirtualization : Bool  --Virtualization
                    , scrollLock : Bool
@@ -116,7 +117,7 @@ type Msg
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
-init _ = update VirResize <| Model True "" [] [] 0 0 True False (-1) (-1) 0 0
+init _ = update VirResize <| Model True "" [] [] (Record "" "" "" "" "") 0 Nothing True False (-1) (-1) 0 0
 
 --==================================================================== VIEW
 
@@ -152,9 +153,9 @@ vieww model =
                         (  [ if modBy 2 model.visibleStartIndex == 1 && model.enableVirtualization then tr [] [] else html_empty
                            , tr [] [ div [ style "height" <| (String.fromInt <| model.visibleStartIndex * row_height) ++ "px" ] [] ]
                            ]
-                        ++ (List.map recordToRow <| filterVisible model.visibleStartIndex model.visibleEndIndex model.records)
+                        ++ renderedRows model
                         ++ [ tr [] [ div [ style "height" <| (String.fromInt <| (List.length model.records - 1 - model.visibleEndIndex) * row_height) ++ "px" ] [] ]
-                           , tr [ class "positive" ] [td [] [], td [] [], td [] [], td [] [], td [] []]
+                           , recordToRow True (if model.cursorY == Nothing then Just model.cursorX else Nothing) model.newRecord
                            ]
                         )
                     ]
@@ -223,15 +224,32 @@ vieww model =
 onScroll : msg -> Attribute msg
 onScroll msg = on "scroll" (succeed msg)
 
-recordToRow : Record -> Html Msg
-recordToRow {oldLotNo, lotNo, vendor, description, reserve} =
-  tr []
-    [ td [] [ text oldLotNo ]
-    , td [] [ text lotNo ]
-    , td [] [ text vendor ]
-    , td [] [ text description ]
-    , td [] [ text reserve ]
-    ]
+renderedRows : Model -> List (Html Msg)
+renderedRows model =
+  recordsToRows model.visibleStartIndex (Maybe.withDefault (-1) model.cursorY) model.cursorX <| filterVisible model.visibleStartIndex model.visibleEndIndex model.records
+
+recordsToRows : Int -> Int -> Int -> List Record -> List (Html Msg)
+recordsToRows visibleStartIndex cursorY cursorX records =
+  let cursorIndex = cursorY - visibleStartIndex
+      createRow index record = recordToRow False (if index == cursorIndex then Just cursorX else Nothing) record
+   in List.indexedMap createRow records
+
+recordToRow : Bool -> Maybe Int -> Record -> Html Msg
+recordToRow positive mCursorIndex record =
+  let makeBools cursorIndex = List.repeat cursorIndex False ++ [True] ++ List.repeat (4 - cursorIndex) False
+      bools = Maybe.withDefault (List.repeat 5 False) <| Maybe.map makeBools mCursorIndex
+      cells = zipWith elemToCell bools <| recordToList record
+   in tr (if positive then [class "positive"] else []) cells
+
+elemToCell : Bool -> String -> Html Msg
+elemToCell isCursor content =
+  if isCursor then
+    td [ id "cursor" ]
+      [ div [ class "ui fluid input focus" ]
+          [ input [ type_ "text", value content ] [] ]
+      ]
+  else
+    td [] [ text content ]
 
 filterVisible : Int -> Int -> List Record -> List Record
 filterVisible start end list =
@@ -247,7 +265,7 @@ update msg model =
     HandleErrorEvent message -> (print message model, Cmd.none)
 
     ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
-    ClearAllRecords -> ({model | records = [], cursorX = 0, cursorY = 0, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0}, Cmd.none)
+    ClearAllRecords -> ({model | records = [], cursorX = 0, cursorY = Nothing, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0}, Cmd.none)
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
     CsvRequested suggestion -> (model, Select.file [ csv_mime ] <| CsvSelected suggestion)
@@ -302,6 +320,14 @@ getVisibleRows numRecords viewportHeight viewportY =
   let bottom = pred <| Basics.max 1 <| floor <| toFloat viewportY / row_height
       top = pred <| Basics.min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + viewportHeight) / row_height
    in (bottom, top)
+
+recordToList : Record -> List String
+recordToList {oldLotNo, lotNo, vendor, description, reserve} =
+  [oldLotNo, lotNo, vendor, description, reserve]
+
+oldRecordToList : OldRecord -> List String
+oldRecordToList {lotNo, vendor, description, reserve} =
+  [lotNo, vendor, description, reserve]
 
 listToOldRecord : List String -> OldRecord
 listToOldRecord list =
@@ -409,12 +435,6 @@ row_height = 34
 
 html_empty : Html Msg
 html_empty = text ""
-
--- <td id="cursor">
---   <div class="ui fluid input focus">
---     <input type="text" placeholder="a">
---   </div>
--- </td>
 
 --==================================================================== GLOBAL SETTINGS
 
