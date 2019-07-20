@@ -4622,13 +4622,17 @@ var author$project$Main$Model = function (sidePanelExpanded) {
 	return function (filename) {
 		return function (records) {
 			return function (oldRecords) {
-				return function (enableVirtualization) {
-					return function (scrollLock) {
-						return function (visibleStartIndex) {
-							return function (visibleEndIndex) {
-								return function (viewportHeight) {
-									return function (viewportY) {
-										return {enableVirtualization: enableVirtualization, filename: filename, oldRecords: oldRecords, records: records, scrollLock: scrollLock, sidePanelExpanded: sidePanelExpanded, viewportHeight: viewportHeight, viewportY: viewportY, visibleEndIndex: visibleEndIndex, visibleStartIndex: visibleStartIndex};
+				return function (cursorX) {
+					return function (cursorY) {
+						return function (enableVirtualization) {
+							return function (scrollLock) {
+								return function (visibleStartIndex) {
+									return function (visibleEndIndex) {
+										return function (viewportHeight) {
+											return function (viewportY) {
+												return {cursorX: cursorX, cursorY: cursorY, enableVirtualization: enableVirtualization, filename: filename, oldRecords: oldRecords, records: records, scrollLock: scrollLock, sidePanelExpanded: sidePanelExpanded, viewportHeight: viewportHeight, viewportY: viewportY, visibleEndIndex: visibleEndIndex, visibleStartIndex: visibleStartIndex};
+											};
+										};
 									};
 								};
 							};
@@ -4668,7 +4672,6 @@ var author$project$Main$handleError = F2(
 			return onSuccess(value);
 		}
 	});
-var author$project$Main$scroll_bar = 'scroll-bar';
 var elm$browser$Browser$External = function (a) {
 	return {$: 'External', a: a};
 };
@@ -5485,15 +5488,14 @@ var elm$core$Task$attempt = F2(
 var author$project$Main$checkScrollbar = A2(
 	elm$core$Task$attempt,
 	author$project$Main$handleError(author$project$Main$VirScrollbarInfo),
-	elm$browser$Browser$Dom$getViewportOf(author$project$Main$scroll_bar));
+	elm$browser$Browser$Dom$getViewportOf('scrollbar'));
 var author$project$Main$VirContainerInfo = function (a) {
 	return {$: 'VirContainerInfo', a: a};
 };
-var author$project$Main$table_container = 'table-container';
 var author$project$Main$checkTableContainer = A2(
 	elm$core$Task$attempt,
 	author$project$Main$handleError(author$project$Main$VirContainerInfo),
-	elm$browser$Browser$Dom$getViewportOf(author$project$Main$table_container));
+	elm$browser$Browser$Dom$getViewportOf('table-viewport'));
 var author$project$Main$csv_mime = 'text/csv';
 var author$project$Main$flip = F3(
 	function (f, a, b) {
@@ -5640,7 +5642,7 @@ var author$project$Main$updateScrollBar = function (newViewportY) {
 		elm$core$Task$attempt,
 		author$project$Main$handleError(
 			elm$core$Basics$always(author$project$Main$NoOp)),
-		A3(elm$browser$Browser$Dom$setViewportOf, author$project$Main$scroll_bar, 0, newViewportY));
+		A3(elm$browser$Browser$Dom$setViewportOf, 'scrollbar', 0, newViewportY));
 };
 var author$project$Main$VirUpdate = {$: 'VirUpdate'};
 var author$project$Main$scroll_wait = 100;
@@ -6374,7 +6376,7 @@ var author$project$Main$update = F2(
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{records: _List_Nil, viewportY: 0, visibleEndIndex: -1, visibleStartIndex: -1}),
+							{cursorX: 0, cursorY: 0, records: _List_Nil, viewportY: 0, visibleEndIndex: -1, visibleStartIndex: -1}),
 						elm$core$Platform$Cmd$none);
 				case 'FilenameEdited':
 					var newText = msg.a;
@@ -6520,7 +6522,7 @@ var author$project$Main$init = function (_n0) {
 	return A2(
 		author$project$Main$update,
 		author$project$Main$VirResize,
-		author$project$Main$Model(true)('')(_List_Nil)(_List_Nil)(true)(false)(-1)(-1)(0)(0));
+		author$project$Main$Model(true)('')(_List_Nil)(_List_Nil)(0)(0)(true)(false)(-1)(-1)(0)(0));
 };
 var elm$browser$Browser$Events$Window = {$: 'Window'};
 var elm$browser$Browser$Events$MySub = F3(
@@ -7279,7 +7281,8 @@ var author$project$Main$vieww = function (model) {
 		elm$html$Html$div,
 		_List_fromArray(
 			[
-				elm$html$Html$Attributes$class('ui two column grid remove-gutters')
+				elm$html$Html$Attributes$id('grid'),
+				elm$html$Html$Attributes$class('ui two column grid')
 			]),
 		_List_fromArray(
 			[
@@ -7296,7 +7299,7 @@ var author$project$Main$vieww = function (model) {
 						_List_fromArray(
 							[
 								elm$html$Html$Attributes$class(
-								(model.sidePanelExpanded ? 'eleven' : 'fifteen') + ' wide column')
+								(model.sidePanelExpanded ? 'thirteen' : 'fifteen') + ' wide column')
 							]),
 						_List_fromArray(
 							[
@@ -7304,8 +7307,7 @@ var author$project$Main$vieww = function (model) {
 								elm$html$Html$div,
 								_List_fromArray(
 									[
-										elm$html$Html$Attributes$class('table-sticky table-scrollbar'),
-										elm$html$Html$Attributes$id(author$project$Main$table_container),
+										elm$html$Html$Attributes$id('table-viewport'),
 										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Main$VirWheelScroll)
 									]),
 								_List_fromArray(
@@ -7314,7 +7316,8 @@ var author$project$Main$vieww = function (model) {
 										elm$html$Html$table,
 										_List_fromArray(
 											[
-												elm$html$Html$Attributes$class('ui single line fixed unstackable celled striped compact table header-color row-height-fix table-relative'),
+												elm$html$Html$Attributes$id('table'),
+												elm$html$Html$Attributes$class('ui single line fixed unstackable celled striped compact table'),
 												A2(
 												elm$html$Html$Attributes$style,
 												'top',
@@ -7473,8 +7476,7 @@ var author$project$Main$vieww = function (model) {
 								elm$html$Html$div,
 								_List_fromArray(
 									[
-										elm$html$Html$Attributes$class('scrollbar'),
-										elm$html$Html$Attributes$id('scroll-bar'),
+										elm$html$Html$Attributes$id('scrollbar'),
 										author$project$Main$onScroll(author$project$Main$VirScrollbarScroll)
 									]),
 								_List_fromArray(
@@ -7497,7 +7499,7 @@ var author$project$Main$vieww = function (model) {
 						_List_fromArray(
 							[
 								elm$html$Html$Attributes$class(
-								(model.sidePanelExpanded ? 'five' : 'one') + ' wide column')
+								(model.sidePanelExpanded ? 'three' : 'one') + ' wide column')
 							]),
 						_List_fromArray(
 							[
@@ -7585,7 +7587,7 @@ var author$project$Main$vieww = function (model) {
 																elm$html$Html$div,
 																_List_fromArray(
 																	[
-																		elm$html$Html$Attributes$class('ui buttons')
+																		elm$html$Html$Attributes$class('ui vertical fluid buttons')
 																	]),
 																_List_fromArray(
 																	[
@@ -7667,33 +7669,6 @@ var author$project$Main$vieww = function (model) {
 															]))
 													]))
 											])) : author$project$Main$html_empty,
-										A2(
-										elm$html$Html$div,
-										_List_fromArray(
-											[
-												elm$html$Html$Attributes$class('ui segment horizontal-center')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												elm$html$Html$button,
-												_List_fromArray(
-													[
-														elm$html$Html$Attributes$class('huge circular blue ui icon button'),
-														elm$html$Html$Events$onClick(author$project$Main$ToggleSidePanel)
-													]),
-												_List_fromArray(
-													[
-														A2(
-														elm$html$Html$i,
-														_List_fromArray(
-															[
-																elm$html$Html$Attributes$class(
-																'angle ' + ((model.sidePanelExpanded ? 'right' : 'left') + ' icon'))
-															]),
-														_List_Nil)
-													]))
-											])),
 										(model.sidePanelExpanded && author$project$Main$debug) ? A2(
 										elm$html$Html$div,
 										_List_fromArray(
@@ -7722,7 +7697,7 @@ var author$project$Main$vieww = function (model) {
 																elm$html$Html$div,
 																_List_fromArray(
 																	[
-																		elm$html$Html$Attributes$class('ui buttons')
+																		elm$html$Html$Attributes$class('ui vertical fluid buttons')
 																	]),
 																_List_fromArray(
 																	[
@@ -7751,7 +7726,34 @@ var author$project$Main$vieww = function (model) {
 																	]))
 															]))
 													]))
-											])) : author$project$Main$html_empty
+											])) : author$project$Main$html_empty,
+										A2(
+										elm$html$Html$div,
+										_List_fromArray(
+											[
+												elm$html$Html$Attributes$class('ui segment horizontal-center')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												elm$html$Html$button,
+												_List_fromArray(
+													[
+														elm$html$Html$Attributes$class('huge circular blue ui icon button'),
+														elm$html$Html$Events$onClick(author$project$Main$ToggleSidePanel)
+													]),
+												_List_fromArray(
+													[
+														A2(
+														elm$html$Html$i,
+														_List_fromArray(
+															[
+																elm$html$Html$Attributes$class(
+																'angle ' + ((model.sidePanelExpanded ? 'right' : 'left') + ' icon'))
+															]),
+														_List_Nil)
+													]))
+											]))
 									]))
 							]))
 					]))

@@ -73,6 +73,9 @@ type alias Model = { sidePanelExpanded : Bool     --Settings
                    , records : List Record        --Data
                    , oldRecords : List OldRecord
 
+                   , cursorX : Int --Cursor
+                   , cursorY : Int
+
                    , enableVirtualization : Bool  --Virtualization
                    , scrollLock : Bool
                    , visibleStartIndex : Int
@@ -99,17 +102,12 @@ type Msg
 
   --Virtualization
   | VirWheelScroll Wheel.Event --Wheel Scroll Invoker
-
   | VirScrollbarScroll --Scrollbar Scroll Invoker
   | VirScrollbarInfo Dom.Viewport
-
   | VirScroll Bool (Int -> Int) --Scroll Performer
-
   | VirUpdate --Virtualization Update
-
   | VirResize --Window Resize
   | VirContainerInfo Dom.Viewport
-
   | VirToggle --Toggle Virtualization
 
   --Debug
@@ -118,7 +116,7 @@ type Msg
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
-init _ = update VirResize <| Model True "" [] [] True False (-1) (-1) 0 0
+init _ = update VirResize <| Model True "" [] [] 0 0 True False (-1) (-1) 0 0
 
 --==================================================================== VIEW
 
@@ -127,12 +125,13 @@ view = Lazy.lazy vieww >> List.singleton >> Browser.Document "Otter"
 
 vieww : Model -> Html Msg
 vieww model =
-  div [ class "ui two column grid remove-gutters" ]
+  div [ id "grid", class "ui two column grid" ]
     [ div [ class "row" ]
-        [ div [ class <| (if model.sidePanelExpanded then "eleven" else "fifteen") ++ " wide column" ]
-            [ div [ class "table-sticky table-scrollbar", id table_container, Wheel.onWheel VirWheelScroll ]
+        [ div [ class <| (if model.sidePanelExpanded then "thirteen" else "fifteen") ++ " wide column" ]
+            [ div [ id "table-viewport", Wheel.onWheel VirWheelScroll ]
                 [ table
-                    [ class "ui single line fixed unstackable celled striped compact table header-color row-height-fix table-relative"
+                    [ id "table"
+                    , class "ui single line fixed unstackable celled striped compact table"
                     , style "top" ("-" ++ String.fromInt model.viewportY ++ "px")
                     ]
                     [ col [ attribute "width" "100px" ] []
@@ -160,11 +159,11 @@ vieww model =
                         )
                     ]
                 ]
-            , div [ class "scrollbar", id "scroll-bar", onScroll VirScrollbarScroll ]
+            , div [ id "scrollbar", onScroll VirScrollbarScroll ]
                 [ div [ style "height" (String.fromInt (tableHeight model) ++ "px") ] []
                 ]
             ]
-        , div [ class <| (if model.sidePanelExpanded then "five" else "one") ++ " wide column" ]
+        , div [ class <| (if model.sidePanelExpanded then "three" else "one") ++ " wide column" ]
             [ div [ class "ui segments" ]
                 [ if model.sidePanelExpanded then
                   div [ class "ui segment" ]
@@ -177,7 +176,7 @@ vieww model =
                                 ]
                             ]
                         , div [ class "field" ]
-                            [ div [ class "ui buttons" ]
+                            [ div [ class "ui vertical fluid buttons" ]
                                 [ button [ class "ui button blue", onClick ClearAllRecords ]
                                     [ i [ class "asterisk icon" ] []
                                     , text "New"
@@ -198,26 +197,24 @@ vieww model =
                             ]
                         ]
                     ]
-                  else
-                  html_empty
-                , div [ class "ui segment horizontal-center" ]
-                    [ button [ class "huge circular blue ui icon button", onClick ToggleSidePanel ]
-                        [ i [ class <| "angle " ++ (if model.sidePanelExpanded then "right" else "left") ++ " icon" ] []
-                        ]
-                    ]
+                  else html_empty
                 , if model.sidePanelExpanded && debug then
                   div [ class "ui segment" ]
                     [ div [ class "ui form" ]
                         [ div [ class "field" ]
-                            [ div [ class "ui buttons" ]
+                            [ div [ class "ui vertical fluid buttons" ]
                                 [ button [ class "ui button blue", onClick VirToggle ] [ text "Toggle Virtualization" ]
                                 , button [ class "ui button blue", onClick PortExample ] [ text "Port Example" ]
                                 ]
                             ]
                         ]
                     ]
-                  else
-                  html_empty
+                  else html_empty
+                , div [ class "ui segment horizontal-center" ]
+                    [ button [ class "huge circular blue ui icon button", onClick ToggleSidePanel ]
+                        [ i [ class <| "angle " ++ (if model.sidePanelExpanded then "right" else "left") ++ " icon" ] []
+                        ]
+                    ]
                 ]
             ]
         ]
@@ -250,7 +247,7 @@ update msg model =
     HandleErrorEvent message -> (print message model, Cmd.none)
 
     ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
-    ClearAllRecords -> ({model | records = [], visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0}, Cmd.none)
+    ClearAllRecords -> ({model | records = [], cursorX = 0, cursorY = 0, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0}, Cmd.none)
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
     CsvRequested suggestion -> (model, Select.file [ csv_mime ] <| CsvSelected suggestion)
@@ -267,11 +264,8 @@ update msg model =
       )
 
     VirWheelScroll event -> update (VirScroll False <| flip (if event.deltaY >= 0 then (+) else (-)) row_height) model
-
     VirScrollbarScroll -> (model, checkScrollbar)
-
     VirScrollbarInfo viewport -> update (VirScroll True <| always <| round viewport.viewport.y) model
-
     VirScroll fromScrollBar modify ->
       let newViewportY = Basics.clamp 0 (tableHeight model - model.viewportHeight) <| modify model.viewportY
        in ( {model | scrollLock = True, viewportY = newViewportY}
@@ -279,32 +273,29 @@ update msg model =
                       , if fromScrollBar then Cmd.none else updateScrollBar newViewportY
                       ]
           )
-
     VirUpdate ->
       let numRecords = List.length model.records
           (bottom, top) = if model.enableVirtualization
                           then getVisibleRows numRecords model.viewportHeight model.viewportY
                           else (0, numRecords - 1)
        in ({model | visibleStartIndex = bottom, visibleEndIndex = top, scrollLock = False}, Cmd.none)
-
     VirResize -> (model, checkTableContainer)
     VirContainerInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
-
     VirToggle -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
 
     PortExample -> (model, Ports.example model.filename)
 
 checkTableContainer : Cmd Msg
-checkTableContainer = Task.attempt (handleError VirContainerInfo) (Dom.getViewportOf table_container)
+checkTableContainer = Task.attempt (handleError VirContainerInfo) (Dom.getViewportOf "table-viewport")
 
 checkScrollbar : Cmd Msg
-checkScrollbar = Task.attempt (handleError VirScrollbarInfo) (Dom.getViewportOf scroll_bar)
+checkScrollbar = Task.attempt (handleError VirScrollbarInfo) (Dom.getViewportOf "scrollbar")
 
 updateVisibleRows : Cmd Msg
 updateVisibleRows = Task.perform (always VirUpdate) (Process.sleep scroll_wait)
 
 updateScrollBar : Int -> Cmd Msg
-updateScrollBar newViewportY = Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf scroll_bar 0 <| toFloat newViewportY
+updateScrollBar newViewportY = Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf "scrollbar" 0 <| toFloat newViewportY
 
 getVisibleRows : Int -> Int -> Int -> (Int, Int)
 getVisibleRows numRecords viewportHeight viewportY =
@@ -419,11 +410,11 @@ row_height = 34
 html_empty : Html Msg
 html_empty = text ""
 
-table_container : String
-table_container = "table-container"
-
-scroll_bar : String
-scroll_bar = "scroll-bar"
+-- <td id="cursor">
+--   <div class="ui fluid input focus">
+--     <input type="text" placeholder="a">
+--   </div>
+-- </td>
 
 --==================================================================== GLOBAL SETTINGS
 
@@ -434,13 +425,3 @@ scroll_wait : number
 scroll_wait = 100
 
 --==================================================================== DECODERS
-
-{-
-I am going to need to create a uniform scrolling API which knows how to consistently manage
-the complexity of: Virtualization, not going out of bounds, responding to window size changes, ensuring scrollbar is in sync with page etc..
-
-Effectively I need a function
-`modifyScroll : (Int -> Int) -> Cmd Msg`
-which all scrolling events (due to mousewheel, scrollbar drag, cursor focus, programatic, ...)
-will utilize when actually invoking a scroll
--}

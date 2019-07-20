@@ -13,11 +13,11 @@
 </head>
 
 <body>
-  <div class="ui two column grid remove-gutters">
+  <div id="grid" class="ui two column grid">
     <div class="row">
       <div class="fifteen wide column">
-        <div class="table-sticky" id="table-container">
-          <table class="ui single line fixed unstackable striped celled compact table header-color row-height-fix table-relative">
+        <div id="table-viewport">
+          <table id="table" class="ui single line fixed unstackable striped celled compact table">
             <col width="100px">
             <col width="100px">
             <col width="100px">
@@ -34,7 +34,17 @@
             </thead>
             <tbody>
               <tr style="height:500px" id="top-buffer"></tr>
-              <tr> <td>a</td> <td>b</td> <td>c</td> <td>d</td> <td>e</td> </tr>
+              <tr>
+                <td id="cursor">
+                  <div class="ui fluid input focus">
+                    <input type="text" placeholder="a">
+                  </div>
+                </td>
+                <td>b</td>
+                <td>c</td>
+                <td>d</td>
+                <td>e</td>
+              </tr>
               <tr> <td>f</td> <td>g</td> <td>h</td> <td>i</td> <td>j</td> </tr>
               <tr> <td>k</td> <td>l</td> <td>m</td> <td>n</td> <td>o</td> </tr>
               <tr> <td>p</td> <td>q</td> <td>r</td> <td>s</td> <td>t</td> </tr>
