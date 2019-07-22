@@ -4618,21 +4618,23 @@ var _Parser_findSubString = F5(function(smallString, offset, row, col, bigString
 
 	return _Utils_Tuple3(newOffset, row, col);
 });
+var author$project$Main$CursorPosition = F2(
+	function (x, y) {
+		return {x: x, y: y};
+	});
 var author$project$Main$Model = function (sidePanelExpanded) {
 	return function (filename) {
 		return function (records) {
 			return function (oldRecords) {
 				return function (newRecord) {
-					return function (cursorX) {
-						return function (cursorY) {
-							return function (enableVirtualization) {
-								return function (scrollLock) {
-									return function (visibleStartIndex) {
-										return function (visibleEndIndex) {
-											return function (viewportHeight) {
-												return function (viewportY) {
-													return {cursorX: cursorX, cursorY: cursorY, enableVirtualization: enableVirtualization, filename: filename, newRecord: newRecord, oldRecords: oldRecords, records: records, scrollLock: scrollLock, sidePanelExpanded: sidePanelExpanded, viewportHeight: viewportHeight, viewportY: viewportY, visibleEndIndex: visibleEndIndex, visibleStartIndex: visibleStartIndex};
-												};
+					return function (cursorPosition) {
+						return function (enableVirtualization) {
+							return function (scrollLock) {
+								return function (visibleStartIndex) {
+									return function (visibleEndIndex) {
+										return function (viewportHeight) {
+											return function (viewportY) {
+												return {cursorPosition: cursorPosition, enableVirtualization: enableVirtualization, filename: filename, newRecord: newRecord, oldRecords: oldRecords, records: records, scrollLock: scrollLock, sidePanelExpanded: sidePanelExpanded, viewportHeight: viewportHeight, viewportY: viewportY, visibleEndIndex: visibleEndIndex, visibleStartIndex: visibleStartIndex};
 											};
 										};
 									};
@@ -4649,21 +4651,8 @@ var author$project$Main$Record = F5(
 	function (oldLotNo, lotNo, vendor, description, reserve) {
 		return {description: description, lotNo: lotNo, oldLotNo: oldLotNo, reserve: reserve, vendor: vendor};
 	});
-var author$project$Main$VirResize = {$: 'VirResize'};
-var author$project$Main$CsvLoaded = F3(
-	function (a, b, c) {
-		return {$: 'CsvLoaded', a: a, b: b, c: c};
-	});
-var author$project$Main$CsvSelected = F2(
-	function (a, b) {
-		return {$: 'CsvSelected', a: a, b: b};
-	});
-var author$project$Main$VirScroll = F2(
-	function (a, b) {
-		return {$: 'VirScroll', a: a, b: b};
-	});
-var author$project$Main$VirScrollbarInfo = function (a) {
-	return {$: 'VirScrollbarInfo', a: a};
+var author$project$Main$VirViewportInfo = function (a) {
+	return {$: 'VirViewportInfo', a: a};
 };
 var author$project$Main$HandleErrorEvent = function (a) {
 	return {$: 'HandleErrorEvent', a: a};
@@ -5491,17 +5480,470 @@ var elm$core$Task$attempt = F2(
 							elm$core$Result$Ok),
 						task))));
 	});
+var author$project$Main$checkTableViewport = A2(
+	elm$core$Task$attempt,
+	author$project$Main$handleError(author$project$Main$VirViewportInfo),
+	elm$browser$Browser$Dom$getViewportOf('table-viewport'));
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var elm$core$Platform$Cmd$batch = _Platform_batch;
+var author$project$Main$init = function (_n0) {
+	return _Utils_Tuple2(
+		author$project$Main$Model(true)('')(_List_Nil)(_List_Nil)(
+			A5(author$project$Main$Record, '', '', '', '', ''))(
+			A2(author$project$Main$CursorPosition, 0, elm$core$Maybe$Nothing))(true)(false)(-1)(-1)(0)(0),
+		elm$core$Platform$Cmd$batch(
+			_List_fromArray(
+				[author$project$Main$checkTableViewport])));
+};
+var author$project$Main$VirResize = {$: 'VirResize'};
+var elm$browser$Browser$Events$Window = {$: 'Window'};
+var elm$browser$Browser$Events$MySub = F3(
+	function (a, b, c) {
+		return {$: 'MySub', a: a, b: b, c: c};
+	});
+var elm$browser$Browser$Events$State = F2(
+	function (subs, pids) {
+		return {pids: pids, subs: subs};
+	});
+var elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var elm$core$Dict$empty = elm$core$Dict$RBEmpty_elm_builtin;
+var elm$browser$Browser$Events$init = elm$core$Task$succeed(
+	A2(elm$browser$Browser$Events$State, _List_Nil, elm$core$Dict$empty));
+var elm$browser$Browser$Events$nodeToKey = function (node) {
+	if (node.$ === 'Document') {
+		return 'd_';
+	} else {
+		return 'w_';
+	}
+};
+var elm$browser$Browser$Events$addKey = function (sub) {
+	var node = sub.a;
+	var name = sub.b;
+	return _Utils_Tuple2(
+		_Utils_ap(
+			elm$browser$Browser$Events$nodeToKey(node),
+			name),
+		sub);
+};
+var elm$browser$Browser$Events$Event = F2(
+	function (key, event) {
+		return {event: event, key: key};
+	});
+var elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var elm$browser$Browser$Events$spawn = F3(
+	function (router, key, _n0) {
+		var node = _n0.a;
+		var name = _n0.b;
+		var actualNode = function () {
+			if (node.$ === 'Document') {
+				return _Browser_doc;
+			} else {
+				return _Browser_window;
+			}
+		}();
+		return A2(
+			elm$core$Task$map,
+			function (value) {
+				return _Utils_Tuple2(key, value);
+			},
+			A3(
+				_Browser_on,
+				actualNode,
+				name,
+				function (event) {
+					return A2(
+						elm$core$Platform$sendToSelf,
+						router,
+						A2(elm$browser$Browser$Events$Event, key, event));
+				}));
+	});
+var elm$core$Dict$Black = {$: 'Black'};
+var elm$core$Dict$RBNode_elm_builtin = F5(
+	function (a, b, c, d, e) {
+		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
+	});
+var elm$core$Basics$compare = _Utils_compare;
+var elm$core$Dict$Red = {$: 'Red'};
+var elm$core$Dict$balance = F5(
+	function (color, key, value, left, right) {
+		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
+			var _n1 = right.a;
+			var rK = right.b;
+			var rV = right.c;
+			var rLeft = right.d;
+			var rRight = right.e;
+			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
+				var _n3 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var lLeft = left.d;
+				var lRight = left.e;
+				return A5(
+					elm$core$Dict$RBNode_elm_builtin,
+					elm$core$Dict$Red,
+					key,
+					value,
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, lK, lV, lLeft, lRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					elm$core$Dict$RBNode_elm_builtin,
+					color,
+					rK,
+					rV,
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, left, rLeft),
+					rRight);
+			}
+		} else {
+			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
+				var _n5 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var _n6 = left.d;
+				var _n7 = _n6.a;
+				var llK = _n6.b;
+				var llV = _n6.c;
+				var llLeft = _n6.d;
+				var llRight = _n6.e;
+				var lRight = left.e;
+				return A5(
+					elm$core$Dict$RBNode_elm_builtin,
+					elm$core$Dict$Red,
+					lK,
+					lV,
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, llK, llV, llLeft, llRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, key, value, lRight, right));
+			} else {
+				return A5(elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
+			}
+		}
+	});
+var elm$core$Dict$insertHelp = F3(
+	function (key, value, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, elm$core$Dict$RBEmpty_elm_builtin, elm$core$Dict$RBEmpty_elm_builtin);
+		} else {
+			var nColor = dict.a;
+			var nKey = dict.b;
+			var nValue = dict.c;
+			var nLeft = dict.d;
+			var nRight = dict.e;
+			var _n1 = A2(elm$core$Basics$compare, key, nKey);
+			switch (_n1.$) {
+				case 'LT':
+					return A5(
+						elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						A3(elm$core$Dict$insertHelp, key, value, nLeft),
+						nRight);
+				case 'EQ':
+					return A5(elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
+				default:
+					return A5(
+						elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						nLeft,
+						A3(elm$core$Dict$insertHelp, key, value, nRight));
+			}
+		}
+	});
+var elm$core$Dict$insert = F3(
+	function (key, value, dict) {
+		var _n0 = A3(elm$core$Dict$insertHelp, key, value, dict);
+		if ((_n0.$ === 'RBNode_elm_builtin') && (_n0.a.$ === 'Red')) {
+			var _n1 = _n0.a;
+			var k = _n0.b;
+			var v = _n0.c;
+			var l = _n0.d;
+			var r = _n0.e;
+			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, k, v, l, r);
+		} else {
+			var x = _n0;
+			return x;
+		}
+	});
+var elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		elm$core$List$foldl,
+		F2(
+			function (_n0, dict) {
+				var key = _n0.a;
+				var value = _n0.b;
+				return A3(elm$core$Dict$insert, key, value, dict);
+			}),
+		elm$core$Dict$empty,
+		assocs);
+};
+var elm$core$Dict$foldl = F3(
+	function (func, acc, dict) {
+		foldl:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return acc;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var $temp$func = func,
+					$temp$acc = A3(
+					func,
+					key,
+					value,
+					A3(elm$core$Dict$foldl, func, acc, left)),
+					$temp$dict = right;
+				func = $temp$func;
+				acc = $temp$acc;
+				dict = $temp$dict;
+				continue foldl;
+			}
+		}
+	});
+var elm$core$Dict$merge = F6(
+	function (leftStep, bothStep, rightStep, leftDict, rightDict, initialResult) {
+		var stepState = F3(
+			function (rKey, rValue, _n0) {
+				stepState:
+				while (true) {
+					var list = _n0.a;
+					var result = _n0.b;
+					if (!list.b) {
+						return _Utils_Tuple2(
+							list,
+							A3(rightStep, rKey, rValue, result));
+					} else {
+						var _n2 = list.a;
+						var lKey = _n2.a;
+						var lValue = _n2.b;
+						var rest = list.b;
+						if (_Utils_cmp(lKey, rKey) < 0) {
+							var $temp$rKey = rKey,
+								$temp$rValue = rValue,
+								$temp$_n0 = _Utils_Tuple2(
+								rest,
+								A3(leftStep, lKey, lValue, result));
+							rKey = $temp$rKey;
+							rValue = $temp$rValue;
+							_n0 = $temp$_n0;
+							continue stepState;
+						} else {
+							if (_Utils_cmp(lKey, rKey) > 0) {
+								return _Utils_Tuple2(
+									list,
+									A3(rightStep, rKey, rValue, result));
+							} else {
+								return _Utils_Tuple2(
+									rest,
+									A4(bothStep, lKey, lValue, rValue, result));
+							}
+						}
+					}
+				}
+			});
+		var _n3 = A3(
+			elm$core$Dict$foldl,
+			stepState,
+			_Utils_Tuple2(
+				elm$core$Dict$toList(leftDict),
+				initialResult),
+			rightDict);
+		var leftovers = _n3.a;
+		var intermediateResult = _n3.b;
+		return A3(
+			elm$core$List$foldl,
+			F2(
+				function (_n4, result) {
+					var k = _n4.a;
+					var v = _n4.b;
+					return A3(leftStep, k, v, result);
+				}),
+			intermediateResult,
+			leftovers);
+	});
+var elm$core$Dict$union = F2(
+	function (t1, t2) {
+		return A3(elm$core$Dict$foldl, elm$core$Dict$insert, t2, t1);
+	});
+var elm$core$Process$kill = _Scheduler_kill;
+var elm$browser$Browser$Events$onEffects = F3(
+	function (router, subs, state) {
+		var stepRight = F3(
+			function (key, sub, _n6) {
+				var deads = _n6.a;
+				var lives = _n6.b;
+				var news = _n6.c;
+				return _Utils_Tuple3(
+					deads,
+					lives,
+					A2(
+						elm$core$List$cons,
+						A3(elm$browser$Browser$Events$spawn, router, key, sub),
+						news));
+			});
+		var stepLeft = F3(
+			function (_n4, pid, _n5) {
+				var deads = _n5.a;
+				var lives = _n5.b;
+				var news = _n5.c;
+				return _Utils_Tuple3(
+					A2(elm$core$List$cons, pid, deads),
+					lives,
+					news);
+			});
+		var stepBoth = F4(
+			function (key, pid, _n2, _n3) {
+				var deads = _n3.a;
+				var lives = _n3.b;
+				var news = _n3.c;
+				return _Utils_Tuple3(
+					deads,
+					A3(elm$core$Dict$insert, key, pid, lives),
+					news);
+			});
+		var newSubs = A2(elm$core$List$map, elm$browser$Browser$Events$addKey, subs);
+		var _n0 = A6(
+			elm$core$Dict$merge,
+			stepLeft,
+			stepBoth,
+			stepRight,
+			state.pids,
+			elm$core$Dict$fromList(newSubs),
+			_Utils_Tuple3(_List_Nil, elm$core$Dict$empty, _List_Nil));
+		var deadPids = _n0.a;
+		var livePids = _n0.b;
+		var makeNewPids = _n0.c;
+		return A2(
+			elm$core$Task$andThen,
+			function (pids) {
+				return elm$core$Task$succeed(
+					A2(
+						elm$browser$Browser$Events$State,
+						newSubs,
+						A2(
+							elm$core$Dict$union,
+							livePids,
+							elm$core$Dict$fromList(pids))));
+			},
+			A2(
+				elm$core$Task$andThen,
+				function (_n1) {
+					return elm$core$Task$sequence(makeNewPids);
+				},
+				elm$core$Task$sequence(
+					A2(elm$core$List$map, elm$core$Process$kill, deadPids))));
+	});
+var elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _n0 = f(mx);
+		if (_n0.$ === 'Just') {
+			var x = _n0.a;
+			return A2(elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var elm$core$List$filterMap = F2(
+	function (f, xs) {
+		return A3(
+			elm$core$List$foldr,
+			elm$core$List$maybeCons(f),
+			_List_Nil,
+			xs);
+	});
+var elm$browser$Browser$Events$onSelfMsg = F3(
+	function (router, _n0, state) {
+		var key = _n0.key;
+		var event = _n0.event;
+		var toMessage = function (_n2) {
+			var subKey = _n2.a;
+			var _n3 = _n2.b;
+			var node = _n3.a;
+			var name = _n3.b;
+			var decoder = _n3.c;
+			return _Utils_eq(subKey, key) ? A2(_Browser_decodeEvent, decoder, event) : elm$core$Maybe$Nothing;
+		};
+		var messages = A2(elm$core$List$filterMap, toMessage, state.subs);
+		return A2(
+			elm$core$Task$andThen,
+			function (_n1) {
+				return elm$core$Task$succeed(state);
+			},
+			elm$core$Task$sequence(
+				A2(
+					elm$core$List$map,
+					elm$core$Platform$sendToApp(router),
+					messages)));
+	});
+var elm$browser$Browser$Events$subMap = F2(
+	function (func, _n0) {
+		var node = _n0.a;
+		var name = _n0.b;
+		var decoder = _n0.c;
+		return A3(
+			elm$browser$Browser$Events$MySub,
+			node,
+			name,
+			A2(elm$json$Json$Decode$map, func, decoder));
+	});
+_Platform_effectManagers['Browser.Events'] = _Platform_createManager(elm$browser$Browser$Events$init, elm$browser$Browser$Events$onEffects, elm$browser$Browser$Events$onSelfMsg, 0, elm$browser$Browser$Events$subMap);
+var elm$browser$Browser$Events$subscription = _Platform_leaf('Browser.Events');
+var elm$browser$Browser$Events$on = F3(
+	function (node, name, decoder) {
+		return elm$browser$Browser$Events$subscription(
+			A3(elm$browser$Browser$Events$MySub, node, name, decoder));
+	});
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$int = _Json_decodeInt;
+var elm$browser$Browser$Events$onResize = function (func) {
+	return A3(
+		elm$browser$Browser$Events$on,
+		elm$browser$Browser$Events$Window,
+		'resize',
+		A2(
+			elm$json$Json$Decode$field,
+			'target',
+			A3(
+				elm$json$Json$Decode$map2,
+				func,
+				A2(elm$json$Json$Decode$field, 'innerWidth', elm$json$Json$Decode$int),
+				A2(elm$json$Json$Decode$field, 'innerHeight', elm$json$Json$Decode$int))));
+};
+var author$project$Main$subscriptions = function (_n0) {
+	return elm$browser$Browser$Events$onResize(
+		F2(
+			function (_n1, _n2) {
+				return author$project$Main$VirResize;
+			}));
+};
+var author$project$Main$CsvLoaded = F3(
+	function (a, b, c) {
+		return {$: 'CsvLoaded', a: a, b: b, c: c};
+	});
+var author$project$Main$CsvSelected = F2(
+	function (a, b) {
+		return {$: 'CsvSelected', a: a, b: b};
+	});
+var author$project$Main$CursorMoved = function (a) {
+	return {$: 'CursorMoved', a: a};
+};
+var author$project$Main$NoOp = {$: 'NoOp'};
+var author$project$Main$VirScroll = F2(
+	function (a, b) {
+		return {$: 'VirScroll', a: a, b: b};
+	});
+var author$project$Main$VirScrollbarInfo = function (a) {
+	return {$: 'VirScrollbarInfo', a: a};
+};
 var author$project$Main$checkScrollbar = A2(
 	elm$core$Task$attempt,
 	author$project$Main$handleError(author$project$Main$VirScrollbarInfo),
 	elm$browser$Browser$Dom$getViewportOf('scrollbar'));
-var author$project$Main$VirContainerInfo = function (a) {
-	return {$: 'VirContainerInfo', a: a};
-};
-var author$project$Main$checkTableContainer = A2(
-	elm$core$Task$attempt,
-	author$project$Main$handleError(author$project$Main$VirContainerInfo),
-	elm$browser$Browser$Dom$getViewportOf('table-viewport'));
 var author$project$Main$csv_mime = 'text/csv';
 var author$project$Main$flip = F3(
 	function (f, a, b) {
@@ -5566,7 +6008,7 @@ var author$project$Main$pad = F3(
 					0),
 				def));
 	});
-var author$project$Main$listToOldRecord = function (list) {
+var author$project$Main$importListToOldRecord = function (list) {
 	var _n0 = A3(author$project$Main$pad, 4, '', list);
 	if (((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) {
 		var a = _n0.a;
@@ -5583,7 +6025,7 @@ var author$project$Main$listToOldRecord = function (list) {
 	}
 };
 var author$project$Main$errorRecord = A5(author$project$Main$Record, 'ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR');
-var author$project$Main$listToRecord = function (list) {
+var author$project$Main$importListToRecord = function (list) {
 	var _n0 = A3(author$project$Main$pad, 4, '', list);
 	if (((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) {
 		var a = _n0.a;
@@ -5599,6 +6041,64 @@ var author$project$Main$listToRecord = function (list) {
 		return author$project$Main$errorRecord;
 	}
 };
+var author$project$Main$listToRecord = function (list) {
+	var _n0 = A3(author$project$Main$pad, 5, '', list);
+	if ((((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) && _n0.b.b.b.b.b) {
+		var a = _n0.a;
+		var _n1 = _n0.b;
+		var b = _n1.a;
+		var _n2 = _n1.b;
+		var c = _n2.a;
+		var _n3 = _n2.b;
+		var d = _n3.a;
+		var _n4 = _n3.b;
+		var e = _n4.a;
+		var xs = _n4.b;
+		return A5(author$project$Main$Record, a, b, c, d, e);
+	} else {
+		return author$project$Main$errorRecord;
+	}
+};
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var author$project$Main$maybe = F3(
+	function (b, f, ma) {
+		return A2(
+			elm$core$Maybe$withDefault,
+			b,
+			A2(elm$core$Maybe$map, f, ma));
+	});
+var elm$core$Basics$clamp = F3(
+	function (low, high, number) {
+		return (_Utils_cmp(number, low) < 0) ? low : ((_Utils_cmp(number, high) > 0) ? high : number);
+	});
+var author$project$Main$maybeClamp = F3(
+	function (recordNum, f, m) {
+		var n = A2(elm$core$Maybe$withDefault, recordNum, m);
+		var c = A3(
+			elm$core$Basics$clamp,
+			0,
+			recordNum,
+			f(n));
+		return _Utils_eq(c, recordNum) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(c);
+	});
 var elm$core$Basics$always = F2(
 	function (a, _n0) {
 		return a;
@@ -5615,6 +6115,15 @@ var author$project$Main$print = F2(
 				'',
 				elm$core$Debug$toString(a)));
 	});
+var author$project$Main$recordToList = function (_n0) {
+	var oldLotNo = _n0.oldLotNo;
+	var lotNo = _n0.lotNo;
+	var vendor = _n0.vendor;
+	var description = _n0.description;
+	var reserve = _n0.reserve;
+	return _List_fromArray(
+		[oldLotNo, lotNo, vendor, description, reserve]);
+};
 var author$project$Main$windows_newline = '\r\n';
 var author$project$Main$recordsToCsv = function (records) {
 	var recordToCsv = function (_n0) {
@@ -5634,10 +6143,36 @@ var author$project$Main$recordsToCsv = function (records) {
 		author$project$Main$windows_newline,
 		A2(elm$core$List$map, recordToCsv, records));
 };
+var author$project$Main$succ = elm$core$Basics$add(1);
 var author$project$Main$tableHeight = function (model) {
 	return (elm$core$List$length(model.records) + 2) * author$project$Main$row_height;
 };
-var author$project$Main$NoOp = {$: 'NoOp'};
+var author$project$Main$updateAt = F3(
+	function (n, f, lst) {
+		var _n0 = _Utils_Tuple2(n, lst);
+		if (!_n0.b.b) {
+			return _List_Nil;
+		} else {
+			if (!_n0.a) {
+				var _n1 = _n0.b;
+				var x = _n1.a;
+				var xs = _n1.b;
+				return A2(
+					elm$core$List$cons,
+					f(x),
+					xs);
+			} else {
+				var nn = _n0.a;
+				var _n2 = _n0.b;
+				var x = _n2.a;
+				var xs = _n2.b;
+				return A2(
+					elm$core$List$cons,
+					x,
+					A3(author$project$Main$updateAt, nn - 1, f, xs));
+			}
+		}
+	});
 var elm$browser$Browser$Dom$setViewportOf = _Browser_setViewportOf;
 var author$project$Main$updateScrollBar = function (newViewportY) {
 	return A2(
@@ -5655,17 +6190,15 @@ var author$project$Main$updateVisibleRows = A2(
 	elm$core$Process$sleep(author$project$Main$scroll_wait));
 var elm$json$Json$Encode$string = _Json_wrap;
 var author$project$Ports$example = _Platform_outgoingPort('example', elm$json$Json$Encode$string);
-var elm$core$Basics$clamp = F3(
-	function (low, high, number) {
-		return (_Utils_cmp(number, low) < 0) ? low : ((_Utils_cmp(number, high) > 0) ? high : number);
+var elm$json$Json$Encode$null = _Json_encodeNull;
+var author$project$Ports$focusCursor = _Platform_outgoingPort(
+	'focusCursor',
+	function ($) {
+		return elm$json$Json$Encode$null;
 	});
 var elm$core$Basics$ge = _Utils_ge;
-var elm$core$Basics$negate = function (n) {
-	return -n;
-};
 var elm$core$Basics$not = _Basics_not;
 var elm$core$Basics$round = _Basics_round;
-var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var elm$time$Time$Posix = function (a) {
 	return {$: 'Posix', a: a};
@@ -6367,6 +6900,72 @@ var author$project$Main$update = F2(
 					return _Utils_Tuple2(
 						A2(author$project$Main$print, message, model),
 						elm$core$Platform$Cmd$none);
+				case 'TableViewport':
+					var event = msg.a;
+					var recordNum = elm$core$List$length(model.records);
+					var cursorPosition = model.cursorPosition;
+					return A3(
+						author$project$Main$flip,
+						author$project$Main$update,
+						model,
+						function () {
+							var _n1 = event.keyCode;
+							switch (_n1.$) {
+								case 'Left':
+									return author$project$Main$CursorMoved(
+										_Utils_update(
+											cursorPosition,
+											{
+												x: A2(
+													elm$core$Basics$max,
+													0,
+													author$project$Main$pred(cursorPosition.x))
+											}));
+								case 'Right':
+									return author$project$Main$CursorMoved(
+										_Utils_update(
+											cursorPosition,
+											{
+												x: A2(
+													elm$core$Basics$min,
+													4,
+													author$project$Main$succ(cursorPosition.x))
+											}));
+								case 'Tab':
+									return author$project$Main$CursorMoved(
+										_Utils_update(
+											cursorPosition,
+											{
+												x: A2(
+													elm$core$Basics$min,
+													4,
+													author$project$Main$succ(cursorPosition.x))
+											}));
+								case 'Up':
+									return author$project$Main$CursorMoved(
+										_Utils_update(
+											cursorPosition,
+											{
+												y: A3(author$project$Main$maybeClamp, recordNum, author$project$Main$pred, cursorPosition.y)
+											}));
+								case 'Down':
+									return author$project$Main$CursorMoved(
+										_Utils_update(
+											cursorPosition,
+											{
+												y: A3(author$project$Main$maybeClamp, recordNum, author$project$Main$succ, cursorPosition.y)
+											}));
+								case 'Enter':
+									return author$project$Main$CursorMoved(
+										_Utils_update(
+											cursorPosition,
+											{
+												y: A3(author$project$Main$maybeClamp, recordNum, author$project$Main$succ, cursorPosition.y)
+											}));
+								default:
+									return author$project$Main$NoOp;
+							}
+						}());
 				case 'ToggleSidePanel':
 					var newExpanded = !model.sidePanelExpanded;
 					return _Utils_Tuple2(
@@ -6378,7 +6977,13 @@ var author$project$Main$update = F2(
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{cursorX: 0, cursorY: elm$core$Maybe$Nothing, records: _List_Nil, viewportY: 0, visibleEndIndex: -1, visibleStartIndex: -1}),
+							{
+								cursorPosition: A2(author$project$Main$CursorPosition, 0, elm$core$Maybe$Nothing),
+								records: _List_Nil,
+								viewportY: 0,
+								visibleEndIndex: -1,
+								visibleStartIndex: -1
+							}),
 						elm$core$Platform$Cmd$none);
 				case 'FilenameEdited':
 					var newText = msg.a;
@@ -6412,16 +7017,16 @@ var author$project$Main$update = F2(
 					var suggestion = msg.a;
 					var fileName = msg.b;
 					var fileContent = msg.c;
-					var _n1 = periodic$elm_csv$Csv$parse(fileContent);
-					if (_n1.$ === 'Err') {
+					var _n2 = periodic$elm_csv$Csv$parse(fileContent);
+					if (_n2.$ === 'Err') {
 						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
 					} else {
-						var csv = _n1.a;
+						var csv = _n2.a;
 						return suggestion ? _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{
-									oldRecords: A2(elm$core$List$map, author$project$Main$listToOldRecord, csv.records)
+									oldRecords: A2(elm$core$List$map, author$project$Main$importListToOldRecord, csv.records)
 								}),
 							elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 							_Utils_update(
@@ -6429,7 +7034,7 @@ var author$project$Main$update = F2(
 								{
 									records: _Utils_ap(
 										model.records,
-										A2(elm$core$List$map, author$project$Main$listToRecord, csv.records)),
+										A2(elm$core$List$map, author$project$Main$importListToRecord, csv.records)),
 									scrollLock: true
 								}),
 							author$project$Main$updateVisibleRows);
@@ -6488,17 +7093,17 @@ var author$project$Main$update = F2(
 								])));
 				case 'VirUpdate':
 					var numRecords = elm$core$List$length(model.records);
-					var _n2 = model.enableVirtualization ? A3(author$project$Main$getVisibleRows, numRecords, model.viewportHeight, model.viewportY) : _Utils_Tuple2(0, numRecords - 1);
-					var bottom = _n2.a;
-					var top = _n2.b;
+					var _n3 = model.enableVirtualization ? A3(author$project$Main$getVisibleRows, numRecords, model.viewportHeight, model.viewportY) : _Utils_Tuple2(0, numRecords - 1);
+					var bottom = _n3.a;
+					var top = _n3.b;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{scrollLock: false, visibleEndIndex: top, visibleStartIndex: bottom}),
 						elm$core$Platform$Cmd$none);
 				case 'VirResize':
-					return _Utils_Tuple2(model, author$project$Main$checkTableContainer);
-				case 'VirContainerInfo':
+					return _Utils_Tuple2(model, author$project$Main$checkTableViewport);
+				case 'VirViewportInfo':
 					var viewport = msg.a;
 					return _Utils_Tuple2(
 						_Utils_update(
@@ -6513,6 +7118,45 @@ var author$project$Main$update = F2(
 							model,
 							{enableVirtualization: !model.enableVirtualization}),
 						elm$core$Platform$Cmd$none);
+				case 'CursorEdited':
+					var newText = msg.a;
+					return _Utils_Tuple2(
+						function () {
+							var columnUpdate = A2(
+								elm$core$Basics$composeL,
+								A2(
+									elm$core$Basics$composeL,
+									author$project$Main$listToRecord,
+									A2(
+										author$project$Main$updateAt,
+										model.cursorPosition.x,
+										elm$core$Basics$always(newText))),
+								author$project$Main$recordToList);
+							var rowUpdate = function (cursorY) {
+								return _Utils_update(
+									model,
+									{
+										records: A3(author$project$Main$updateAt, cursorY, columnUpdate, model.records)
+									});
+							};
+							return A3(
+								author$project$Main$maybe,
+								_Utils_update(
+									model,
+									{
+										newRecord: columnUpdate(model.newRecord)
+									}),
+								rowUpdate,
+								model.cursorPosition.y);
+						}(),
+						elm$core$Platform$Cmd$none);
+				case 'CursorMoved':
+					var cursorPosition = msg.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{cursorPosition: cursorPosition}),
+						author$project$Ports$focusCursor(_Utils_Tuple0));
 				default:
 					return _Utils_Tuple2(
 						model,
@@ -6520,436 +7164,336 @@ var author$project$Main$update = F2(
 			}
 		}
 	});
-var author$project$Main$init = function (_n0) {
-	return A2(
-		author$project$Main$update,
-		author$project$Main$VirResize,
-		author$project$Main$Model(true)('')(_List_Nil)(_List_Nil)(
-			A5(author$project$Main$Record, '', '', '', '', ''))(0)(elm$core$Maybe$Nothing)(true)(false)(-1)(-1)(0)(0));
+var Gizra$elm_keyboard_event$Keyboard$Event$KeyboardEvent = F7(
+	function (altKey, ctrlKey, key, keyCode, metaKey, repeat, shiftKey) {
+		return {altKey: altKey, ctrlKey: ctrlKey, key: key, keyCode: keyCode, metaKey: metaKey, repeat: repeat, shiftKey: shiftKey};
+	});
+var elm$json$Json$Decode$andThen = _Json_andThen;
+var elm$json$Json$Decode$fail = _Json_fail;
+var elm$json$Json$Decode$oneOf = _Json_oneOf;
+var elm$json$Json$Decode$maybe = function (decoder) {
+	return elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				A2(elm$json$Json$Decode$map, elm$core$Maybe$Just, decoder),
+				elm$json$Json$Decode$succeed(elm$core$Maybe$Nothing)
+			]));
 };
-var elm$browser$Browser$Events$Window = {$: 'Window'};
-var elm$browser$Browser$Events$MySub = F3(
-	function (a, b, c) {
-		return {$: 'MySub', a: a, b: b, c: c};
-	});
-var elm$browser$Browser$Events$State = F2(
-	function (subs, pids) {
-		return {pids: pids, subs: subs};
-	});
-var elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
-var elm$core$Dict$empty = elm$core$Dict$RBEmpty_elm_builtin;
-var elm$browser$Browser$Events$init = elm$core$Task$succeed(
-	A2(elm$browser$Browser$Events$State, _List_Nil, elm$core$Dict$empty));
-var elm$browser$Browser$Events$nodeToKey = function (node) {
-	if (node.$ === 'Document') {
-		return 'd_';
-	} else {
-		return 'w_';
+var elm$json$Json$Decode$string = _Json_decodeString;
+var Gizra$elm_keyboard_event$Keyboard$Event$decodeKey = elm$json$Json$Decode$maybe(
+	A2(
+		elm$json$Json$Decode$andThen,
+		function (key) {
+			return elm$core$String$isEmpty(key) ? elm$json$Json$Decode$fail('empty key') : elm$json$Json$Decode$succeed(key);
+		},
+		A2(elm$json$Json$Decode$field, 'key', elm$json$Json$Decode$string)));
+var Gizra$elm_keyboard_event$Keyboard$Event$decodeNonZero = A2(
+	elm$json$Json$Decode$andThen,
+	function (code) {
+		return (!code) ? elm$json$Json$Decode$fail('code was zero') : elm$json$Json$Decode$succeed(code);
+	},
+	elm$json$Json$Decode$int);
+var Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyCode = elm$json$Json$Decode$oneOf(
+	_List_fromArray(
+		[
+			A2(elm$json$Json$Decode$field, 'keyCode', Gizra$elm_keyboard_event$Keyboard$Event$decodeNonZero),
+			A2(elm$json$Json$Decode$field, 'which', Gizra$elm_keyboard_event$Keyboard$Event$decodeNonZero),
+			A2(elm$json$Json$Decode$field, 'charCode', Gizra$elm_keyboard_event$Keyboard$Event$decodeNonZero),
+			elm$json$Json$Decode$succeed(0)
+		]));
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$A = {$: 'A'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Add = {$: 'Add'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Alt = {$: 'Alt'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Ambiguous = function (a) {
+	return {$: 'Ambiguous', a: a};
+};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$B = {$: 'B'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Backspace = {$: 'Backspace'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$C = {$: 'C'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$CapsLock = {$: 'CapsLock'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$ChromeSearch = {$: 'ChromeSearch'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Command = {$: 'Command'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Ctrl = function (a) {
+	return {$: 'Ctrl', a: a};
+};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$D = {$: 'D'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Decimal = {$: 'Decimal'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Delete = {$: 'Delete'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Divide = {$: 'Divide'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Down = {$: 'Down'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$E = {$: 'E'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Eight = {$: 'Eight'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$End = {$: 'End'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Enter = {$: 'Enter'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Escape = {$: 'Escape'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F = {$: 'F'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F1 = {$: 'F1'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F10 = {$: 'F10'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F11 = {$: 'F11'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F12 = {$: 'F12'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F2 = {$: 'F2'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F3 = {$: 'F3'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F4 = {$: 'F4'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F5 = {$: 'F5'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F6 = {$: 'F6'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F7 = {$: 'F7'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F8 = {$: 'F8'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$F9 = {$: 'F9'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Five = {$: 'Five'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Four = {$: 'Four'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$G = {$: 'G'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$H = {$: 'H'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Home = {$: 'Home'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$I = {$: 'I'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Insert = {$: 'Insert'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$J = {$: 'J'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$K = {$: 'K'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$L = {$: 'L'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Left = {$: 'Left'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$M = {$: 'M'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Multiply = {$: 'Multiply'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$N = {$: 'N'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Nine = {$: 'Nine'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumLock = {$: 'NumLock'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadEight = {$: 'NumpadEight'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadFive = {$: 'NumpadFive'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadFour = {$: 'NumpadFour'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadNine = {$: 'NumpadNine'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadOne = {$: 'NumpadOne'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadSeven = {$: 'NumpadSeven'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadSix = {$: 'NumpadSix'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadThree = {$: 'NumpadThree'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadTwo = {$: 'NumpadTwo'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadZero = {$: 'NumpadZero'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$O = {$: 'O'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$One = {$: 'One'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$P = {$: 'P'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$PageDown = {$: 'PageDown'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$PageUp = {$: 'PageUp'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$PauseBreak = {$: 'PauseBreak'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$PrintScreen = {$: 'PrintScreen'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Q = {$: 'Q'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$R = {$: 'R'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Right = {$: 'Right'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$S = {$: 'S'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$ScrollLock = {$: 'ScrollLock'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Seven = {$: 'Seven'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Shift = function (a) {
+	return {$: 'Shift', a: a};
+};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Six = {$: 'Six'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Spacebar = {$: 'Spacebar'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Subtract = {$: 'Subtract'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$T = {$: 'T'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Tab = {$: 'Tab'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Three = {$: 'Three'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Two = {$: 'Two'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$U = {$: 'U'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Unknown = function (a) {
+	return {$: 'Unknown', a: a};
+};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Up = {$: 'Up'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$V = {$: 'V'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$W = {$: 'W'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Windows = {$: 'Windows'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$X = {$: 'X'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Y = {$: 'Y'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Z = {$: 'Z'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Zero = {$: 'Zero'};
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$fromCode = function (keyCode) {
+	switch (keyCode) {
+		case 8:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Backspace;
+		case 9:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Tab;
+		case 13:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Enter;
+		case 16:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Shift(elm$core$Maybe$Nothing);
+		case 17:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Ctrl(elm$core$Maybe$Nothing);
+		case 18:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Alt;
+		case 19:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$PauseBreak;
+		case 20:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$CapsLock;
+		case 27:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Escape;
+		case 32:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Spacebar;
+		case 33:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$PageUp;
+		case 34:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$PageDown;
+		case 35:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$End;
+		case 36:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Home;
+		case 37:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Left;
+		case 38:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Up;
+		case 39:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Right;
+		case 40:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Down;
+		case 44:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$PrintScreen;
+		case 45:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Insert;
+		case 46:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Delete;
+		case 48:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Zero;
+		case 49:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$One;
+		case 50:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Two;
+		case 51:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Three;
+		case 52:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Four;
+		case 53:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Five;
+		case 54:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Six;
+		case 55:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Seven;
+		case 56:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Eight;
+		case 57:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Nine;
+		case 65:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$A;
+		case 66:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$B;
+		case 67:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$C;
+		case 68:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$D;
+		case 69:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$E;
+		case 70:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F;
+		case 71:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$G;
+		case 72:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$H;
+		case 73:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$I;
+		case 74:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$J;
+		case 75:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$K;
+		case 76:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$L;
+		case 77:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$M;
+		case 78:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$N;
+		case 79:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$O;
+		case 80:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$P;
+		case 81:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Q;
+		case 82:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$R;
+		case 83:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$S;
+		case 84:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$T;
+		case 85:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$U;
+		case 86:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$V;
+		case 87:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$W;
+		case 88:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$X;
+		case 89:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Y;
+		case 90:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Z;
+		case 91:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Ambiguous(
+				_List_fromArray(
+					[SwiftsNamesake$proper_keyboard$Keyboard$Key$Windows, SwiftsNamesake$proper_keyboard$Keyboard$Key$Command, SwiftsNamesake$proper_keyboard$Keyboard$Key$ChromeSearch]));
+		case 96:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadZero;
+		case 97:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadOne;
+		case 98:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadTwo;
+		case 99:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadThree;
+		case 100:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadFour;
+		case 101:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadFive;
+		case 102:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadSix;
+		case 103:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadSeven;
+		case 104:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadEight;
+		case 105:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumpadNine;
+		case 106:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Multiply;
+		case 107:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Add;
+		case 109:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Subtract;
+		case 110:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Decimal;
+		case 111:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Divide;
+		case 112:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F1;
+		case 113:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F2;
+		case 114:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F3;
+		case 115:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F4;
+		case 116:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F5;
+		case 117:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F6;
+		case 118:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F7;
+		case 119:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F8;
+		case 120:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F9;
+		case 121:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F10;
+		case 122:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F11;
+		case 123:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$F12;
+		case 144:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$NumLock;
+		case 145:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$ScrollLock;
+		default:
+			return SwiftsNamesake$proper_keyboard$Keyboard$Key$Unknown(keyCode);
 	}
 };
-var elm$browser$Browser$Events$addKey = function (sub) {
-	var node = sub.a;
-	var name = sub.b;
-	return _Utils_Tuple2(
-		_Utils_ap(
-			elm$browser$Browser$Events$nodeToKey(node),
-			name),
-		sub);
-};
-var elm$browser$Browser$Events$Event = F2(
-	function (key, event) {
-		return {event: event, key: key};
-	});
-var elm$core$Platform$sendToSelf = _Platform_sendToSelf;
-var elm$browser$Browser$Events$spawn = F3(
-	function (router, key, _n0) {
-		var node = _n0.a;
-		var name = _n0.b;
-		var actualNode = function () {
-			if (node.$ === 'Document') {
-				return _Browser_doc;
-			} else {
-				return _Browser_window;
-			}
-		}();
-		return A2(
-			elm$core$Task$map,
-			function (value) {
-				return _Utils_Tuple2(key, value);
-			},
-			A3(
-				_Browser_on,
-				actualNode,
-				name,
-				function (event) {
-					return A2(
-						elm$core$Platform$sendToSelf,
-						router,
-						A2(elm$browser$Browser$Events$Event, key, event));
-				}));
-	});
-var elm$core$Dict$Black = {$: 'Black'};
-var elm$core$Dict$RBNode_elm_builtin = F5(
-	function (a, b, c, d, e) {
-		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
-	});
-var elm$core$Basics$compare = _Utils_compare;
-var elm$core$Dict$Red = {$: 'Red'};
-var elm$core$Dict$balance = F5(
-	function (color, key, value, left, right) {
-		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
-			var _n1 = right.a;
-			var rK = right.b;
-			var rV = right.c;
-			var rLeft = right.d;
-			var rRight = right.e;
-			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
-				var _n3 = left.a;
-				var lK = left.b;
-				var lV = left.c;
-				var lLeft = left.d;
-				var lRight = left.e;
-				return A5(
-					elm$core$Dict$RBNode_elm_builtin,
-					elm$core$Dict$Red,
-					key,
-					value,
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, lK, lV, lLeft, lRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, rK, rV, rLeft, rRight));
-			} else {
-				return A5(
-					elm$core$Dict$RBNode_elm_builtin,
-					color,
-					rK,
-					rV,
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, left, rLeft),
-					rRight);
-			}
-		} else {
-			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
-				var _n5 = left.a;
-				var lK = left.b;
-				var lV = left.c;
-				var _n6 = left.d;
-				var _n7 = _n6.a;
-				var llK = _n6.b;
-				var llV = _n6.c;
-				var llLeft = _n6.d;
-				var llRight = _n6.e;
-				var lRight = left.e;
-				return A5(
-					elm$core$Dict$RBNode_elm_builtin,
-					elm$core$Dict$Red,
-					lK,
-					lV,
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, llK, llV, llLeft, llRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, key, value, lRight, right));
-			} else {
-				return A5(elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
-			}
-		}
-	});
-var elm$core$Dict$insertHelp = F3(
-	function (key, value, dict) {
-		if (dict.$ === 'RBEmpty_elm_builtin') {
-			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, elm$core$Dict$RBEmpty_elm_builtin, elm$core$Dict$RBEmpty_elm_builtin);
-		} else {
-			var nColor = dict.a;
-			var nKey = dict.b;
-			var nValue = dict.c;
-			var nLeft = dict.d;
-			var nRight = dict.e;
-			var _n1 = A2(elm$core$Basics$compare, key, nKey);
-			switch (_n1.$) {
-				case 'LT':
-					return A5(
-						elm$core$Dict$balance,
-						nColor,
-						nKey,
-						nValue,
-						A3(elm$core$Dict$insertHelp, key, value, nLeft),
-						nRight);
-				case 'EQ':
-					return A5(elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
-				default:
-					return A5(
-						elm$core$Dict$balance,
-						nColor,
-						nKey,
-						nValue,
-						nLeft,
-						A3(elm$core$Dict$insertHelp, key, value, nRight));
-			}
-		}
-	});
-var elm$core$Dict$insert = F3(
-	function (key, value, dict) {
-		var _n0 = A3(elm$core$Dict$insertHelp, key, value, dict);
-		if ((_n0.$ === 'RBNode_elm_builtin') && (_n0.a.$ === 'Red')) {
-			var _n1 = _n0.a;
-			var k = _n0.b;
-			var v = _n0.c;
-			var l = _n0.d;
-			var r = _n0.e;
-			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, k, v, l, r);
-		} else {
-			var x = _n0;
-			return x;
-		}
-	});
-var elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		elm$core$List$foldl,
-		F2(
-			function (_n0, dict) {
-				var key = _n0.a;
-				var value = _n0.b;
-				return A3(elm$core$Dict$insert, key, value, dict);
-			}),
-		elm$core$Dict$empty,
-		assocs);
-};
-var elm$core$Dict$foldl = F3(
-	function (func, acc, dict) {
-		foldl:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return acc;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var $temp$func = func,
-					$temp$acc = A3(
-					func,
-					key,
-					value,
-					A3(elm$core$Dict$foldl, func, acc, left)),
-					$temp$dict = right;
-				func = $temp$func;
-				acc = $temp$acc;
-				dict = $temp$dict;
-				continue foldl;
-			}
-		}
-	});
-var elm$core$Dict$merge = F6(
-	function (leftStep, bothStep, rightStep, leftDict, rightDict, initialResult) {
-		var stepState = F3(
-			function (rKey, rValue, _n0) {
-				stepState:
-				while (true) {
-					var list = _n0.a;
-					var result = _n0.b;
-					if (!list.b) {
-						return _Utils_Tuple2(
-							list,
-							A3(rightStep, rKey, rValue, result));
-					} else {
-						var _n2 = list.a;
-						var lKey = _n2.a;
-						var lValue = _n2.b;
-						var rest = list.b;
-						if (_Utils_cmp(lKey, rKey) < 0) {
-							var $temp$rKey = rKey,
-								$temp$rValue = rValue,
-								$temp$_n0 = _Utils_Tuple2(
-								rest,
-								A3(leftStep, lKey, lValue, result));
-							rKey = $temp$rKey;
-							rValue = $temp$rValue;
-							_n0 = $temp$_n0;
-							continue stepState;
-						} else {
-							if (_Utils_cmp(lKey, rKey) > 0) {
-								return _Utils_Tuple2(
-									list,
-									A3(rightStep, rKey, rValue, result));
-							} else {
-								return _Utils_Tuple2(
-									rest,
-									A4(bothStep, lKey, lValue, rValue, result));
-							}
-						}
-					}
-				}
-			});
-		var _n3 = A3(
-			elm$core$Dict$foldl,
-			stepState,
-			_Utils_Tuple2(
-				elm$core$Dict$toList(leftDict),
-				initialResult),
-			rightDict);
-		var leftovers = _n3.a;
-		var intermediateResult = _n3.b;
-		return A3(
-			elm$core$List$foldl,
-			F2(
-				function (_n4, result) {
-					var k = _n4.a;
-					var v = _n4.b;
-					return A3(leftStep, k, v, result);
-				}),
-			intermediateResult,
-			leftovers);
-	});
-var elm$core$Dict$union = F2(
-	function (t1, t2) {
-		return A3(elm$core$Dict$foldl, elm$core$Dict$insert, t2, t1);
-	});
-var elm$core$Process$kill = _Scheduler_kill;
-var elm$browser$Browser$Events$onEffects = F3(
-	function (router, subs, state) {
-		var stepRight = F3(
-			function (key, sub, _n6) {
-				var deads = _n6.a;
-				var lives = _n6.b;
-				var news = _n6.c;
-				return _Utils_Tuple3(
-					deads,
-					lives,
-					A2(
-						elm$core$List$cons,
-						A3(elm$browser$Browser$Events$spawn, router, key, sub),
-						news));
-			});
-		var stepLeft = F3(
-			function (_n4, pid, _n5) {
-				var deads = _n5.a;
-				var lives = _n5.b;
-				var news = _n5.c;
-				return _Utils_Tuple3(
-					A2(elm$core$List$cons, pid, deads),
-					lives,
-					news);
-			});
-		var stepBoth = F4(
-			function (key, pid, _n2, _n3) {
-				var deads = _n3.a;
-				var lives = _n3.b;
-				var news = _n3.c;
-				return _Utils_Tuple3(
-					deads,
-					A3(elm$core$Dict$insert, key, pid, lives),
-					news);
-			});
-		var newSubs = A2(elm$core$List$map, elm$browser$Browser$Events$addKey, subs);
-		var _n0 = A6(
-			elm$core$Dict$merge,
-			stepLeft,
-			stepBoth,
-			stepRight,
-			state.pids,
-			elm$core$Dict$fromList(newSubs),
-			_Utils_Tuple3(_List_Nil, elm$core$Dict$empty, _List_Nil));
-		var deadPids = _n0.a;
-		var livePids = _n0.b;
-		var makeNewPids = _n0.c;
-		return A2(
-			elm$core$Task$andThen,
-			function (pids) {
-				return elm$core$Task$succeed(
-					A2(
-						elm$browser$Browser$Events$State,
-						newSubs,
-						A2(
-							elm$core$Dict$union,
-							livePids,
-							elm$core$Dict$fromList(pids))));
-			},
-			A2(
-				elm$core$Task$andThen,
-				function (_n1) {
-					return elm$core$Task$sequence(makeNewPids);
-				},
-				elm$core$Task$sequence(
-					A2(elm$core$List$map, elm$core$Process$kill, deadPids))));
-	});
-var elm$core$List$maybeCons = F3(
-	function (f, mx, xs) {
-		var _n0 = f(mx);
-		if (_n0.$ === 'Just') {
-			var x = _n0.a;
-			return A2(elm$core$List$cons, x, xs);
-		} else {
-			return xs;
-		}
-	});
-var elm$core$List$filterMap = F2(
-	function (f, xs) {
-		return A3(
-			elm$core$List$foldr,
-			elm$core$List$maybeCons(f),
-			_List_Nil,
-			xs);
-	});
-var elm$browser$Browser$Events$onSelfMsg = F3(
-	function (router, _n0, state) {
-		var key = _n0.key;
-		var event = _n0.event;
-		var toMessage = function (_n2) {
-			var subKey = _n2.a;
-			var _n3 = _n2.b;
-			var node = _n3.a;
-			var name = _n3.b;
-			var decoder = _n3.c;
-			return _Utils_eq(subKey, key) ? A2(_Browser_decodeEvent, decoder, event) : elm$core$Maybe$Nothing;
-		};
-		var messages = A2(elm$core$List$filterMap, toMessage, state.subs);
-		return A2(
-			elm$core$Task$andThen,
-			function (_n1) {
-				return elm$core$Task$succeed(state);
-			},
-			elm$core$Task$sequence(
-				A2(
-					elm$core$List$map,
-					elm$core$Platform$sendToApp(router),
-					messages)));
-	});
-var elm$browser$Browser$Events$subMap = F2(
-	function (func, _n0) {
-		var node = _n0.a;
-		var name = _n0.b;
-		var decoder = _n0.c;
-		return A3(
-			elm$browser$Browser$Events$MySub,
-			node,
-			name,
-			A2(elm$json$Json$Decode$map, func, decoder));
-	});
-_Platform_effectManagers['Browser.Events'] = _Platform_createManager(elm$browser$Browser$Events$init, elm$browser$Browser$Events$onEffects, elm$browser$Browser$Events$onSelfMsg, 0, elm$browser$Browser$Events$subMap);
-var elm$browser$Browser$Events$subscription = _Platform_leaf('Browser.Events');
-var elm$browser$Browser$Events$on = F3(
-	function (node, name, decoder) {
-		return elm$browser$Browser$Events$subscription(
-			A3(elm$browser$Browser$Events$MySub, node, name, decoder));
-	});
-var elm$json$Json$Decode$field = _Json_decodeField;
-var elm$json$Json$Decode$int = _Json_decodeInt;
-var elm$browser$Browser$Events$onResize = function (func) {
-	return A3(
-		elm$browser$Browser$Events$on,
-		elm$browser$Browser$Events$Window,
-		'resize',
-		A2(
-			elm$json$Json$Decode$field,
-			'target',
-			A3(
-				elm$json$Json$Decode$map2,
-				func,
-				A2(elm$json$Json$Decode$field, 'innerWidth', elm$json$Json$Decode$int),
-				A2(elm$json$Json$Decode$field, 'innerHeight', elm$json$Json$Decode$int))));
-};
-var author$project$Main$subscriptions = function (_n0) {
-	return elm$browser$Browser$Events$onResize(
-		F2(
-			function (_n1, _n2) {
-				return author$project$Main$VirResize;
-			}));
-};
+var elm$json$Json$Decode$bool = _Json_decodeBool;
+var elm$json$Json$Decode$map7 = _Json_map7;
+var Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyboardEvent = A8(
+	elm$json$Json$Decode$map7,
+	Gizra$elm_keyboard_event$Keyboard$Event$KeyboardEvent,
+	A2(elm$json$Json$Decode$field, 'altKey', elm$json$Json$Decode$bool),
+	A2(elm$json$Json$Decode$field, 'ctrlKey', elm$json$Json$Decode$bool),
+	Gizra$elm_keyboard_event$Keyboard$Event$decodeKey,
+	A2(elm$json$Json$Decode$map, SwiftsNamesake$proper_keyboard$Keyboard$Key$fromCode, Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyCode),
+	A2(elm$json$Json$Decode$field, 'metaKey', elm$json$Json$Decode$bool),
+	A2(elm$json$Json$Decode$field, 'repeat', elm$json$Json$Decode$bool),
+	A2(elm$json$Json$Decode$field, 'shiftKey', elm$json$Json$Decode$bool));
 var author$project$Main$ClearAllRecords = {$: 'ClearAllRecords'};
 var author$project$Main$CsvExported = {$: 'CsvExported'};
 var author$project$Main$CsvRequested = function (a) {
@@ -6959,6 +7503,9 @@ var author$project$Main$FilenameEdited = function (a) {
 	return {$: 'FilenameEdited', a: a};
 };
 var author$project$Main$PortExample = {$: 'PortExample'};
+var author$project$Main$TableViewport = function (a) {
+	return {$: 'TableViewport', a: a};
+};
 var author$project$Main$ToggleSidePanel = {$: 'ToggleSidePanel'};
 var author$project$Main$VirScrollbarScroll = {$: 'VirScrollbarScroll'};
 var author$project$Main$VirToggle = {$: 'VirToggle'};
@@ -6969,6 +7516,13 @@ var author$project$Main$debug = true;
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var author$project$Main$html_empty = elm$html$Html$text('');
+var author$project$Main$isJust = function (m) {
+	if (m.$ === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
 var elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -6986,6 +7540,9 @@ var author$project$Main$onScroll = function (msg) {
 		'scroll',
 		elm$json$Json$Decode$succeed(msg));
 };
+var author$project$Main$CursorEdited = function (a) {
+	return {$: 'CursorEdited', a: a};
+};
 var elm$html$Html$div = _VirtualDom_node('div');
 var elm$html$Html$input = _VirtualDom_node('input');
 var elm$html$Html$td = _VirtualDom_node('td');
@@ -7000,50 +7557,89 @@ var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('cl
 var elm$html$Html$Attributes$id = elm$html$Html$Attributes$stringProperty('id');
 var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
 var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
-var author$project$Main$elemToCell = F2(
-	function (isCursor, content) {
-		return isCursor ? A2(
-			elm$html$Html$td,
-			_List_fromArray(
-				[
-					elm$html$Html$Attributes$id('cursor')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					elm$html$Html$div,
-					_List_fromArray(
-						[
-							elm$html$Html$Attributes$class('ui fluid input focus')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							elm$html$Html$input,
-							_List_fromArray(
-								[
-									elm$html$Html$Attributes$type_('text'),
-									elm$html$Html$Attributes$value(content)
-								]),
-							_List_Nil)
-						]))
-				])) : A2(
-			elm$html$Html$td,
-			_List_Nil,
-			_List_fromArray(
-				[
-					elm$html$Html$text(content)
-				]));
-	});
-var author$project$Main$recordToList = function (_n0) {
-	var oldLotNo = _n0.oldLotNo;
-	var lotNo = _n0.lotNo;
-	var vendor = _n0.vendor;
-	var description = _n0.description;
-	var reserve = _n0.reserve;
-	return _List_fromArray(
-		[oldLotNo, lotNo, vendor, description, reserve]);
+var elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'click',
+		elm$json$Json$Decode$succeed(msg));
 };
+var elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
+	});
+var elm$html$Html$Events$targetValue = A2(
+	elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	elm$json$Json$Decode$string);
+var elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			elm$json$Json$Decode$map,
+			elm$html$Html$Events$alwaysStop,
+			A2(elm$json$Json$Decode$map, tagger, elm$html$Html$Events$targetValue)));
+};
+var author$project$Main$elemToCell = F2(
+	function (mCursorPosition, content) {
+		if (mCursorPosition.$ === 'Nothing') {
+			return A2(
+				elm$html$Html$td,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$id('cursor')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						elm$html$Html$div,
+						_List_fromArray(
+							[
+								elm$html$Html$Attributes$class('ui fluid input focus')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								elm$html$Html$input,
+								_List_fromArray(
+									[
+										elm$html$Html$Attributes$id('cursor-input'),
+										elm$html$Html$Attributes$type_('text'),
+										elm$html$Html$Attributes$value(content),
+										elm$html$Html$Events$onInput(author$project$Main$CursorEdited)
+									]),
+								_List_Nil)
+							]))
+					]));
+		} else {
+			var cursorPosition = mCursorPosition.a;
+			return A2(
+				elm$html$Html$td,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(
+						author$project$Main$CursorMoved(cursorPosition))
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(content)
+					]));
+		}
+	});
 var author$project$Main$zipWith = F3(
 	function (f, a, b) {
 		var _n0 = _Utils_Tuple2(a, b);
@@ -7066,60 +7662,38 @@ var author$project$Main$zipWith = F3(
 			}
 		}
 	});
-var elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return elm$core$Maybe$Nothing;
-		}
-	});
-var elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
 var elm$html$Html$tr = _VirtualDom_node('tr');
 var author$project$Main$recordToRow = F3(
-	function (positive, mCursorIndex, record) {
-		var makeBools = function (cursorIndex) {
-			return _Utils_ap(
-				A2(elm$core$List$repeat, cursorIndex, false),
-				_Utils_ap(
-					_List_fromArray(
-						[true]),
-					A2(elm$core$List$repeat, 4 - cursorIndex, false)));
+	function (mCursorX, cursorY, record) {
+		var updateFunc = function (cursorX) {
+			return A2(
+				author$project$Main$updateAt,
+				cursorX,
+				elm$core$Basics$always(elm$core$Maybe$Nothing));
 		};
-		var bools = A2(
-			elm$core$Maybe$withDefault,
-			A2(elm$core$List$repeat, 5, false),
-			A2(elm$core$Maybe$map, makeBools, mCursorIndex));
+		var cursorPositions = A2(
+			elm$core$List$map,
+			A2(author$project$Main$flip, author$project$Main$CursorPosition, cursorY),
+			A2(elm$core$List$range, 0, 4));
+		var mCursorPositions = A4(
+			author$project$Main$maybe,
+			elm$core$Basics$identity,
+			updateFunc,
+			mCursorX,
+			A2(elm$core$List$map, elm$core$Maybe$Just, cursorPositions));
 		var cells = A3(
 			author$project$Main$zipWith,
 			author$project$Main$elemToCell,
-			bools,
+			mCursorPositions,
 			author$project$Main$recordToList(record));
 		return A2(
 			elm$html$Html$tr,
-			positive ? _List_fromArray(
+			author$project$Main$isJust(cursorY) ? _List_Nil : _List_fromArray(
 				[
 					elm$html$Html$Attributes$class('positive')
-				]) : _List_Nil,
+				]),
 			cells);
 	});
-var author$project$Main$isJust = function (m) {
-	if (m.$ === 'Just') {
-		return true;
-	} else {
-		return false;
-	}
-};
 var elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -7145,25 +7719,24 @@ var author$project$Main$filterVisible = F3(
 				author$project$Main$isJust,
 				A2(elm$core$List$indexedMap, filterRange, list)));
 	});
-var author$project$Main$recordsToRows = F4(
-	function (visibleStartIndex, cursorY, cursorX, records) {
-		var cursorIndex = cursorY - visibleStartIndex;
+var author$project$Main$recordsToRows = F3(
+	function (visibleStartIndex, cursorPosition, records) {
+		var cursorRowNum = A2(elm$core$Maybe$withDefault, -1, cursorPosition.y) - visibleStartIndex;
 		var createRow = F2(
-			function (index, record) {
+			function (rowNum, record) {
 				return A3(
 					author$project$Main$recordToRow,
-					false,
-					_Utils_eq(index, cursorIndex) ? elm$core$Maybe$Just(cursorX) : elm$core$Maybe$Nothing,
+					_Utils_eq(rowNum, cursorRowNum) ? elm$core$Maybe$Just(cursorPosition.x) : elm$core$Maybe$Nothing,
+					elm$core$Maybe$Just(rowNum + visibleStartIndex),
 					record);
 			});
 		return A2(elm$core$List$indexedMap, createRow, records);
 	});
 var author$project$Main$renderedRows = function (model) {
-	return A4(
+	return A3(
 		author$project$Main$recordsToRows,
 		model.visibleStartIndex,
-		A2(elm$core$Maybe$withDefault, -1, model.cursorY),
-		model.cursorX,
+		model.cursorPosition,
 		A3(author$project$Main$filterVisible, model.visibleStartIndex, model.visibleEndIndex, model.records));
 };
 var elm$core$Basics$modBy = _Basics_modBy;
@@ -7186,44 +7759,6 @@ var elm$html$Html$Attributes$attribute = elm$virtual_dom$VirtualDom$attribute;
 var elm$html$Html$Attributes$placeholder = elm$html$Html$Attributes$stringProperty('placeholder');
 var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
-var elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		elm$html$Html$Events$on,
-		'click',
-		elm$json$Json$Decode$succeed(msg));
-};
-var elm$html$Html$Events$alwaysStop = function (x) {
-	return _Utils_Tuple2(x, true);
-};
-var elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
-	return {$: 'MayStopPropagation', a: a};
-};
-var elm$html$Html$Events$stopPropagationOn = F2(
-	function (event, decoder) {
-		return A2(
-			elm$virtual_dom$VirtualDom$on,
-			event,
-			elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
-	});
-var elm$json$Json$Decode$at = F2(
-	function (fields, decoder) {
-		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
-	});
-var elm$json$Json$Decode$string = _Json_decodeString;
-var elm$html$Html$Events$targetValue = A2(
-	elm$json$Json$Decode$at,
-	_List_fromArray(
-		['target', 'value']),
-	elm$json$Json$Decode$string);
-var elm$html$Html$Events$onInput = function (tagger) {
-	return A2(
-		elm$html$Html$Events$stopPropagationOn,
-		'input',
-		A2(
-			elm$json$Json$Decode$map,
-			elm$html$Html$Events$alwaysStop,
-			A2(elm$json$Json$Decode$map, tagger, elm$html$Html$Events$targetValue)));
-};
 var mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$defaultOptions = {preventDefault: true, stopPropagation: false};
 var elm$virtual_dom$VirtualDom$Custom = function (a) {
 	return {$: 'Custom', a: a};
@@ -7276,7 +7811,6 @@ var mpizenberg$elm_pointer_events$Internal$Decode$clientPos = A3(
 		}),
 	A2(elm$json$Json$Decode$field, 'clientX', elm$json$Json$Decode$float),
 	A2(elm$json$Json$Decode$field, 'clientY', elm$json$Json$Decode$float));
-var elm$json$Json$Decode$bool = _Json_decodeBool;
 var mpizenberg$elm_pointer_events$Internal$Decode$Keys = F3(
 	function (alt, ctrl, shift) {
 		return {alt: alt, ctrl: ctrl, shift: shift};
@@ -7387,7 +7921,11 @@ var author$project$Main$vieww = function (model) {
 								_List_fromArray(
 									[
 										elm$html$Html$Attributes$id('table-viewport'),
-										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Main$VirWheelScroll)
+										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Main$VirWheelScroll),
+										A2(
+										elm$html$Html$Events$on,
+										'keydown',
+										A2(elm$json$Json$Decode$map, author$project$Main$TableViewport, Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyboardEvent))
 									]),
 								_List_fromArray(
 									[
@@ -7533,8 +8071,8 @@ var author$project$Main$vieww = function (model) {
 																	])),
 																A3(
 																author$project$Main$recordToRow,
-																true,
-																_Utils_eq(model.cursorY, elm$core$Maybe$Nothing) ? elm$core$Maybe$Just(model.cursorX) : elm$core$Maybe$Nothing,
+																author$project$Main$isJust(model.cursorPosition.y) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(model.cursorPosition.x),
+																elm$core$Maybe$Nothing,
 																model.newRecord)
 															]))))
 											]))

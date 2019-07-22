@@ -41,10 +41,10 @@ import Json.Decode as Decode
 import Html.Events.Extra.Wheel as Wheel
 
 --Special
-import Csv exposing (Csv, parse)
-import Json.Decode exposing (map, succeed)
-import Keyboard.Event exposing (KeyboardEvent, decodeKeyboardEvent)
-import Keyboard.Key exposing (Key(..))
+import Csv
+import Json.Decode as Decode
+import Keyboard.Event as KEvent
+import Keyboard.Key as Key
 
 --Modules
 import Ports
@@ -64,31 +64,35 @@ main =
 
 type alias Record = {oldLotNo : String, lotNo : String, vendor : String, description : String, reserve : String}
 type alias OldRecord = {lotNo : String, vendor : String, description : String, reserve : String}
+type alias CursorPosition = {x : Int, y : Maybe Int}
 
 type KeyboardEventType = KeyboardEventType
 
-type alias Model = { sidePanelExpanded : Bool     --Settings
-                   , filename : String
+type alias Model =
+  { sidePanelExpanded : Bool     --Settings
+  , filename : String
 
-                   , records : List Record        --Data
-                   , oldRecords : List OldRecord
-                   , newRecord : Record
+  , records : List Record        --Data
+  , oldRecords : List OldRecord
+  , newRecord : Record
 
-                   , cursorX : Int --Cursor
-                   , cursorY : Maybe Int
+  , cursorPosition : CursorPosition --Cursor
 
-                   , enableVirtualization : Bool  --Virtualization
-                   , scrollLock : Bool
-                   , visibleStartIndex : Int
-                   , visibleEndIndex : Int
-                   , viewportHeight : Int
-                   , viewportY : Int
-                   }
+  , enableVirtualization : Bool  --Virtualization
+  , scrollLock : Bool
+  , visibleStartIndex : Int
+  , visibleEndIndex : Int
+  , viewportHeight : Int
+  , viewportY : Int
+  }
 
 type Msg
   --Standard
   = NoOp
   | HandleErrorEvent String
+
+  --Keyboard
+  | TableViewport KEvent.KeyboardEvent
 
   --Simple
   | ToggleSidePanel
@@ -108,8 +112,12 @@ type Msg
   | VirScroll Bool (Int -> Int) --Scroll Performer
   | VirUpdate --Virtualization Update
   | VirResize --Window Resize
-  | VirContainerInfo Dom.Viewport
+  | VirViewportInfo Dom.Viewport
   | VirToggle --Toggle Virtualization
+
+  --Cursor
+  | CursorEdited String
+  | CursorMoved CursorPosition
 
   --Debug
   | PortExample
@@ -117,7 +125,10 @@ type Msg
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
-init _ = update VirResize <| Model True "" [] [] (Record "" "" "" "" "") 0 Nothing True False (-1) (-1) 0 0
+init _ =
+  (Model True "" [] [] (Record "" "" "" "" "") (CursorPosition 0 Nothing) True False (-1) (-1) 0 0
+  , Cmd.batch [checkTableViewport] --Ports.focusCursor ()
+  )
 
 --==================================================================== VIEW
 
@@ -129,7 +140,7 @@ vieww model =
   div [ id "grid", class "ui two column grid" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "thirteen" else "fifteen") ++ " wide column" ]
-            [ div [ id "table-viewport", Wheel.onWheel VirWheelScroll ]
+            [ div [ id "table-viewport", Wheel.onWheel VirWheelScroll, on "keydown" <| Decode.map TableViewport KEvent.decodeKeyboardEvent ]
                 [ table
                     [ id "table"
                     , class "ui single line fixed unstackable celled striped compact table"
@@ -155,7 +166,7 @@ vieww model =
                            ]
                         ++ renderedRows model
                         ++ [ tr [] [ div [ style "height" <| (String.fromInt <| (List.length model.records - 1 - model.visibleEndIndex) * row_height) ++ "px" ] [] ]
-                           , recordToRow True (if model.cursorY == Nothing then Just model.cursorX else Nothing) model.newRecord
+                           , recordToRow (if isJust model.cursorPosition.y then Nothing else Just model.cursorPosition.x) Nothing model.newRecord
                            ]
                         )
                     ]
@@ -222,34 +233,36 @@ vieww model =
     ]
 
 onScroll : msg -> Attribute msg
-onScroll msg = on "scroll" (succeed msg)
+onScroll msg = on "scroll" (Decode.succeed msg)
 
 renderedRows : Model -> List (Html Msg)
 renderedRows model =
-  recordsToRows model.visibleStartIndex (Maybe.withDefault (-1) model.cursorY) model.cursorX <| filterVisible model.visibleStartIndex model.visibleEndIndex model.records
+  recordsToRows model.visibleStartIndex model.cursorPosition <| filterVisible model.visibleStartIndex model.visibleEndIndex model.records
 
-recordsToRows : Int -> Int -> Int -> List Record -> List (Html Msg)
-recordsToRows visibleStartIndex cursorY cursorX records =
-  let cursorIndex = cursorY - visibleStartIndex
-      createRow index record = recordToRow False (if index == cursorIndex then Just cursorX else Nothing) record
+recordsToRows : Int -> CursorPosition -> List Record -> List (Html Msg)
+recordsToRows visibleStartIndex cursorPosition records =
+  let cursorRowNum = Maybe.withDefault (-1) cursorPosition.y - visibleStartIndex
+      createRow rowNum record = recordToRow (if rowNum == cursorRowNum then Just cursorPosition.x else Nothing) (Just <| rowNum + visibleStartIndex) record
    in List.indexedMap createRow records
 
-recordToRow : Bool -> Maybe Int -> Record -> Html Msg
-recordToRow positive mCursorIndex record =
-  let makeBools cursorIndex = List.repeat cursorIndex False ++ [True] ++ List.repeat (4 - cursorIndex) False
-      bools = Maybe.withDefault (List.repeat 5 False) <| Maybe.map makeBools mCursorIndex
-      cells = zipWith elemToCell bools <| recordToList record
-   in tr (if positive then [class "positive"] else []) cells
+recordToRow : Maybe Int -> Maybe Int -> Record -> Html Msg
+recordToRow mCursorX cursorY record =
+  let cursorPositions = List.map (flip CursorPosition cursorY) (List.range 0 4)
+      updateFunc cursorX = updateAt cursorX (always Nothing)
+      mCursorPositions = maybe identity updateFunc mCursorX <| List.map Just cursorPositions
+      cells = zipWith elemToCell mCursorPositions <| recordToList record
+   in tr (if isJust cursorY then [] else [class "positive"]) cells
 
-elemToCell : Bool -> String -> Html Msg
-elemToCell isCursor content =
-  if isCursor then
-    td [ id "cursor" ]
-      [ div [ class "ui fluid input focus" ]
-          [ input [ type_ "text", value content ] [] ]
-      ]
-  else
-    td [] [ text content ]
+elemToCell : Maybe CursorPosition -> String -> Html Msg
+elemToCell mCursorPosition content =
+  case mCursorPosition of
+    Nothing ->
+      td [ id "cursor" ]
+        [ div [ class "ui fluid input focus" ]
+            [ input [ id "cursor-input", type_ "text", value content, onInput CursorEdited ] [] ]
+        ]
+    Just cursorPosition ->
+      td [ onClick <| CursorMoved cursorPosition ] [ text content ]
 
 filterVisible : Int -> Int -> List Record -> List Record
 filterVisible start end list =
@@ -264,18 +277,30 @@ update msg model =
     NoOp -> (model, Cmd.none)
     HandleErrorEvent message -> (print message model, Cmd.none)
 
+    TableViewport event ->
+      let cursorPosition = model.cursorPosition
+          recordNum = List.length model.records
+       in flip update model <| case event.keyCode of
+          Key.Left -> CursorMoved {cursorPosition | x = Basics.max 0 <| pred cursorPosition.x}
+          Key.Right -> CursorMoved {cursorPosition | x = Basics.min 4 <| succ cursorPosition.x}
+          Key.Tab -> CursorMoved {cursorPosition | x = Basics.min 4 <| succ cursorPosition.x}
+          Key.Up -> CursorMoved {cursorPosition | y = maybeClamp recordNum pred cursorPosition.y}
+          Key.Down -> CursorMoved {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
+          Key.Enter -> CursorMoved {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
+          _ -> NoOp
+
     ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
-    ClearAllRecords -> ({model | records = [], cursorX = 0, cursorY = Nothing, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0}, Cmd.none)
+    ClearAllRecords -> ({model | records = [], cursorPosition = CursorPosition 0 Nothing, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0}, Cmd.none)
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
     CsvRequested suggestion -> (model, Select.file [ csv_mime ] <| CsvSelected suggestion)
     CsvSelected suggestion file -> (model, Task.perform (CsvLoaded suggestion <| File.name file) (File.toString file))
     CsvLoaded suggestion fileName fileContent ->
-      case parse fileContent of
+      case Csv.parse fileContent of
           Err _ -> (model, Cmd.none)
           Ok csv -> if suggestion
-                    then ({model | oldRecords = List.map listToOldRecord csv.records}, Cmd.none)
-                    else ({model | records = model.records ++ List.map listToRecord csv.records, scrollLock = True}, updateVisibleRows)
+                    then ({model | oldRecords = List.map importListToOldRecord csv.records}, Cmd.none)
+                    else ({model | records = model.records ++ List.map importListToRecord csv.records, scrollLock = True}, updateVisibleRows)
     CsvExported ->
       ( model
       , Download.string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records)
@@ -297,14 +322,31 @@ update msg model =
                           then getVisibleRows numRecords model.viewportHeight model.viewportY
                           else (0, numRecords - 1)
        in ({model | visibleStartIndex = bottom, visibleEndIndex = top, scrollLock = False}, Cmd.none)
-    VirResize -> (model, checkTableContainer)
-    VirContainerInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
+    VirResize -> (model, checkTableViewport)
+    VirViewportInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
     VirToggle -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
+
+    CursorEdited newText ->
+      ( let columnUpdate = listToRecord << updateAt model.cursorPosition.x (always newText) << recordToList
+            rowUpdate cursorY = {model | records = updateAt cursorY columnUpdate model.records}
+         in maybe {model | newRecord = columnUpdate model.newRecord} rowUpdate model.cursorPosition.y
+      , Cmd.none
+      )
+    CursorMoved cursorPosition ->
+      ( {model | cursorPosition = cursorPosition}
+      , Ports.focusCursor ()
+      )
 
     PortExample -> (model, Ports.example model.filename)
 
-checkTableContainer : Cmd Msg
-checkTableContainer = Task.attempt (handleError VirContainerInfo) (Dom.getViewportOf "table-viewport")
+maybeClamp : Int -> (Int -> Int) -> Maybe Int -> Maybe Int
+maybeClamp recordNum f m =
+  let n = Maybe.withDefault recordNum m
+      c = clamp 0 recordNum (f n)
+   in if c == recordNum then Nothing else Just c
+
+checkTableViewport : Cmd Msg
+checkTableViewport = Task.attempt (handleError VirViewportInfo) (Dom.getViewportOf "table-viewport")
 
 checkScrollbar : Cmd Msg
 checkScrollbar = Task.attempt (handleError VirScrollbarInfo) (Dom.getViewportOf "scrollbar")
@@ -325,18 +367,24 @@ recordToList : Record -> List String
 recordToList {oldLotNo, lotNo, vendor, description, reserve} =
   [oldLotNo, lotNo, vendor, description, reserve]
 
+listToRecord : List String -> Record
+listToRecord list =
+  case pad 5 "" list of
+    (a :: b :: c :: d :: e :: xs) -> Record a b c d e
+    _ -> errorRecord
+
 oldRecordToList : OldRecord -> List String
 oldRecordToList {lotNo, vendor, description, reserve} =
   [lotNo, vendor, description, reserve]
 
-listToOldRecord : List String -> OldRecord
-listToOldRecord list =
+importListToOldRecord : List String -> OldRecord
+importListToOldRecord list =
   case pad 4 "" list of
     (a :: b :: c :: d :: xs) -> OldRecord a b c d
     _ -> errorOldRecord
 
-listToRecord : List String -> Record
-listToRecord list =
+importListToRecord : List String -> Record
+importListToRecord list =
   case pad 4 "" list of
     (a :: b :: c :: d :: xs) -> Record "" a b c d
     _ -> errorRecord
@@ -391,6 +439,13 @@ zipWith f a b =
     (_, []) -> []
     (x :: xs, y :: ys) -> f x y :: zipWith f xs ys
 
+listZipAp : List (a -> b) -> List a -> List b
+listZipAp f a =
+  case (f, a) of
+    ([], _) -> []
+    (_, []) -> []
+    (x :: xs, y :: ys) -> x y :: listZipAp xs ys
+
 updateAt : Int -> (a -> a) -> List a -> List a
 updateAt n f lst =
   case (n, lst) of
@@ -413,6 +468,9 @@ succ = (+) 1
 
 pred : number -> number
 pred = flip (-) 1
+
+maybe : b -> (a -> b) -> Maybe a -> b
+maybe b f ma = Maybe.withDefault b <| Maybe.map f ma
 
 --==================================================================== DEBUGGING
 
@@ -445,3 +503,16 @@ scroll_wait : number
 scroll_wait = 100
 
 --==================================================================== DECODERS
+
+{-
+So it looks like the focus issue is causing specifically the header to reduce in height
+(removing it and re-adding it fixes this issue).
+
+So I'm thinking that it would probably be worth trying to remove the sticky header in favor
+of a static one which is technically part of a seperate table. This seems like it could be
+a more robust solution in general since I wasn't even expecting the sticky header necessarily
+to work once we switched to relative positioning, since there isn't any actual scrolling involved.
+
+Aside from this, for whatever reason, the focus method is still capable of "scrolling" an unscrollable
+fucking table which is mindblowing but it can be disabled thank god.
+-}

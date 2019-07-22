@@ -18,6 +18,11 @@
     app.ports.example.subscribe(function(data) {
       console.log("The filename is: " + data);
     });
+    app.ports.focusCursor.subscribe(() => {
+      window.requestAnimationFrame(() => {
+        document.getElementById("cursor-input").focus({preventScroll:true});
+      });
+    });
   </script>
 </body>
 </html>
