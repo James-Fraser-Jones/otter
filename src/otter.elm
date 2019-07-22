@@ -117,7 +117,7 @@ type Msg
 
   --Cursor
   | CursorEdited String
-  | CursorMoved CursorPosition
+  | CursorMoved Bool CursorPosition
 
   --Debug
   | PortExample
@@ -266,7 +266,7 @@ elemToCell mCursorPosition content =
             [ input [ id "cursor-input", type_ "text", value content, onInput CursorEdited ] [] ]
         ]
     Just cursorPosition ->
-      td [ onClick <| CursorMoved cursorPosition ] [ text content ]
+      td [ onClick <| CursorMoved True cursorPosition ] [ text content ]
 
 filterVisible : Int -> Int -> List Record -> List Record
 filterVisible start end list =
@@ -285,12 +285,12 @@ update msg model =
       let cursorPosition = model.cursorPosition
           recordNum = List.length model.records
        in flip update model <| case event.keyCode of
-          Key.Left -> CursorMoved {cursorPosition | x = Basics.max 0 <| pred cursorPosition.x}
-          Key.Right -> CursorMoved {cursorPosition | x = Basics.min 4 <| succ cursorPosition.x}
-          Key.Tab -> CursorMoved {cursorPosition | x = Basics.min 4 <| succ cursorPosition.x}
-          Key.Up -> CursorMoved {cursorPosition | y = maybeClamp recordNum pred cursorPosition.y}
-          Key.Down -> CursorMoved {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
-          Key.Enter -> CursorMoved {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
+          Key.Left -> CursorMoved False {cursorPosition | x = Basics.max 0 <| pred cursorPosition.x}
+          Key.Right -> CursorMoved False {cursorPosition | x = Basics.min 4 <| succ cursorPosition.x}
+          Key.Tab -> CursorMoved False {cursorPosition | x = Basics.min 4 <| succ cursorPosition.x}
+          Key.Up -> CursorMoved False {cursorPosition | y = maybeClamp recordNum pred cursorPosition.y}
+          Key.Down -> CursorMoved False {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
+          Key.Enter -> CursorMoved False {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
           _ -> NoOp
 
     ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
@@ -339,13 +339,13 @@ update msg model =
          in maybe {model | newRecord = columnUpdate model.newRecord} rowUpdate model.cursorPosition.y
       , Cmd.none
       )
-    CursorMoved cursorPosition -> --({model | cursorPosition = cursorPosition}, focusCursor)
+    CursorMoved fromMouse cursorPosition ->
       let realCursorY = Maybe.withDefault (List.length model.records) cursorPosition.y
           topClamp = realCursorY * row_height
           bottomClamp = topClamp + 3*row_height - model.viewportHeight
           clampedViewportY = clamp bottomClamp topClamp model.viewportY
           newModel = {model | cursorPosition = cursorPosition}
-       in if clampedViewportY /= model.viewportY then
+       in if not fromMouse && clampedViewportY /= model.viewportY then
             update (VirScroll False (always clampedViewportY)) newModel
           else
             (newModel, focusCursor)

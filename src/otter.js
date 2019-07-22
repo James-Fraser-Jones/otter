@@ -5936,9 +5936,10 @@ var author$project$Main$CsvSelected = F2(
 	function (a, b) {
 		return {$: 'CsvSelected', a: a, b: b};
 	});
-var author$project$Main$CursorMoved = function (a) {
-	return {$: 'CursorMoved', a: a};
-};
+var author$project$Main$CursorMoved = F2(
+	function (a, b) {
+		return {$: 'CursorMoved', a: a, b: b};
+	});
 var author$project$Main$NoOp = {$: 'NoOp'};
 var author$project$Main$VirScroll = F2(
 	function (a, b) {
@@ -6919,7 +6920,9 @@ var author$project$Main$update = F2(
 							var _n1 = event.keyCode;
 							switch (_n1.$) {
 								case 'Left':
-									return author$project$Main$CursorMoved(
+									return A2(
+										author$project$Main$CursorMoved,
+										false,
 										_Utils_update(
 											cursorPosition,
 											{
@@ -6929,7 +6932,9 @@ var author$project$Main$update = F2(
 													author$project$Main$pred(cursorPosition.x))
 											}));
 								case 'Right':
-									return author$project$Main$CursorMoved(
+									return A2(
+										author$project$Main$CursorMoved,
+										false,
 										_Utils_update(
 											cursorPosition,
 											{
@@ -6939,7 +6944,9 @@ var author$project$Main$update = F2(
 													author$project$Main$succ(cursorPosition.x))
 											}));
 								case 'Tab':
-									return author$project$Main$CursorMoved(
+									return A2(
+										author$project$Main$CursorMoved,
+										false,
 										_Utils_update(
 											cursorPosition,
 											{
@@ -6949,21 +6956,27 @@ var author$project$Main$update = F2(
 													author$project$Main$succ(cursorPosition.x))
 											}));
 								case 'Up':
-									return author$project$Main$CursorMoved(
+									return A2(
+										author$project$Main$CursorMoved,
+										false,
 										_Utils_update(
 											cursorPosition,
 											{
 												y: A3(author$project$Main$maybeClamp, recordNum, author$project$Main$pred, cursorPosition.y)
 											}));
 								case 'Down':
-									return author$project$Main$CursorMoved(
+									return A2(
+										author$project$Main$CursorMoved,
+										false,
 										_Utils_update(
 											cursorPosition,
 											{
 												y: A3(author$project$Main$maybeClamp, recordNum, author$project$Main$succ, cursorPosition.y)
 											}));
 								case 'Enter':
-									return author$project$Main$CursorMoved(
+									return A2(
+										author$project$Main$CursorMoved,
+										false,
 										_Utils_update(
 											cursorPosition,
 											{
@@ -7159,7 +7172,8 @@ var author$project$Main$update = F2(
 						}(),
 						elm$core$Platform$Cmd$none);
 				case 'CursorMoved':
-					var cursorPosition = msg.a;
+					var fromMouse = msg.a;
+					var cursorPosition = msg.b;
 					var realCursorY = A2(
 						elm$core$Maybe$withDefault,
 						elm$core$List$length(model.records),
@@ -7170,7 +7184,7 @@ var author$project$Main$update = F2(
 						{cursorPosition: cursorPosition});
 					var bottomClamp = (topClamp + (3 * author$project$Main$row_height)) - model.viewportHeight;
 					var clampedViewportY = A3(elm$core$Basics$clamp, bottomClamp, topClamp, model.viewportY);
-					if (!_Utils_eq(clampedViewportY, model.viewportY)) {
+					if ((!fromMouse) && (!_Utils_eq(clampedViewportY, model.viewportY))) {
 						var $temp$msg = A2(
 							author$project$Main$VirScroll,
 							false,
@@ -7664,7 +7678,7 @@ var author$project$Main$elemToCell = F2(
 				_List_fromArray(
 					[
 						elm$html$Html$Events$onClick(
-						author$project$Main$CursorMoved(cursorPosition))
+						A2(author$project$Main$CursorMoved, true, cursorPosition))
 					]),
 				_List_fromArray(
 					[
