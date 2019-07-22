@@ -20,7 +20,12 @@
     });
     app.ports.focusCursor.subscribe(() => {
       window.requestAnimationFrame(() => {
-        document.getElementById("cursor-input").focus({preventScroll:true});
+        try {
+          document.getElementById("cursor-input").focus({preventScroll:true});
+        }
+        catch(err) {
+          
+        }
       });
     });
   </script>

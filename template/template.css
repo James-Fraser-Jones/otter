@@ -28,7 +28,7 @@
 
 #table-viewport {
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: scroll;
   height: 100vh;
 }
 
@@ -110,6 +110,34 @@
 }
 
 #table #cursor input {
+  width: 100%;
+  height: 33px;
+
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 8.8px;
+  padding-right: 8.8px;
+}
+
+#table #cursor2 {
+  padding: 0
+}
+
+#table #cursor2 input {
+  width: 100%;
+  height: 33px;
+
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 8.8px;
+  padding-right: 8.8px;
+}
+
+#table #cursor3 {
+  padding: 0
+}
+
+#table #cursor3 input {
   width: 100%;
   height: 33px;
 

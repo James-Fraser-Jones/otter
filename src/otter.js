@@ -5484,6 +5484,13 @@ var author$project$Main$checkTableViewport = A2(
 	elm$core$Task$attempt,
 	author$project$Main$handleError(author$project$Main$VirViewportInfo),
 	elm$browser$Browser$Dom$getViewportOf('table-viewport'));
+var elm$json$Json$Encode$null = _Json_encodeNull;
+var author$project$Ports$focusCursor = _Platform_outgoingPort(
+	'focusCursor',
+	function ($) {
+		return elm$json$Json$Encode$null;
+	});
+var author$project$Main$focusCursor = author$project$Ports$focusCursor(_Utils_Tuple0);
 var elm$core$Basics$negate = function (n) {
 	return -n;
 };
@@ -5495,7 +5502,7 @@ var author$project$Main$init = function (_n0) {
 			A2(author$project$Main$CursorPosition, 0, elm$core$Maybe$Nothing))(true)(false)(-1)(-1)(0)(0),
 		elm$core$Platform$Cmd$batch(
 			_List_fromArray(
-				[author$project$Main$checkTableViewport])));
+				[author$project$Main$checkTableViewport, author$project$Main$focusCursor])));
 };
 var author$project$Main$VirResize = {$: 'VirResize'};
 var elm$browser$Browser$Events$Window = {$: 'Window'};
@@ -6143,6 +6150,12 @@ var author$project$Main$recordsToCsv = function (records) {
 		author$project$Main$windows_newline,
 		A2(elm$core$List$map, recordToCsv, records));
 };
+var elm$browser$Browser$Dom$setViewportOf = _Browser_setViewportOf;
+var author$project$Main$stopScrollingThat = A2(
+	elm$core$Task$attempt,
+	author$project$Main$handleError(
+		elm$core$Basics$always(author$project$Main$NoOp)),
+	A3(elm$browser$Browser$Dom$setViewportOf, 'table-viewport', 0, 0));
 var author$project$Main$succ = elm$core$Basics$add(1);
 var author$project$Main$tableHeight = function (model) {
 	return (elm$core$List$length(model.records) + 2) * author$project$Main$row_height;
@@ -6173,7 +6186,6 @@ var author$project$Main$updateAt = F3(
 			}
 		}
 	});
-var elm$browser$Browser$Dom$setViewportOf = _Browser_setViewportOf;
 var author$project$Main$updateScrollBar = function (newViewportY) {
 	return A2(
 		elm$core$Task$attempt,
@@ -6190,13 +6202,8 @@ var author$project$Main$updateVisibleRows = A2(
 	elm$core$Process$sleep(author$project$Main$scroll_wait));
 var elm$json$Json$Encode$string = _Json_wrap;
 var author$project$Ports$example = _Platform_outgoingPort('example', elm$json$Json$Encode$string);
-var elm$json$Json$Encode$null = _Json_encodeNull;
-var author$project$Ports$focusCursor = _Platform_outgoingPort(
-	'focusCursor',
-	function ($) {
-		return elm$json$Json$Encode$null;
-	});
 var elm$core$Basics$ge = _Utils_ge;
+var elm$core$Basics$neq = _Utils_notEqual;
 var elm$core$Basics$not = _Basics_not;
 var elm$core$Basics$round = _Basics_round;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
@@ -6979,12 +6986,13 @@ var author$project$Main$update = F2(
 							model,
 							{
 								cursorPosition: A2(author$project$Main$CursorPosition, 0, elm$core$Maybe$Nothing),
+								newRecord: A5(author$project$Main$Record, '', '', '', '', ''),
 								records: _List_Nil,
 								viewportY: 0,
 								visibleEndIndex: -1,
 								visibleStartIndex: -1
 							}),
-						elm$core$Platform$Cmd$none);
+						author$project$Main$focusCursor);
 				case 'FilenameEdited':
 					var newText = msg.a;
 					return _Utils_Tuple2(
@@ -7100,7 +7108,7 @@ var author$project$Main$update = F2(
 						_Utils_update(
 							model,
 							{scrollLock: false, visibleEndIndex: top, visibleStartIndex: bottom}),
-						elm$core$Platform$Cmd$none);
+						author$project$Main$focusCursor);
 				case 'VirResize':
 					return _Utils_Tuple2(model, author$project$Main$checkTableViewport);
 				case 'VirViewportInfo':
@@ -7152,18 +7160,64 @@ var author$project$Main$update = F2(
 						elm$core$Platform$Cmd$none);
 				case 'CursorMoved':
 					var cursorPosition = msg.a;
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{cursorPosition: cursorPosition}),
-						author$project$Ports$focusCursor(_Utils_Tuple0));
-				default:
+					var realCursorY = A2(
+						elm$core$Maybe$withDefault,
+						elm$core$List$length(model.records),
+						cursorPosition.y);
+					var topClamp = realCursorY * author$project$Main$row_height;
+					var newModel = _Utils_update(
+						model,
+						{cursorPosition: cursorPosition});
+					var bottomClamp = (topClamp + (3 * author$project$Main$row_height)) - model.viewportHeight;
+					var clampedViewportY = A3(elm$core$Basics$clamp, bottomClamp, topClamp, model.viewportY);
+					if (!_Utils_eq(clampedViewportY, model.viewportY)) {
+						var $temp$msg = A2(
+							author$project$Main$VirScroll,
+							false,
+							elm$core$Basics$always(clampedViewportY)),
+							$temp$model = newModel;
+						msg = $temp$msg;
+						model = $temp$model;
+						continue update;
+					} else {
+						return _Utils_Tuple2(newModel, author$project$Main$focusCursor);
+					}
+				case 'PortExample':
 					return _Utils_Tuple2(
 						model,
 						author$project$Ports$example(model.filename));
+				default:
+					return _Utils_Tuple2(model, author$project$Main$stopScrollingThat);
 			}
 		}
 	});
+var author$project$Main$ClearAllRecords = {$: 'ClearAllRecords'};
+var author$project$Main$CsvExported = {$: 'CsvExported'};
+var author$project$Main$CsvRequested = function (a) {
+	return {$: 'CsvRequested', a: a};
+};
+var author$project$Main$DontScrollViewport = {$: 'DontScrollViewport'};
+var author$project$Main$FilenameEdited = function (a) {
+	return {$: 'FilenameEdited', a: a};
+};
+var author$project$Main$PortExample = {$: 'PortExample'};
+var author$project$Main$ToggleSidePanel = {$: 'ToggleSidePanel'};
+var author$project$Main$VirScrollbarScroll = {$: 'VirScrollbarScroll'};
+var author$project$Main$VirToggle = {$: 'VirToggle'};
+var author$project$Main$VirWheelScroll = function (a) {
+	return {$: 'VirWheelScroll', a: a};
+};
+var author$project$Main$debug = true;
+var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var author$project$Main$html_empty = elm$html$Html$text('');
+var author$project$Main$isJust = function (m) {
+	if (m.$ === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
 var Gizra$elm_keyboard_event$Keyboard$Event$KeyboardEvent = F7(
 	function (altKey, ctrlKey, key, keyCode, metaKey, repeat, shiftKey) {
 		return {altKey: altKey, ctrlKey: ctrlKey, key: key, keyCode: keyCode, metaKey: metaKey, repeat: repeat, shiftKey: shiftKey};
@@ -7494,34 +7548,8 @@ var Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyboardEvent = A8(
 	A2(elm$json$Json$Decode$field, 'metaKey', elm$json$Json$Decode$bool),
 	A2(elm$json$Json$Decode$field, 'repeat', elm$json$Json$Decode$bool),
 	A2(elm$json$Json$Decode$field, 'shiftKey', elm$json$Json$Decode$bool));
-var author$project$Main$ClearAllRecords = {$: 'ClearAllRecords'};
-var author$project$Main$CsvExported = {$: 'CsvExported'};
-var author$project$Main$CsvRequested = function (a) {
-	return {$: 'CsvRequested', a: a};
-};
-var author$project$Main$FilenameEdited = function (a) {
-	return {$: 'FilenameEdited', a: a};
-};
-var author$project$Main$PortExample = {$: 'PortExample'};
 var author$project$Main$TableViewport = function (a) {
 	return {$: 'TableViewport', a: a};
-};
-var author$project$Main$ToggleSidePanel = {$: 'ToggleSidePanel'};
-var author$project$Main$VirScrollbarScroll = {$: 'VirScrollbarScroll'};
-var author$project$Main$VirToggle = {$: 'VirToggle'};
-var author$project$Main$VirWheelScroll = function (a) {
-	return {$: 'VirWheelScroll', a: a};
-};
-var author$project$Main$debug = true;
-var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
-var author$project$Main$html_empty = elm$html$Html$text('');
-var author$project$Main$isJust = function (m) {
-	if (m.$ === 'Just') {
-		return true;
-	} else {
-		return false;
-	}
 };
 var elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
@@ -7534,6 +7562,10 @@ var elm$html$Html$Events$on = F2(
 			event,
 			elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
+var author$project$Main$onKeydown = A2(
+	elm$html$Html$Events$on,
+	'keydown',
+	A2(elm$json$Json$Decode$map, author$project$Main$TableViewport, Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyboardEvent));
 var author$project$Main$onScroll = function (msg) {
 	return A2(
 		elm$html$Html$Events$on,
@@ -7922,10 +7954,8 @@ var author$project$Main$vieww = function (model) {
 									[
 										elm$html$Html$Attributes$id('table-viewport'),
 										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Main$VirWheelScroll),
-										A2(
-										elm$html$Html$Events$on,
-										'keydown',
-										A2(elm$json$Json$Decode$map, author$project$Main$TableViewport, Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyboardEvent))
+										author$project$Main$onKeydown,
+										author$project$Main$onScroll(author$project$Main$DontScrollViewport)
 									]),
 								_List_fromArray(
 									[

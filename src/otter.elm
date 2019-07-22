@@ -121,13 +121,14 @@ type Msg
 
   --Debug
   | PortExample
+  | DontScrollViewport
 
 --==================================================================== INIT
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  (Model True "" [] [] (Record "" "" "" "" "") (CursorPosition 0 Nothing) True False (-1) (-1) 0 0
-  , Cmd.batch [checkTableViewport] --Ports.focusCursor ()
+  ( Model True "" [] [] (Record "" "" "" "" "") (CursorPosition 0 Nothing) True False (-1) (-1) 0 0
+  , Cmd.batch [checkTableViewport, focusCursor]
   )
 
 --==================================================================== VIEW
@@ -140,7 +141,7 @@ vieww model =
   div [ id "grid", class "ui two column grid" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "thirteen" else "fifteen") ++ " wide column" ]
-            [ div [ id "table-viewport", Wheel.onWheel VirWheelScroll, on "keydown" <| Decode.map TableViewport KEvent.decodeKeyboardEvent ]
+            [ div [ id "table-viewport", Wheel.onWheel VirWheelScroll, onKeydown, onScroll DontScrollViewport ]
                 [ table
                     [ id "table"
                     , class "ui single line fixed unstackable celled striped compact table"
@@ -232,6 +233,9 @@ vieww model =
         ]
     ]
 
+onKeydown : Attribute Msg
+onKeydown = on "keydown" <| Decode.map TableViewport KEvent.decodeKeyboardEvent
+
 onScroll : msg -> Attribute msg
 onScroll msg = on "scroll" (Decode.succeed msg)
 
@@ -290,7 +294,10 @@ update msg model =
           _ -> NoOp
 
     ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
-    ClearAllRecords -> ({model | records = [], cursorPosition = CursorPosition 0 Nothing, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0}, Cmd.none)
+    ClearAllRecords ->
+      ( {model | records = [], cursorPosition = CursorPosition 0 Nothing, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0, newRecord = Record "" "" "" "" ""}
+      , focusCursor
+      )
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
 
     CsvRequested suggestion -> (model, Select.file [ csv_mime ] <| CsvSelected suggestion)
@@ -321,7 +328,7 @@ update msg model =
           (bottom, top) = if model.enableVirtualization
                           then getVisibleRows numRecords model.viewportHeight model.viewportY
                           else (0, numRecords - 1)
-       in ({model | visibleStartIndex = bottom, visibleEndIndex = top, scrollLock = False}, Cmd.none)
+       in ({model | visibleStartIndex = bottom, visibleEndIndex = top, scrollLock = False}, focusCursor)
     VirResize -> (model, checkTableViewport)
     VirViewportInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
     VirToggle -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
@@ -332,12 +339,26 @@ update msg model =
          in maybe {model | newRecord = columnUpdate model.newRecord} rowUpdate model.cursorPosition.y
       , Cmd.none
       )
-    CursorMoved cursorPosition ->
-      ( {model | cursorPosition = cursorPosition}
-      , Ports.focusCursor ()
-      )
+    CursorMoved cursorPosition -> --({model | cursorPosition = cursorPosition}, focusCursor)
+      let realCursorY = Maybe.withDefault (List.length model.records) cursorPosition.y
+          topClamp = realCursorY * row_height
+          bottomClamp = topClamp + 3*row_height - model.viewportHeight
+          clampedViewportY = clamp bottomClamp topClamp model.viewportY
+          newModel = {model | cursorPosition = cursorPosition}
+       in if clampedViewportY /= model.viewportY then
+            update (VirScroll False (always clampedViewportY)) newModel
+          else
+            (newModel, focusCursor)
 
     PortExample -> (model, Ports.example model.filename)
+
+    DontScrollViewport -> (model, stopScrollingThat)
+
+focusCursor : Cmd Msg
+focusCursor = Ports.focusCursor ()
+
+stopScrollingThat : Cmd Msg
+stopScrollingThat = Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf "table-viewport" 0 0
 
 maybeClamp : Int -> (Int -> Int) -> Maybe Int -> Maybe Int
 maybeClamp recordNum f m =
@@ -503,16 +524,3 @@ scroll_wait : number
 scroll_wait = 100
 
 --==================================================================== DECODERS
-
-{-
-So it looks like the focus issue is causing specifically the header to reduce in height
-(removing it and re-adding it fixes this issue).
-
-So I'm thinking that it would probably be worth trying to remove the sticky header in favor
-of a static one which is technically part of a seperate table. This seems like it could be
-a more robust solution in general since I wasn't even expecting the sticky header necessarily
-to work once we switched to relative positioning, since there isn't any actual scrolling involved.
-
-Aside from this, for whatever reason, the focus method is still capable of "scrolling" an unscrollable
-fucking table which is mindblowing but it can be disabled thank god.
--}
