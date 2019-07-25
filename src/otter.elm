@@ -94,6 +94,7 @@ type Msg
 
   --Keyboard
   | TableViewport KEvent.KeyboardEvent
+  | NewRow KEvent.KeyboardEvent
 
   --Simple
   | ToggleSidePanel
@@ -128,7 +129,7 @@ type Msg
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( Model True "" (Array.fromList []) (Array.fromList []) (Record "" "" "" "" "") (CursorPosition 0 Nothing) True False (-1) (-1) 0 0
+  ( Model True "" (Array.fromList []) (Array.fromList []) emptyRecord (CursorPosition 0 Nothing) True False 0 0 0 0
   , Cmd.batch [checkTableViewport, focusCursor]
   )
 
@@ -142,7 +143,7 @@ vieww model =
   div [ id "grid", class "ui two column grid" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "thirteen" else "fifteen") ++ " wide column" ]
-            [ div [ id "table-viewport", Wheel.onWheel VirWheelScroll, onKeydown, onScroll DontScrollViewport ]
+            [ div [ id "table-viewport", Wheel.onWheel VirWheelScroll, onKeydown TableViewport, onScroll DontScrollViewport ]
                 [ table
                     [ id "table"
                     , class "ui single line fixed unstackable celled striped compact table"
@@ -234,8 +235,11 @@ vieww model =
         ]
     ]
 
-onKeydown : Attribute Msg
-onKeydown = on "keydown" <| Decode.map TableViewport KEvent.decodeKeyboardEvent
+onKeydown : (KEvent.KeyboardEvent -> msg) -> Attribute msg
+onKeydown msg = on "keydown" <| Decode.map msg KEvent.decodeKeyboardEvent
+
+onKeypress : (KEvent.KeyboardEvent -> msg) -> Attribute msg
+onKeypress msg = on "keypress" <| Decode.map msg KEvent.decodeKeyboardEvent
 
 onScroll : msg -> Attribute msg
 onScroll msg = on "scroll" (Decode.succeed msg)
@@ -256,7 +260,7 @@ recordToRow mCursorX cursorY record =
       updateFunc cursorX = updateAt cursorX (always Nothing)
       mCursorPositions = maybe identity updateFunc mCursorX <| List.map Just cursorPositions
       cells = zipWith elemToCell mCursorPositions <| recordToList record
-   in tr (if isJust cursorY then [] else [class "positive"]) cells
+   in tr (if isJust cursorY then [] else [class "positive", onKeydown NewRow]) cells
 
 elemToCell : Maybe CursorPosition -> String -> Html Msg
 elemToCell mCursorPosition content =
@@ -293,10 +297,15 @@ update msg model =
           Key.Down -> CursorMoved False {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
           Key.Enter -> CursorMoved False {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
           _ -> NoOp
+    NewRow event ->
+      if event.keyCode == Key.Enter then
+        update VirUpdate {model | records = Array.push model.newRecord model.records, newRecord = emptyRecord, cursorPosition = {x = 0, y = Nothing}}
+      else
+        (model, Cmd.none)
 
     ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
     ClearAllRecords ->
-      ( {model | records = Array.fromList [], cursorPosition = CursorPosition 0 Nothing, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0, newRecord = Record "" "" "" "" ""}
+      ( {model | records = Array.fromList [], cursorPosition = CursorPosition 0 Nothing, visibleStartIndex = 0, visibleEndIndex = 0, viewportY = 0, newRecord = emptyRecord}
       , focusCursor
       )
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
@@ -352,7 +361,6 @@ update msg model =
             (newModel, focusCursor)
 
     PortExample -> (model, Ports.example model.filename)
-
     DontScrollViewport -> (model, stopScrollingThat)
 
 focusCursor : Cmd Msg
@@ -399,6 +407,10 @@ oldRecordToList : OldRecord -> List String
 oldRecordToList {lotNo, vendor, description, reserve} =
   [lotNo, vendor, description, reserve]
 
+oldToNew : String -> OldRecord -> Record
+oldToNew oldLotNo {lotNo, vendor, description, reserve} =
+  Record oldLotNo lotNo vendor description reserve
+
 importListToOldRecord : List String -> OldRecord
 importListToOldRecord list =
   case pad 4 "" list of
@@ -413,6 +425,9 @@ importListToRecord list =
 
 errorRecord : Record
 errorRecord = Record "ERROR" "ERROR" "ERROR" "ERROR" "ERROR"
+
+emptyRecord : Record
+emptyRecord = Record "" "" "" "" ""
 
 errorOldRecord : OldRecord
 errorOldRecord = OldRecord "ERROR" "ERROR" "ERROR" "ERROR"

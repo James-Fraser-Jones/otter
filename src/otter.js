@@ -4684,10 +4684,6 @@ var author$project$Main$Model = function (sidePanelExpanded) {
 		};
 	};
 };
-var author$project$Main$Record = F5(
-	function (oldLotNo, lotNo, vendor, description, reserve) {
-		return {description: description, lotNo: lotNo, oldLotNo: oldLotNo, reserve: reserve, vendor: vendor};
-	});
 var author$project$Main$VirViewportInfo = function (a) {
 	return {$: 'VirViewportInfo', a: a};
 };
@@ -5521,6 +5517,11 @@ var author$project$Main$checkTableViewport = A2(
 	elm$core$Task$attempt,
 	author$project$Main$handleError(author$project$Main$VirViewportInfo),
 	elm$browser$Browser$Dom$getViewportOf('table-viewport'));
+var author$project$Main$Record = F5(
+	function (oldLotNo, lotNo, vendor, description, reserve) {
+		return {description: description, lotNo: lotNo, oldLotNo: oldLotNo, reserve: reserve, vendor: vendor};
+	});
+var author$project$Main$emptyRecord = A5(author$project$Main$Record, '', '', '', '', '');
 var elm$json$Json$Encode$null = _Json_encodeNull;
 var author$project$Ports$focusCursor = _Platform_outgoingPort(
 	'focusCursor',
@@ -5563,17 +5564,13 @@ var elm$core$Array$fromList = function (list) {
 		return A3(elm$core$Array$fromListHelp, list, _List_Nil, 0);
 	}
 };
-var elm$core$Basics$negate = function (n) {
-	return -n;
-};
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var author$project$Main$init = function (_n0) {
 	return _Utils_Tuple2(
 		author$project$Main$Model(true)('')(
 			elm$core$Array$fromList(_List_Nil))(
-			elm$core$Array$fromList(_List_Nil))(
-			A5(author$project$Main$Record, '', '', '', '', ''))(
-			A2(author$project$Main$CursorPosition, 0, elm$core$Maybe$Nothing))(true)(false)(-1)(-1)(0)(0),
+			elm$core$Array$fromList(_List_Nil))(author$project$Main$emptyRecord)(
+			A2(author$project$Main$CursorPosition, 0, elm$core$Maybe$Nothing))(true)(false)(0)(0)(0)(0),
 		elm$core$Platform$Cmd$batch(
 			_List_fromArray(
 				[author$project$Main$checkTableViewport, author$project$Main$focusCursor])));
@@ -6002,6 +5999,7 @@ var author$project$Main$subscriptions = function (_n0) {
 				return author$project$Main$VirResize;
 			}));
 };
+var SwiftsNamesake$proper_keyboard$Keyboard$Key$Enter = {$: 'Enter'};
 var author$project$Main$CsvLoaded = F3(
 	function (a, b, c) {
 		return {$: 'CsvLoaded', a: a, b: b, c: c};
@@ -6019,6 +6017,7 @@ var author$project$Main$VirScroll = F2(
 	function (a, b) {
 		return {$: 'VirScroll', a: a, b: b};
 	});
+var author$project$Main$VirUpdate = {$: 'VirUpdate'};
 var author$project$Main$VirScrollbarInfo = function (a) {
 	return {$: 'VirScrollbarInfo', a: a};
 };
@@ -6395,7 +6394,6 @@ var author$project$Main$updateScrollBar = function (newViewportY) {
 			elm$core$Basics$always(author$project$Main$NoOp)),
 		A3(elm$browser$Browser$Dom$setViewportOf, 'scrollbar', 0, newViewportY));
 };
-var author$project$Main$VirUpdate = {$: 'VirUpdate'};
 var author$project$Main$scroll_wait = 100;
 var elm$core$Process$sleep = _Process_sleep;
 var author$project$Main$updateVisibleRows = A2(
@@ -6577,6 +6575,14 @@ var elm$core$Array$append = F2(
 						elm$core$Array$builderFromArray(a),
 						bTree)));
 		}
+	});
+var elm$core$Array$push = F2(
+	function (a, array) {
+		var tail = array.d;
+		return A2(
+			elm$core$Array$unsafeReplaceTail,
+			A2(elm$core$Elm$JsArray$push, a, tail),
+			array);
 	});
 var elm$core$Basics$neq = _Utils_notEqual;
 var elm$core$Basics$not = _Basics_not;
@@ -6903,6 +6909,9 @@ var elm$parser$Parser$Advanced$Token = F2(
 	function (a, b) {
 		return {$: 'Token', a: a, b: b};
 	});
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
 var elm$parser$Parser$Advanced$AddRight = F2(
 	function (a, b) {
 		return {$: 'AddRight', a: a, b: b};
@@ -7360,6 +7369,23 @@ var author$project$Main$update = F2(
 									return author$project$Main$NoOp;
 							}
 						}());
+				case 'NewRow':
+					var event = msg.a;
+					if (_Utils_eq(event.keyCode, SwiftsNamesake$proper_keyboard$Keyboard$Key$Enter)) {
+						var $temp$msg = author$project$Main$VirUpdate,
+							$temp$model = _Utils_update(
+							model,
+							{
+								cursorPosition: {x: 0, y: elm$core$Maybe$Nothing},
+								newRecord: author$project$Main$emptyRecord,
+								records: A2(elm$core$Array$push, model.newRecord, model.records)
+							});
+						msg = $temp$msg;
+						model = $temp$model;
+						continue update;
+					} else {
+						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+					}
 				case 'ToggleSidePanel':
 					var newExpanded = !model.sidePanelExpanded;
 					return _Utils_Tuple2(
@@ -7373,11 +7399,11 @@ var author$project$Main$update = F2(
 							model,
 							{
 								cursorPosition: A2(author$project$Main$CursorPosition, 0, elm$core$Maybe$Nothing),
-								newRecord: A5(author$project$Main$Record, '', '', '', '', ''),
+								newRecord: author$project$Main$emptyRecord,
 								records: elm$core$Array$fromList(_List_Nil),
 								viewportY: 0,
-								visibleEndIndex: -1,
-								visibleStartIndex: -1
+								visibleEndIndex: 0,
+								visibleStartIndex: 0
 							}),
 						author$project$Main$focusCursor);
 				case 'FilenameEdited':
@@ -7592,6 +7618,9 @@ var author$project$Main$FilenameEdited = function (a) {
 	return {$: 'FilenameEdited', a: a};
 };
 var author$project$Main$PortExample = {$: 'PortExample'};
+var author$project$Main$TableViewport = function (a) {
+	return {$: 'TableViewport', a: a};
+};
 var author$project$Main$ToggleSidePanel = {$: 'ToggleSidePanel'};
 var author$project$Main$VirScrollbarScroll = {$: 'VirScrollbarScroll'};
 var author$project$Main$VirToggle = {$: 'VirToggle'};
@@ -7669,7 +7698,6 @@ var SwiftsNamesake$proper_keyboard$Keyboard$Key$Down = {$: 'Down'};
 var SwiftsNamesake$proper_keyboard$Keyboard$Key$E = {$: 'E'};
 var SwiftsNamesake$proper_keyboard$Keyboard$Key$Eight = {$: 'Eight'};
 var SwiftsNamesake$proper_keyboard$Keyboard$Key$End = {$: 'End'};
-var SwiftsNamesake$proper_keyboard$Keyboard$Key$Enter = {$: 'Enter'};
 var SwiftsNamesake$proper_keyboard$Keyboard$Key$Escape = {$: 'Escape'};
 var SwiftsNamesake$proper_keyboard$Keyboard$Key$F = {$: 'F'};
 var SwiftsNamesake$proper_keyboard$Keyboard$Key$F1 = {$: 'F1'};
@@ -7939,9 +7967,6 @@ var Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyboardEvent = A8(
 	A2(elm$json$Json$Decode$field, 'metaKey', elm$json$Json$Decode$bool),
 	A2(elm$json$Json$Decode$field, 'repeat', elm$json$Json$Decode$bool),
 	A2(elm$json$Json$Decode$field, 'shiftKey', elm$json$Json$Decode$bool));
-var author$project$Main$TableViewport = function (a) {
-	return {$: 'TableViewport', a: a};
-};
 var elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -7953,15 +7978,20 @@ var elm$html$Html$Events$on = F2(
 			event,
 			elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
-var author$project$Main$onKeydown = A2(
-	elm$html$Html$Events$on,
-	'keydown',
-	A2(elm$json$Json$Decode$map, author$project$Main$TableViewport, Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyboardEvent));
+var author$project$Main$onKeydown = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'keydown',
+		A2(elm$json$Json$Decode$map, msg, Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyboardEvent));
+};
 var author$project$Main$onScroll = function (msg) {
 	return A2(
 		elm$html$Html$Events$on,
 		'scroll',
 		elm$json$Json$Decode$succeed(msg));
+};
+var author$project$Main$NewRow = function (a) {
+	return {$: 'NewRow', a: a};
 };
 var author$project$Main$CursorEdited = function (a) {
 	return {$: 'CursorEdited', a: a};
@@ -8113,7 +8143,8 @@ var author$project$Main$recordToRow = F3(
 			elm$html$Html$tr,
 			author$project$Main$isJust(cursorY) ? _List_Nil : _List_fromArray(
 				[
-					elm$html$Html$Attributes$class('positive')
+					elm$html$Html$Attributes$class('positive'),
+					author$project$Main$onKeydown(author$project$Main$NewRow)
 				]),
 			cells);
 	});
@@ -8384,7 +8415,7 @@ var author$project$Main$vieww = function (model) {
 									[
 										elm$html$Html$Attributes$id('table-viewport'),
 										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Main$VirWheelScroll),
-										author$project$Main$onKeydown,
+										author$project$Main$onKeydown(author$project$Main$TableViewport),
 										author$project$Main$onScroll(author$project$Main$DontScrollViewport)
 									]),
 								_List_fromArray(
