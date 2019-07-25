@@ -33,6 +33,7 @@ import Browser.Events as BEvent
 import File
 import File.Select as Select
 import File.Download as Download
+import Array
 import Task
 import Maybe
 import List
@@ -72,8 +73,8 @@ type alias Model =
   { sidePanelExpanded : Bool     --Settings
   , filename : String
 
-  , records : List Record        --Data
-  , oldRecords : List OldRecord
+  , records : Array.Array Record        --Data
+  , oldRecords : Array.Array OldRecord
   , newRecord : Record
 
   , cursorPosition : CursorPosition --Cursor
@@ -127,7 +128,7 @@ type Msg
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( Model True "" [] [] (Record "" "" "" "" "") (CursorPosition 0 Nothing) True False (-1) (-1) 0 0
+  ( Model True "" (Array.fromList []) (Array.fromList []) (Record "" "" "" "" "") (CursorPosition 0 Nothing) True False (-1) (-1) 0 0
   , Cmd.batch [checkTableViewport, focusCursor]
   )
 
@@ -166,7 +167,7 @@ vieww model =
                            , tr [] [ div [ style "height" <| (String.fromInt <| model.visibleStartIndex * row_height) ++ "px" ] [] ]
                            ]
                         ++ renderedRows model
-                        ++ [ tr [] [ div [ style "height" <| (String.fromInt <| (List.length model.records - 1 - model.visibleEndIndex) * row_height) ++ "px" ] [] ]
+                        ++ [ tr [] [ div [ style "height" <| (String.fromInt <| (Array.length model.records - 1 - model.visibleEndIndex) * row_height) ++ "px" ] [] ]
                            , recordToRow (if isJust model.cursorPosition.y then Nothing else Just model.cursorPosition.x) Nothing model.newRecord
                            ]
                         )
@@ -268,10 +269,10 @@ elemToCell mCursorPosition content =
     Just cursorPosition ->
       td [ onClick <| CursorMoved True cursorPosition ] [ text content ]
 
-filterVisible : Int -> Int -> List Record -> List Record
+filterVisible : Int -> Int -> Array.Array Record -> List Record
 filterVisible start end list =
   let filterRange index elem = if index >= start && index <= end then Just elem else Nothing
-   in List.indexedMap filterRange list |> List.filter isJust |> List.map (Maybe.withDefault errorRecord)
+   in Array.indexedMap filterRange list |> Array.filter isJust |> Array.map (Maybe.withDefault errorRecord) |> Array.toList
 
 --==================================================================== UPDATE
 
@@ -283,7 +284,7 @@ update msg model =
 
     TableViewport event ->
       let cursorPosition = model.cursorPosition
-          recordNum = List.length model.records
+          recordNum = Array.length model.records
        in flip update model <| case event.keyCode of
           Key.Left -> CursorMoved False {cursorPosition | x = Basics.max 0 <| pred cursorPosition.x}
           Key.Right -> CursorMoved False {cursorPosition | x = Basics.min 4 <| succ cursorPosition.x}
@@ -295,7 +296,7 @@ update msg model =
 
     ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
     ClearAllRecords ->
-      ( {model | records = [], cursorPosition = CursorPosition 0 Nothing, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0, newRecord = Record "" "" "" "" ""}
+      ( {model | records = Array.fromList [], cursorPosition = CursorPosition 0 Nothing, visibleStartIndex = (-1), visibleEndIndex = (-1), viewportY = 0, newRecord = Record "" "" "" "" ""}
       , focusCursor
       )
     FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
@@ -306,8 +307,8 @@ update msg model =
       case Csv.parse fileContent of
           Err _ -> (model, Cmd.none)
           Ok csv -> if suggestion
-                    then ({model | oldRecords = List.map importListToOldRecord csv.records}, Cmd.none)
-                    else ({model | records = model.records ++ List.map importListToRecord csv.records, scrollLock = True}, updateVisibleRows)
+                    then ({model | oldRecords = Array.fromList <| List.map importListToOldRecord csv.records}, Cmd.none)
+                    else ({model | records = Array.append model.records <| Array.fromList <| List.map importListToRecord csv.records, scrollLock = True}, updateVisibleRows)
     CsvExported ->
       ( model
       , Download.string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records)
@@ -324,7 +325,7 @@ update msg model =
                       ]
           )
     VirUpdate ->
-      let numRecords = List.length model.records
+      let numRecords = Array.length model.records
           (bottom, top) = if model.enableVirtualization
                           then getVisibleRows numRecords model.viewportHeight model.viewportY
                           else (0, numRecords - 1)
@@ -335,12 +336,12 @@ update msg model =
 
     CursorEdited newText ->
       ( let columnUpdate = listToRecord << updateAt model.cursorPosition.x (always newText) << recordToList
-            rowUpdate cursorY = {model | records = updateAt cursorY columnUpdate model.records}
+            rowUpdate cursorY = {model | records = updateAtt cursorY columnUpdate model.records}
          in maybe {model | newRecord = columnUpdate model.newRecord} rowUpdate model.cursorPosition.y
       , Cmd.none
       )
     CursorMoved fromMouse cursorPosition ->
-      let realCursorY = Maybe.withDefault (List.length model.records) cursorPosition.y
+      let realCursorY = Maybe.withDefault (Array.length model.records) cursorPosition.y
           topClamp = realCursorY * row_height
           bottomClamp = topClamp + 3*row_height - model.viewportHeight
           clampedViewportY = clamp bottomClamp topClamp model.viewportY
@@ -423,13 +424,13 @@ handleError onSuccess result =
     Err (Dom.NotFound message) -> HandleErrorEvent message
     Ok value -> onSuccess value
 
-recordsToCsv : List Record -> String
+recordsToCsv : Array.Array Record -> String
 recordsToCsv records =
   let recordToCsv {oldLotNo, lotNo, vendor, description, reserve} = String.join "," [lotNo, vendor, description, reserve]
-   in String.join windows_newline <| List.map recordToCsv records
+   in String.join windows_newline <| Array.toList <| Array.map recordToCsv records
 
 tableHeight : Model -> Int
-tableHeight model = (List.length model.records + 2) * row_height
+tableHeight model = (Array.length model.records + 2) * row_height
 
 --==================================================================== SUBSCRIPTIONS
 
@@ -473,6 +474,9 @@ updateAt n f lst =
     (_, []) -> []
     (0, (x :: xs)) -> f x :: xs
     (nn, (x :: xs)) -> x :: updateAt (nn - 1) f xs
+
+updateAtt : Int -> (a -> a) -> Array.Array a -> Array.Array a
+updateAtt i f a = maybe identity (Array.set i) (Maybe.map f <| Array.get i a) a
 
 pad : Int -> a -> List a -> List a
 pad n def list =
