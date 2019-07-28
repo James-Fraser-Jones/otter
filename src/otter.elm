@@ -20,35 +20,39 @@
     periodic/elm-csv
 -}
 --==================================================================== IMPORTS
+module Otter exposing (..)
 
---Standard
+--My modules
+import Ports
+import Records exposing (..)
+import Prelude exposing (..)
+
+--Core modules
+import Array exposing (Array)
+import Process
+import Task
+
+--Common modules
 import Html exposing (..)
 import Html.Events exposing (..)
-import Html.Attributes exposing (..)
-
+import Html.Attributes exposing (class, value, type_, placeholder, style, id, attribute)
 import Html.Lazy as Lazy
+
 import Browser
 import Browser.Dom as Dom
 import Browser.Events as BEvent
+
 import File
 import File.Select as Select
 import File.Download as Download
-import Array
-import Task
-import Maybe
-import List
-import Process
-import Json.Decode as Decode
-import Html.Events.Extra.Wheel as Wheel
 
---Special
+import Json.Decode as Decode
+
+--Uncommon modules
 import Csv
-import Json.Decode as Decode
-import Keyboard.Event as KEvent
+import Keyboard.Event as KEvent exposing (KeyboardEvent)
 import Keyboard.Key as Key
-
---Modules
-import Ports
+import Html.Events.Extra.Wheel as Wheel
 
 --==================================================================== MAIN
 
@@ -63,19 +67,17 @@ main =
 
 --==================================================================== MODEL
 
-type alias Record = {oldLotNo : String, lotNo : String, vendor : String, description : String, reserve : String}
-type alias OldRecord = {lotNo : String, vendor : String, description : String, reserve : String}
 type alias CursorPosition = {x : Int, y : Maybe Int}
-
-type KeyboardEventType = KeyboardEventType
 
 type alias Model =
   { sidePanelExpanded : Bool     --Settings
   , filename : String
 
-  , records : Array.Array Record        --Data
-  , oldRecords : Array.Array OldRecord
+  , records : Array Record        --Data
+  , oldRecords : Array OldRecord
   , newRecord : Record
+
+  , suggested : Maybe String --Suggestion
 
   , cursorPosition : CursorPosition --Cursor
 
@@ -93,8 +95,8 @@ type Msg
   | HandleErrorEvent String
 
   --Keyboard
-  | TableViewport KEvent.KeyboardEvent
-  | NewRow KEvent.KeyboardEvent
+  | TableViewport KeyboardEvent
+  | NewRow KeyboardEvent
 
   --Simple
   | ToggleSidePanel
@@ -129,7 +131,7 @@ type Msg
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( Model True "" (Array.fromList []) (Array.fromList []) emptyRecord (CursorPosition 0 Nothing) True False 0 0 0 0
+  ( Model True "" (Array.fromList []) (Array.fromList []) emptyRecord Nothing (CursorPosition 0 Nothing) True False 0 0 0 0
   , Cmd.batch [checkTableViewport, focusCursor]
   )
 
@@ -143,7 +145,7 @@ vieww model =
   div [ id "grid", class "ui two column grid" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "thirteen" else "fifteen") ++ " wide column" ]
-            [ div [ id "table-viewport", Wheel.onWheel VirWheelScroll, onKeydown TableViewport, onScroll DontScrollViewport ]
+            [ div [ id "table-viewport", onKeydown TableViewport, Wheel.onWheel VirWheelScroll, onScroll DontScrollViewport ]
                 [ table
                     [ id "table"
                     , class "ui single line fixed unstackable celled striped compact table"
@@ -169,7 +171,7 @@ vieww model =
                            ]
                         ++ renderedRows model
                         ++ [ tr [] [ div [ style "height" <| (String.fromInt <| (Array.length model.records - 1 - model.visibleEndIndex) * row_height) ++ "px" ] [] ]
-                           , recordToRow (if isJust model.cursorPosition.y then Nothing else Just model.cursorPosition.x) Nothing model.newRecord
+                           , recordToRoww model.suggested (if isJust model.cursorPosition.y then Nothing else Just model.cursorPosition.x) Nothing model.newRecord
                            ]
                         )
                     ]
@@ -235,14 +237,18 @@ vieww model =
         ]
     ]
 
-onKeydown : (KEvent.KeyboardEvent -> msg) -> Attribute msg
+--Event handlers
+
+onKeydown : (KeyboardEvent -> msg) -> Attribute msg
 onKeydown msg = on "keydown" <| Decode.map msg KEvent.decodeKeyboardEvent
 
-onKeypress : (KEvent.KeyboardEvent -> msg) -> Attribute msg
+onKeypress : (KeyboardEvent -> msg) -> Attribute msg
 onKeypress msg = on "keypress" <| Decode.map msg KEvent.decodeKeyboardEvent
 
 onScroll : msg -> Attribute msg
 onScroll msg = on "scroll" (Decode.succeed msg)
+
+--Virtualization and cursor rendering logic (this should allow whole model to flow the whole way through, regardless of whether info is relevent or not!)
 
 renderedRows : Model -> List (Html Msg)
 renderedRows model =
@@ -273,61 +279,88 @@ elemToCell mCursorPosition content =
     Just cursorPosition ->
       td [ onClick <| CursorMoved True cursorPosition ] [ text content ]
 
-filterVisible : Int -> Int -> Array.Array Record -> List Record
+filterVisible : Int -> Int -> Array Record -> List Record
 filterVisible start end list =
   let filterRange index elem = if index >= start && index <= end then Just elem else Nothing
    in Array.indexedMap filterRange list |> Array.filter isJust |> Array.map (Maybe.withDefault errorRecord) |> Array.toList
+
+recordToRoww : Maybe String -> Maybe Int -> Maybe Int -> Record -> Html Msg
+recordToRoww suggested mCursorX cursorY record =
+  let cursorPositions = List.map (flip CursorPosition cursorY) (List.range 0 4)
+      updateFunc cursorX = updateAt cursorX (always Nothing)
+      mCursorPositions = maybe identity updateFunc mCursorX <| List.map Just cursorPositions
+      cells = listZipAp (listZipAp (elemToCelll suggested :: List.repeat 4 elemToCell) mCursorPositions) <| recordToList record
+   in tr (if isJust cursorY then [] else [class "positive", onKeydown NewRow]) cells
+
+elemToCelll : Maybe String -> Maybe CursorPosition -> String -> Html Msg
+elemToCelll suggested mCursorPosition content =
+  case mCursorPosition of
+    Nothing ->
+      td [ id "cursor" ]
+        [ div [ class "ui fluid input focus" ]
+            [ input [ id "cursor-input", type_ "text", value content, onInput CursorEdited, placeholder <| Maybe.withDefault "" suggested ] [] ]
+        ]
+    Just cursorPosition ->
+      td [ onClick <| CursorMoved True cursorPosition ] [ text (if content == "" then Maybe.withDefault "" suggested else content) ]
 
 --==================================================================== UPDATE
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    --Simple stuff
     NoOp -> (model, Cmd.none)
-    HandleErrorEvent message -> (print message model, Cmd.none)
+    HandleErrorEvent message -> (Debug.log "Error" message |> always model, Cmd.none)
+    ToggleSidePanel -> ({model | sidePanelExpanded = not model.sidePanelExpanded}, Cmd.none)
+    FilenameEdited newText -> ({model | filename = newText}, Cmd.none)
+    PortExample -> (model, Ports.example model.filename)
+    DontScrollViewport -> (model, Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf "table-viewport" 0 0)
+    CsvRequested suggestion -> (model, Select.file [csv_mime] <| CsvSelected suggestion)
+    CsvSelected suggestion file -> (model, Task.perform (CsvLoaded suggestion <| File.name file) (File.toString file))
+    CsvExported -> (model, Download.string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records))
 
+    --Complicated tangle
+    CsvLoaded suggestion fileName fileContent ->
+      case Csv.parse fileContent of
+          Err _ -> (model, Cmd.none)
+          Ok csv -> if suggestion
+                    then let newOldRecords = Array.fromList <| List.map importListToOldRecord csv.records
+                          in ({model | oldRecords = newOldRecords, suggested = genSuggestion newOldRecords model.records}, Cmd.none)
+                    else let newNewRecords = Array.append model.records <| Array.fromList <| List.map importListToRecord csv.records
+                          in ({model | records = newNewRecords, scrollLock = True, suggested = genSuggestion model.oldRecords newNewRecords}, updateVisibleRows)
     TableViewport event ->
       let cursorPosition = model.cursorPosition
           recordNum = Array.length model.records
        in flip update model <| case event.keyCode of
-          Key.Left -> CursorMoved False {cursorPosition | x = Basics.max 0 <| pred cursorPosition.x}
-          Key.Right -> CursorMoved False {cursorPosition | x = Basics.min 4 <| succ cursorPosition.x}
-          Key.Tab -> CursorMoved False {cursorPosition | x = Basics.min 4 <| succ cursorPosition.x}
+          Key.Left -> CursorMoved False {cursorPosition | x = max 0 <| pred cursorPosition.x}
+          Key.Right -> CursorMoved False {cursorPosition | x = min 4 <| succ cursorPosition.x}
+          Key.Tab -> CursorMoved False {cursorPosition | x = min 4 <| succ cursorPosition.x}
           Key.Up -> CursorMoved False {cursorPosition | y = maybeClamp recordNum pred cursorPosition.y}
           Key.Down -> CursorMoved False {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
           Key.Enter -> CursorMoved False {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
           _ -> NoOp
     NewRow event ->
       if event.keyCode == Key.Enter then
-        update VirUpdate {model | records = Array.push model.newRecord model.records, newRecord = emptyRecord, cursorPosition = {x = 0, y = Nothing}}
+        let newNewRecords = Array.push (getNewRecord model) model.records
+         in update VirUpdate {model | records = newNewRecords, newRecord = emptyRecord, cursorPosition = {x = 0, y = Nothing}, suggested = genSuggestion model.oldRecords newNewRecords}
       else
         (model, Cmd.none)
-
-    ToggleSidePanel -> let newExpanded = not model.sidePanelExpanded in ({model | sidePanelExpanded = newExpanded}, Cmd.none)
     ClearAllRecords ->
-      ( {model | records = Array.fromList [], cursorPosition = CursorPosition 0 Nothing, visibleStartIndex = 0, visibleEndIndex = 0, viewportY = 0, newRecord = emptyRecord}
-      , focusCursor
-      )
-    FilenameEdited newText -> ({ model | filename = newText}, Cmd.none)
-
-    CsvRequested suggestion -> (model, Select.file [ csv_mime ] <| CsvSelected suggestion)
-    CsvSelected suggestion file -> (model, Task.perform (CsvLoaded suggestion <| File.name file) (File.toString file))
-    CsvLoaded suggestion fileName fileContent ->
-      case Csv.parse fileContent of
-          Err _ -> (model, Cmd.none)
-          Ok csv -> if suggestion
-                    then ({model | oldRecords = Array.fromList <| List.map importListToOldRecord csv.records}, Cmd.none)
-                    else ({model | records = Array.append model.records <| Array.fromList <| List.map importListToRecord csv.records, scrollLock = True}, updateVisibleRows)
-    CsvExported ->
-      ( model
-      , Download.string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records)
-      )
-
+      let newNewRecords = Array.fromList []
+      in ( {model | records = newNewRecords,
+                    cursorPosition = CursorPosition 0 Nothing,
+                    visibleStartIndex = 0,
+                    visibleEndIndex = 0,
+                    viewportY = 0,
+                    newRecord = emptyRecord,
+                    suggested = genSuggestion model.oldRecords newNewRecords}
+         , focusCursor
+         )
     VirWheelScroll event -> update (VirScroll False <| flip (if event.deltaY >= 0 then (+) else (-)) row_height) model
     VirScrollbarScroll -> (model, checkScrollbar)
     VirScrollbarInfo viewport -> update (VirScroll True <| always <| round viewport.viewport.y) model
     VirScroll fromScrollBar modify ->
-      let newViewportY = Basics.clamp 0 (tableHeight model - model.viewportHeight) <| modify model.viewportY
+      let newViewportY = clamp 0 (tableHeight model - model.viewportHeight) <| modify model.viewportY
        in ( {model | scrollLock = True, viewportY = newViewportY}
           , Cmd.batch [ if model.scrollLock then Cmd.none else updateVisibleRows
                       , if fromScrollBar then Cmd.none else updateScrollBar newViewportY
@@ -342,10 +375,11 @@ update msg model =
     VirResize -> (model, checkTableViewport)
     VirViewportInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
     VirToggle -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
-
     CursorEdited newText ->
       ( let columnUpdate = listToRecord << updateAt model.cursorPosition.x (always newText) << recordToList
-            rowUpdate cursorY = {model | records = updateAtt cursorY columnUpdate model.records}
+            rowUpdate cursorY =
+              let newNewRecords = updateAtt cursorY columnUpdate model.records
+               in {model | records = newNewRecords, suggested = genSuggestion model.oldRecords newNewRecords}
          in maybe {model | newRecord = columnUpdate model.newRecord} rowUpdate model.cursorPosition.y
       , Cmd.none
       )
@@ -360,14 +394,52 @@ update msg model =
           else
             (newModel, focusCursor)
 
-    PortExample -> (model, Ports.example model.filename)
-    DontScrollViewport -> (model, stopScrollingThat)
+--Commands
 
 focusCursor : Cmd Msg
 focusCursor = Ports.focusCursor ()
 
-stopScrollingThat : Cmd Msg
-stopScrollingThat = Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf "table-viewport" 0 0
+checkTableViewport : Cmd Msg
+checkTableViewport = Task.attempt (handleError VirViewportInfo) (Dom.getViewportOf "table-viewport")
+
+updateVisibleRows : Cmd Msg
+updateVisibleRows = Task.perform (always VirUpdate) (Process.sleep scroll_wait)
+
+checkScrollbar : Cmd Msg --only used in one place
+checkScrollbar = Task.attempt (handleError VirScrollbarInfo) (Dom.getViewportOf "scrollbar")
+
+updateScrollBar : Int -> Cmd Msg --only used in one place
+updateScrollBar newViewportY = Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf "scrollbar" 0 <| toFloat newViewportY
+
+--Suggestion logic
+
+getNewRecord : Model -> Record
+getNewRecord model =
+  let newRecord = getSuggestion model.suggested model.newRecord model.oldRecords
+  in if model.newRecord.lotNo == "" then
+    { newRecord | lotNo = maybe "" String.fromInt <| getFreshLotNo model.records}
+  else
+    newRecord
+
+getSuggestion : Maybe String -> Record -> Array OldRecord -> Record
+getSuggestion suggestion record oldRecords =
+  let oldLotNo = Maybe.withDefault "" <| if { record | lotNo = "" } == emptyRecord then suggestion else Just record.oldLotNo
+   in maybe { record | oldLotNo = "" } (oldToNew oldLotNo) <| find ((==) oldLotNo << .lotNo) oldRecords
+
+getFreshLotNo : Array Record -> Maybe Int
+getFreshLotNo records =
+  maybe (Just 1) (Maybe.map succ << String.toInt << .lotNo) <| laast records
+
+genSuggestion : Array OldRecord -> Array Record -> Maybe String
+genSuggestion oldRecords records =
+  let allSuggestions = Array.map (.lotNo) oldRecords
+      usedSuggestions = Array.filter (not << String.isEmpty) <| Array.map (.oldLotNo) records
+      freshIndex = maybe (Just 0) (\lSugg -> Maybe.map succ <| findIndexFromEnd lSugg allSuggestions) (laast usedSuggestions)
+      openSuggestions = maybe (Array.fromList []) (\index -> Array.slice index (Array.length allSuggestions) allSuggestions) freshIndex
+      unusedSuggestions = Array.filter (not << flip mamber usedSuggestions) openSuggestions
+   in Array.get 0 unusedSuggestions
+
+--Generic Helpers
 
 maybeClamp : Int -> (Int -> Int) -> Maybe Int -> Maybe Int
 maybeClamp recordNum f m =
@@ -375,155 +447,27 @@ maybeClamp recordNum f m =
       c = clamp 0 recordNum (f n)
    in if c == recordNum then Nothing else Just c
 
-checkTableViewport : Cmd Msg
-checkTableViewport = Task.attempt (handleError VirViewportInfo) (Dom.getViewportOf "table-viewport")
-
-checkScrollbar : Cmd Msg
-checkScrollbar = Task.attempt (handleError VirScrollbarInfo) (Dom.getViewportOf "scrollbar")
-
-updateVisibleRows : Cmd Msg
-updateVisibleRows = Task.perform (always VirUpdate) (Process.sleep scroll_wait)
-
-updateScrollBar : Int -> Cmd Msg
-updateScrollBar newViewportY = Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf "scrollbar" 0 <| toFloat newViewportY
-
 getVisibleRows : Int -> Int -> Int -> (Int, Int)
 getVisibleRows numRecords viewportHeight viewportY =
-  let bottom = pred <| Basics.max 1 <| floor <| toFloat viewportY / row_height
-      top = pred <| Basics.min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + viewportHeight) / row_height
+  let bottom = pred <| max 1 <| floor <| toFloat viewportY / row_height
+      top = pred <| min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + viewportHeight) / row_height
    in (bottom, top)
 
-recordToList : Record -> List String
-recordToList {oldLotNo, lotNo, vendor, description, reserve} =
-  [oldLotNo, lotNo, vendor, description, reserve]
+tableHeight : Model -> Int
+tableHeight model = (Array.length model.records + 2) * row_height
 
-listToRecord : List String -> Record
-listToRecord list =
-  case pad 5 "" list of
-    (a :: b :: c :: d :: e :: xs) -> Record a b c d e
-    _ -> errorRecord
-
-oldRecordToList : OldRecord -> List String
-oldRecordToList {lotNo, vendor, description, reserve} =
-  [lotNo, vendor, description, reserve]
-
-oldToNew : String -> OldRecord -> Record
-oldToNew oldLotNo {lotNo, vendor, description, reserve} =
-  Record oldLotNo lotNo vendor description reserve
-
-importListToOldRecord : List String -> OldRecord
-importListToOldRecord list =
-  case pad 4 "" list of
-    (a :: b :: c :: d :: xs) -> OldRecord a b c d
-    _ -> errorOldRecord
-
-importListToRecord : List String -> Record
-importListToRecord list =
-  case pad 4 "" list of
-    (a :: b :: c :: d :: xs) -> Record "" a b c d
-    _ -> errorRecord
-
-errorRecord : Record
-errorRecord = Record "ERROR" "ERROR" "ERROR" "ERROR" "ERROR"
-
-emptyRecord : Record
-emptyRecord = Record "" "" "" "" ""
-
-errorOldRecord : OldRecord
-errorOldRecord = OldRecord "ERROR" "ERROR" "ERROR" "ERROR"
-
---e.g. Task.attempt handleError
 handleError : (a -> Msg) -> Result Dom.Error a -> Msg
 handleError onSuccess result =
   case result of
     Err (Dom.NotFound message) -> HandleErrorEvent message
     Ok value -> onSuccess value
 
-recordsToCsv : Array.Array Record -> String
-recordsToCsv records =
-  let recordToCsv {oldLotNo, lotNo, vendor, description, reserve} = String.join "," [lotNo, vendor, description, reserve]
-   in String.join windows_newline <| Array.toList <| Array.map recordToCsv records
-
-tableHeight : Model -> Int
-tableHeight model = (Array.length model.records + 2) * row_height
-
 --==================================================================== SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
 subscriptions _ = BEvent.onResize (\_ _ -> VirResize)
 
---==================================================================== PRELUDE
-
-silence : Result e a -> Maybe a
-silence result =
-  case result of
-    Ok value -> Just value
-    Err _ -> Nothing
-
-flip : (a -> b -> c) -> b -> a -> c
-flip f a b = f b a
-
-curry : (a -> b -> c) -> (a, b) -> c
-curry f (a, b) = f a b
-
-uncurry : ((a, b) -> c) -> a -> b -> c
-uncurry f a b = f (a, b)
-
-zipWith : (a -> b -> c) -> List a -> List b -> List c
-zipWith f a b =
-  case (a, b) of
-    ([], _) -> []
-    (_, []) -> []
-    (x :: xs, y :: ys) -> f x y :: zipWith f xs ys
-
-listZipAp : List (a -> b) -> List a -> List b
-listZipAp f a =
-  case (f, a) of
-    ([], _) -> []
-    (_, []) -> []
-    (x :: xs, y :: ys) -> x y :: listZipAp xs ys
-
-updateAt : Int -> (a -> a) -> List a -> List a
-updateAt n f lst =
-  case (n, lst) of
-    (_, []) -> []
-    (0, (x :: xs)) -> f x :: xs
-    (nn, (x :: xs)) -> x :: updateAt (nn - 1) f xs
-
-updateAtt : Int -> (a -> a) -> Array.Array a -> Array.Array a
-updateAtt i f a = maybe identity (Array.set i) (Maybe.map f <| Array.get i a) a
-
-pad : Int -> a -> List a -> List a
-pad n def list =
-  list ++ List.repeat (Basics.max (n - List.length list) 0) def
-
-isJust : Maybe a -> Bool
-isJust m =
-  case m of
-    Just _ -> True
-    Nothing -> False
-
-succ : number -> number
-succ = (+) 1
-
-pred : number -> number
-pred = flip (-) 1
-
-maybe : b -> (a -> b) -> Maybe a -> b
-maybe b f ma = Maybe.withDefault b <| Maybe.map f ma
-
---==================================================================== DEBUGGING
-
-print : a -> b -> b
-print a b = always b <| Debug.log "" (Debug.toString a)
-
-printt : a -> a
-printt a = print a a
-
 --==================================================================== CONSTS
-
-windows_newline : String
-windows_newline = "\r\n"
 
 csv_mime : String
 csv_mime = "text/csv"
@@ -541,5 +485,3 @@ debug = True
 
 scroll_wait : number
 scroll_wait = 100
-
---==================================================================== DECODERS

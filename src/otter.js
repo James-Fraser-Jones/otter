@@ -4655,23 +4655,25 @@ var _Parser_findSubString = F5(function(smallString, offset, row, col, bigString
 
 	return _Utils_Tuple3(newOffset, row, col);
 });
-var author$project$Main$CursorPosition = F2(
+var author$project$Otter$CursorPosition = F2(
 	function (x, y) {
 		return {x: x, y: y};
 	});
-var author$project$Main$Model = function (sidePanelExpanded) {
+var author$project$Otter$Model = function (sidePanelExpanded) {
 	return function (filename) {
 		return function (records) {
 			return function (oldRecords) {
 				return function (newRecord) {
-					return function (cursorPosition) {
-						return function (enableVirtualization) {
-							return function (scrollLock) {
-								return function (visibleStartIndex) {
-									return function (visibleEndIndex) {
-										return function (viewportHeight) {
-											return function (viewportY) {
-												return {cursorPosition: cursorPosition, enableVirtualization: enableVirtualization, filename: filename, newRecord: newRecord, oldRecords: oldRecords, records: records, scrollLock: scrollLock, sidePanelExpanded: sidePanelExpanded, viewportHeight: viewportHeight, viewportY: viewportY, visibleEndIndex: visibleEndIndex, visibleStartIndex: visibleStartIndex};
+					return function (suggested) {
+						return function (cursorPosition) {
+							return function (enableVirtualization) {
+								return function (scrollLock) {
+									return function (visibleStartIndex) {
+										return function (visibleEndIndex) {
+											return function (viewportHeight) {
+												return function (viewportY) {
+													return {cursorPosition: cursorPosition, enableVirtualization: enableVirtualization, filename: filename, newRecord: newRecord, oldRecords: oldRecords, records: records, scrollLock: scrollLock, sidePanelExpanded: sidePanelExpanded, suggested: suggested, viewportHeight: viewportHeight, viewportY: viewportY, visibleEndIndex: visibleEndIndex, visibleStartIndex: visibleStartIndex};
+												};
 											};
 										};
 									};
@@ -4684,17 +4686,17 @@ var author$project$Main$Model = function (sidePanelExpanded) {
 		};
 	};
 };
-var author$project$Main$VirViewportInfo = function (a) {
+var author$project$Otter$VirViewportInfo = function (a) {
 	return {$: 'VirViewportInfo', a: a};
 };
-var author$project$Main$HandleErrorEvent = function (a) {
+var author$project$Otter$HandleErrorEvent = function (a) {
 	return {$: 'HandleErrorEvent', a: a};
 };
-var author$project$Main$handleError = F2(
+var author$project$Otter$handleError = F2(
 	function (onSuccess, result) {
 		if (result.$ === 'Err') {
 			var message = result.a.a;
-			return author$project$Main$HandleErrorEvent(message);
+			return author$project$Otter$HandleErrorEvent(message);
 		} else {
 			var value = result.a;
 			return onSuccess(value);
@@ -5513,22 +5515,22 @@ var elm$core$Task$attempt = F2(
 							elm$core$Result$Ok),
 						task))));
 	});
-var author$project$Main$checkTableViewport = A2(
+var author$project$Otter$checkTableViewport = A2(
 	elm$core$Task$attempt,
-	author$project$Main$handleError(author$project$Main$VirViewportInfo),
+	author$project$Otter$handleError(author$project$Otter$VirViewportInfo),
 	elm$browser$Browser$Dom$getViewportOf('table-viewport'));
-var author$project$Main$Record = F5(
-	function (oldLotNo, lotNo, vendor, description, reserve) {
-		return {description: description, lotNo: lotNo, oldLotNo: oldLotNo, reserve: reserve, vendor: vendor};
-	});
-var author$project$Main$emptyRecord = A5(author$project$Main$Record, '', '', '', '', '');
 var elm$json$Json$Encode$null = _Json_encodeNull;
 var author$project$Ports$focusCursor = _Platform_outgoingPort(
 	'focusCursor',
 	function ($) {
 		return elm$json$Json$Encode$null;
 	});
-var author$project$Main$focusCursor = author$project$Ports$focusCursor(_Utils_Tuple0);
+var author$project$Otter$focusCursor = author$project$Ports$focusCursor(_Utils_Tuple0);
+var author$project$Records$Record = F5(
+	function (oldLotNo, lotNo, vendor, description, reserve) {
+		return {description: description, lotNo: lotNo, oldLotNo: oldLotNo, reserve: reserve, vendor: vendor};
+	});
+var author$project$Records$emptyRecord = A5(author$project$Records$Record, '', '', '', '', '');
 var elm$core$Array$fromListHelp = F3(
 	function (list, nodeList, nodeListSize) {
 		fromListHelp:
@@ -5565,17 +5567,17 @@ var elm$core$Array$fromList = function (list) {
 	}
 };
 var elm$core$Platform$Cmd$batch = _Platform_batch;
-var author$project$Main$init = function (_n0) {
+var author$project$Otter$init = function (_n0) {
 	return _Utils_Tuple2(
-		author$project$Main$Model(true)('')(
+		author$project$Otter$Model(true)('')(
 			elm$core$Array$fromList(_List_Nil))(
-			elm$core$Array$fromList(_List_Nil))(author$project$Main$emptyRecord)(
-			A2(author$project$Main$CursorPosition, 0, elm$core$Maybe$Nothing))(true)(false)(0)(0)(0)(0),
+			elm$core$Array$fromList(_List_Nil))(author$project$Records$emptyRecord)(elm$core$Maybe$Nothing)(
+			A2(author$project$Otter$CursorPosition, 0, elm$core$Maybe$Nothing))(true)(false)(0)(0)(0)(0),
 		elm$core$Platform$Cmd$batch(
 			_List_fromArray(
-				[author$project$Main$checkTableViewport, author$project$Main$focusCursor])));
+				[author$project$Otter$checkTableViewport, author$project$Otter$focusCursor])));
 };
-var author$project$Main$VirResize = {$: 'VirResize'};
+var author$project$Otter$VirResize = {$: 'VirResize'};
 var elm$browser$Browser$Events$Window = {$: 'Window'};
 var elm$browser$Browser$Events$MySub = F3(
 	function (a, b, c) {
@@ -5992,304 +5994,45 @@ var elm$browser$Browser$Events$onResize = function (func) {
 				A2(elm$json$Json$Decode$field, 'innerWidth', elm$json$Json$Decode$int),
 				A2(elm$json$Json$Decode$field, 'innerHeight', elm$json$Json$Decode$int))));
 };
-var author$project$Main$subscriptions = function (_n0) {
+var author$project$Otter$subscriptions = function (_n0) {
 	return elm$browser$Browser$Events$onResize(
 		F2(
 			function (_n1, _n2) {
-				return author$project$Main$VirResize;
+				return author$project$Otter$VirResize;
 			}));
 };
 var SwiftsNamesake$proper_keyboard$Keyboard$Key$Enter = {$: 'Enter'};
-var author$project$Main$CsvLoaded = F3(
+var author$project$Otter$CsvLoaded = F3(
 	function (a, b, c) {
 		return {$: 'CsvLoaded', a: a, b: b, c: c};
 	});
-var author$project$Main$CsvSelected = F2(
+var author$project$Otter$CsvSelected = F2(
 	function (a, b) {
 		return {$: 'CsvSelected', a: a, b: b};
 	});
-var author$project$Main$CursorMoved = F2(
+var author$project$Otter$CursorMoved = F2(
 	function (a, b) {
 		return {$: 'CursorMoved', a: a, b: b};
 	});
-var author$project$Main$NoOp = {$: 'NoOp'};
-var author$project$Main$VirScroll = F2(
+var author$project$Otter$NoOp = {$: 'NoOp'};
+var author$project$Otter$VirScroll = F2(
 	function (a, b) {
 		return {$: 'VirScroll', a: a, b: b};
 	});
-var author$project$Main$VirUpdate = {$: 'VirUpdate'};
-var author$project$Main$VirScrollbarInfo = function (a) {
+var author$project$Otter$VirUpdate = {$: 'VirUpdate'};
+var author$project$Otter$VirScrollbarInfo = function (a) {
 	return {$: 'VirScrollbarInfo', a: a};
 };
-var author$project$Main$checkScrollbar = A2(
+var author$project$Otter$checkScrollbar = A2(
 	elm$core$Task$attempt,
-	author$project$Main$handleError(author$project$Main$VirScrollbarInfo),
+	author$project$Otter$handleError(author$project$Otter$VirScrollbarInfo),
 	elm$browser$Browser$Dom$getViewportOf('scrollbar'));
-var author$project$Main$csv_mime = 'text/csv';
-var author$project$Main$flip = F3(
+var author$project$Otter$csv_mime = 'text/csv';
+var author$project$Prelude$flip = F3(
 	function (f, a, b) {
 		return A2(f, b, a);
 	});
-var author$project$Main$pred = A2(author$project$Main$flip, elm$core$Basics$sub, 1);
-var author$project$Main$row_height = 34;
-var elm$core$Basics$min = F2(
-	function (x, y) {
-		return (_Utils_cmp(x, y) < 0) ? x : y;
-	});
-var author$project$Main$getVisibleRows = F3(
-	function (numRecords, viewportHeight, viewportY) {
-		var top = author$project$Main$pred(
-			A2(
-				elm$core$Basics$min,
-				numRecords + 1,
-				author$project$Main$pred(
-					elm$core$Basics$ceiling((viewportY + viewportHeight) / author$project$Main$row_height))));
-		var bottom = author$project$Main$pred(
-			A2(
-				elm$core$Basics$max,
-				1,
-				elm$core$Basics$floor(viewportY / author$project$Main$row_height)));
-		return _Utils_Tuple2(bottom, top);
-	});
-var author$project$Main$OldRecord = F4(
-	function (lotNo, vendor, description, reserve) {
-		return {description: description, lotNo: lotNo, reserve: reserve, vendor: vendor};
-	});
-var author$project$Main$errorOldRecord = A4(author$project$Main$OldRecord, 'ERROR', 'ERROR', 'ERROR', 'ERROR');
-var elm$core$List$repeatHelp = F3(
-	function (result, n, value) {
-		repeatHelp:
-		while (true) {
-			if (n <= 0) {
-				return result;
-			} else {
-				var $temp$result = A2(elm$core$List$cons, value, result),
-					$temp$n = n - 1,
-					$temp$value = value;
-				result = $temp$result;
-				n = $temp$n;
-				value = $temp$value;
-				continue repeatHelp;
-			}
-		}
-	});
-var elm$core$List$repeat = F2(
-	function (n, value) {
-		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
-	});
-var author$project$Main$pad = F3(
-	function (n, def, list) {
-		return _Utils_ap(
-			list,
-			A2(
-				elm$core$List$repeat,
-				A2(
-					elm$core$Basics$max,
-					n - elm$core$List$length(list),
-					0),
-				def));
-	});
-var author$project$Main$importListToOldRecord = function (list) {
-	var _n0 = A3(author$project$Main$pad, 4, '', list);
-	if (((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) {
-		var a = _n0.a;
-		var _n1 = _n0.b;
-		var b = _n1.a;
-		var _n2 = _n1.b;
-		var c = _n2.a;
-		var _n3 = _n2.b;
-		var d = _n3.a;
-		var xs = _n3.b;
-		return A4(author$project$Main$OldRecord, a, b, c, d);
-	} else {
-		return author$project$Main$errorOldRecord;
-	}
-};
-var author$project$Main$errorRecord = A5(author$project$Main$Record, 'ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR');
-var author$project$Main$importListToRecord = function (list) {
-	var _n0 = A3(author$project$Main$pad, 4, '', list);
-	if (((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) {
-		var a = _n0.a;
-		var _n1 = _n0.b;
-		var b = _n1.a;
-		var _n2 = _n1.b;
-		var c = _n2.a;
-		var _n3 = _n2.b;
-		var d = _n3.a;
-		var xs = _n3.b;
-		return A5(author$project$Main$Record, '', a, b, c, d);
-	} else {
-		return author$project$Main$errorRecord;
-	}
-};
-var author$project$Main$listToRecord = function (list) {
-	var _n0 = A3(author$project$Main$pad, 5, '', list);
-	if ((((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) && _n0.b.b.b.b.b) {
-		var a = _n0.a;
-		var _n1 = _n0.b;
-		var b = _n1.a;
-		var _n2 = _n1.b;
-		var c = _n2.a;
-		var _n3 = _n2.b;
-		var d = _n3.a;
-		var _n4 = _n3.b;
-		var e = _n4.a;
-		var xs = _n4.b;
-		return A5(author$project$Main$Record, a, b, c, d, e);
-	} else {
-		return author$project$Main$errorRecord;
-	}
-};
-var elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return elm$core$Maybe$Nothing;
-		}
-	});
-var elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
-var author$project$Main$maybe = F3(
-	function (b, f, ma) {
-		return A2(
-			elm$core$Maybe$withDefault,
-			b,
-			A2(elm$core$Maybe$map, f, ma));
-	});
-var elm$core$Basics$clamp = F3(
-	function (low, high, number) {
-		return (_Utils_cmp(number, low) < 0) ? low : ((_Utils_cmp(number, high) > 0) ? high : number);
-	});
-var author$project$Main$maybeClamp = F3(
-	function (recordNum, f, m) {
-		var n = A2(elm$core$Maybe$withDefault, recordNum, m);
-		var c = A3(
-			elm$core$Basics$clamp,
-			0,
-			recordNum,
-			f(n));
-		return _Utils_eq(c, recordNum) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(c);
-	});
-var elm$core$Basics$always = F2(
-	function (a, _n0) {
-		return a;
-	});
-var elm$core$Debug$log = _Debug_log;
-var elm$core$Debug$toString = _Debug_toString;
-var author$project$Main$print = F2(
-	function (a, b) {
-		return A2(
-			elm$core$Basics$always,
-			b,
-			A2(
-				elm$core$Debug$log,
-				'',
-				elm$core$Debug$toString(a)));
-	});
-var author$project$Main$recordToList = function (_n0) {
-	var oldLotNo = _n0.oldLotNo;
-	var lotNo = _n0.lotNo;
-	var vendor = _n0.vendor;
-	var description = _n0.description;
-	var reserve = _n0.reserve;
-	return _List_fromArray(
-		[oldLotNo, lotNo, vendor, description, reserve]);
-};
-var author$project$Main$windows_newline = '\r\n';
-var elm$core$Elm$JsArray$map = _JsArray_map;
-var elm$core$Array$map = F2(
-	function (func, _n0) {
-		var len = _n0.a;
-		var startShift = _n0.b;
-		var tree = _n0.c;
-		var tail = _n0.d;
-		var helper = function (node) {
-			if (node.$ === 'SubTree') {
-				var subTree = node.a;
-				return elm$core$Array$SubTree(
-					A2(elm$core$Elm$JsArray$map, helper, subTree));
-			} else {
-				var values = node.a;
-				return elm$core$Array$Leaf(
-					A2(elm$core$Elm$JsArray$map, func, values));
-			}
-		};
-		return A4(
-			elm$core$Array$Array_elm_builtin,
-			len,
-			startShift,
-			A2(elm$core$Elm$JsArray$map, helper, tree),
-			A2(elm$core$Elm$JsArray$map, func, tail));
-	});
-var author$project$Main$recordsToCsv = function (records) {
-	var recordToCsv = function (_n0) {
-		var oldLotNo = _n0.oldLotNo;
-		var lotNo = _n0.lotNo;
-		var vendor = _n0.vendor;
-		var description = _n0.description;
-		var reserve = _n0.reserve;
-		return A2(
-			elm$core$String$join,
-			',',
-			_List_fromArray(
-				[lotNo, vendor, description, reserve]));
-	};
-	return A2(
-		elm$core$String$join,
-		author$project$Main$windows_newline,
-		elm$core$Array$toList(
-			A2(elm$core$Array$map, recordToCsv, records)));
-};
-var elm$browser$Browser$Dom$setViewportOf = _Browser_setViewportOf;
-var author$project$Main$stopScrollingThat = A2(
-	elm$core$Task$attempt,
-	author$project$Main$handleError(
-		elm$core$Basics$always(author$project$Main$NoOp)),
-	A3(elm$browser$Browser$Dom$setViewportOf, 'table-viewport', 0, 0));
-var author$project$Main$succ = elm$core$Basics$add(1);
-var elm$core$Array$length = function (_n0) {
-	var len = _n0.a;
-	return len;
-};
-var author$project$Main$tableHeight = function (model) {
-	return (elm$core$Array$length(model.records) + 2) * author$project$Main$row_height;
-};
-var author$project$Main$updateAt = F3(
-	function (n, f, lst) {
-		var _n0 = _Utils_Tuple2(n, lst);
-		if (!_n0.b.b) {
-			return _List_Nil;
-		} else {
-			if (!_n0.a) {
-				var _n1 = _n0.b;
-				var x = _n1.a;
-				var xs = _n1.b;
-				return A2(
-					elm$core$List$cons,
-					f(x),
-					xs);
-			} else {
-				var nn = _n0.a;
-				var _n2 = _n0.b;
-				var x = _n2.a;
-				var xs = _n2.b;
-				return A2(
-					elm$core$List$cons,
-					x,
-					A3(author$project$Main$updateAt, nn - 1, f, xs));
-			}
-		}
-	});
+var author$project$Prelude$pred = A2(author$project$Prelude$flip, elm$core$Basics$sub, 1);
 var elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
 var elm$core$Array$bitMask = 4294967295 >>> (32 - elm$core$Array$shiftStep);
 var elm$core$Bitwise$and = _Bitwise_and;
@@ -6332,7 +6075,544 @@ var elm$core$Array$get = F2(
 			A2(elm$core$Elm$JsArray$unsafeGet, elm$core$Array$bitMask & index, tail)) : elm$core$Maybe$Just(
 			A3(elm$core$Array$getHelp, startShift, index, tree)));
 	});
+var elm$core$Array$length = function (_n0) {
+	var len = _n0.a;
+	return len;
+};
+var author$project$Prelude$findIndexFromEnd = F2(
+	function (elem, array) {
+		var findI = F3(
+			function (i, e, a) {
+				findI:
+				while (true) {
+					if (i < 0) {
+						return elm$core$Maybe$Nothing;
+					} else {
+						if (_Utils_eq(
+							A2(elm$core$Array$get, i, a),
+							elm$core$Maybe$Just(e))) {
+							return elm$core$Maybe$Just(i);
+						} else {
+							var $temp$i = author$project$Prelude$pred(i),
+								$temp$e = e,
+								$temp$a = a;
+							i = $temp$i;
+							e = $temp$e;
+							a = $temp$a;
+							continue findI;
+						}
+					}
+				}
+			});
+		return A3(
+			findI,
+			elm$core$Array$length(array) - 1,
+			elem,
+			array);
+	});
+var author$project$Prelude$laast = function (array) {
+	return A2(
+		elm$core$Array$get,
+		elm$core$Array$length(array) - 1,
+		array);
+};
+var elm$core$Array$filter = F2(
+	function (isGood, array) {
+		return elm$core$Array$fromList(
+			A3(
+				elm$core$Array$foldr,
+				F2(
+					function (x, xs) {
+						return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
+					}),
+				_List_Nil,
+				array));
+	});
+var elm$core$Array$isEmpty = function (_n0) {
+	var len = _n0.a;
+	return !len;
+};
+var elm$core$Basics$not = _Basics_not;
+var author$project$Prelude$mamber = function (x) {
+	return A2(
+		elm$core$Basics$composeL,
+		A2(elm$core$Basics$composeL, elm$core$Basics$not, elm$core$Array$isEmpty),
+		elm$core$Array$filter(
+			elm$core$Basics$eq(x)));
+};
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var author$project$Prelude$maybe = F3(
+	function (b, f, ma) {
+		return A2(
+			elm$core$Maybe$withDefault,
+			b,
+			A2(elm$core$Maybe$map, f, ma));
+	});
+var author$project$Prelude$succ = elm$core$Basics$add(1);
+var elm$core$Elm$JsArray$map = _JsArray_map;
+var elm$core$Array$map = F2(
+	function (func, _n0) {
+		var len = _n0.a;
+		var startShift = _n0.b;
+		var tree = _n0.c;
+		var tail = _n0.d;
+		var helper = function (node) {
+			if (node.$ === 'SubTree') {
+				var subTree = node.a;
+				return elm$core$Array$SubTree(
+					A2(elm$core$Elm$JsArray$map, helper, subTree));
+			} else {
+				var values = node.a;
+				return elm$core$Array$Leaf(
+					A2(elm$core$Elm$JsArray$map, func, values));
+			}
+		};
+		return A4(
+			elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			A2(elm$core$Elm$JsArray$map, helper, tree),
+			A2(elm$core$Elm$JsArray$map, func, tail));
+	});
+var elm$core$Elm$JsArray$appendN = _JsArray_appendN;
+var elm$core$Elm$JsArray$slice = _JsArray_slice;
+var elm$core$Array$appendHelpBuilder = F2(
+	function (tail, builder) {
+		var tailLen = elm$core$Elm$JsArray$length(tail);
+		var notAppended = (elm$core$Array$branchFactor - elm$core$Elm$JsArray$length(builder.tail)) - tailLen;
+		var appended = A3(elm$core$Elm$JsArray$appendN, elm$core$Array$branchFactor, builder.tail, tail);
+		return (notAppended < 0) ? {
+			nodeList: A2(
+				elm$core$List$cons,
+				elm$core$Array$Leaf(appended),
+				builder.nodeList),
+			nodeListSize: builder.nodeListSize + 1,
+			tail: A3(elm$core$Elm$JsArray$slice, notAppended, tailLen, tail)
+		} : ((!notAppended) ? {
+			nodeList: A2(
+				elm$core$List$cons,
+				elm$core$Array$Leaf(appended),
+				builder.nodeList),
+			nodeListSize: builder.nodeListSize + 1,
+			tail: elm$core$Elm$JsArray$empty
+		} : {nodeList: builder.nodeList, nodeListSize: builder.nodeListSize, tail: appended});
+	});
+var elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var elm$core$Array$sliceLeft = F2(
+	function (from, array) {
+		var len = array.a;
+		var tree = array.c;
+		var tail = array.d;
+		if (!from) {
+			return array;
+		} else {
+			if (_Utils_cmp(
+				from,
+				elm$core$Array$tailIndex(len)) > -1) {
+				return A4(
+					elm$core$Array$Array_elm_builtin,
+					len - from,
+					elm$core$Array$shiftStep,
+					elm$core$Elm$JsArray$empty,
+					A3(
+						elm$core$Elm$JsArray$slice,
+						from - elm$core$Array$tailIndex(len),
+						elm$core$Elm$JsArray$length(tail),
+						tail));
+			} else {
+				var skipNodes = (from / elm$core$Array$branchFactor) | 0;
+				var helper = F2(
+					function (node, acc) {
+						if (node.$ === 'SubTree') {
+							var subTree = node.a;
+							return A3(elm$core$Elm$JsArray$foldr, helper, acc, subTree);
+						} else {
+							var leaf = node.a;
+							return A2(elm$core$List$cons, leaf, acc);
+						}
+					});
+				var leafNodes = A3(
+					elm$core$Elm$JsArray$foldr,
+					helper,
+					_List_fromArray(
+						[tail]),
+					tree);
+				var nodesToInsert = A2(elm$core$List$drop, skipNodes, leafNodes);
+				if (!nodesToInsert.b) {
+					return elm$core$Array$empty;
+				} else {
+					var head = nodesToInsert.a;
+					var rest = nodesToInsert.b;
+					var firstSlice = from - (skipNodes * elm$core$Array$branchFactor);
+					var initialBuilder = {
+						nodeList: _List_Nil,
+						nodeListSize: 0,
+						tail: A3(
+							elm$core$Elm$JsArray$slice,
+							firstSlice,
+							elm$core$Elm$JsArray$length(head),
+							head)
+					};
+					return A2(
+						elm$core$Array$builderToArray,
+						true,
+						A3(elm$core$List$foldl, elm$core$Array$appendHelpBuilder, initialBuilder, rest));
+				}
+			}
+		}
+	});
+var elm$core$Array$fetchNewTail = F4(
+	function (shift, end, treeEnd, tree) {
+		fetchNewTail:
+		while (true) {
+			var pos = elm$core$Array$bitMask & (treeEnd >>> shift);
+			var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (_n0.$ === 'SubTree') {
+				var sub = _n0.a;
+				var $temp$shift = shift - elm$core$Array$shiftStep,
+					$temp$end = end,
+					$temp$treeEnd = treeEnd,
+					$temp$tree = sub;
+				shift = $temp$shift;
+				end = $temp$end;
+				treeEnd = $temp$treeEnd;
+				tree = $temp$tree;
+				continue fetchNewTail;
+			} else {
+				var values = _n0.a;
+				return A3(elm$core$Elm$JsArray$slice, 0, elm$core$Array$bitMask & end, values);
+			}
+		}
+	});
+var elm$core$Array$hoistTree = F3(
+	function (oldShift, newShift, tree) {
+		hoistTree:
+		while (true) {
+			if ((_Utils_cmp(oldShift, newShift) < 1) || (!elm$core$Elm$JsArray$length(tree))) {
+				return tree;
+			} else {
+				var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, 0, tree);
+				if (_n0.$ === 'SubTree') {
+					var sub = _n0.a;
+					var $temp$oldShift = oldShift - elm$core$Array$shiftStep,
+						$temp$newShift = newShift,
+						$temp$tree = sub;
+					oldShift = $temp$oldShift;
+					newShift = $temp$newShift;
+					tree = $temp$tree;
+					continue hoistTree;
+				} else {
+					return tree;
+				}
+			}
+		}
+	});
 var elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
+var elm$core$Array$sliceTree = F3(
+	function (shift, endIdx, tree) {
+		var lastPos = elm$core$Array$bitMask & (endIdx >>> shift);
+		var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, lastPos, tree);
+		if (_n0.$ === 'SubTree') {
+			var sub = _n0.a;
+			var newSub = A3(elm$core$Array$sliceTree, shift - elm$core$Array$shiftStep, endIdx, sub);
+			return (!elm$core$Elm$JsArray$length(newSub)) ? A3(elm$core$Elm$JsArray$slice, 0, lastPos, tree) : A3(
+				elm$core$Elm$JsArray$unsafeSet,
+				lastPos,
+				elm$core$Array$SubTree(newSub),
+				A3(elm$core$Elm$JsArray$slice, 0, lastPos + 1, tree));
+		} else {
+			return A3(elm$core$Elm$JsArray$slice, 0, lastPos, tree);
+		}
+	});
+var elm$core$Array$sliceRight = F2(
+	function (end, array) {
+		var len = array.a;
+		var startShift = array.b;
+		var tree = array.c;
+		var tail = array.d;
+		if (_Utils_eq(end, len)) {
+			return array;
+		} else {
+			if (_Utils_cmp(
+				end,
+				elm$core$Array$tailIndex(len)) > -1) {
+				return A4(
+					elm$core$Array$Array_elm_builtin,
+					end,
+					startShift,
+					tree,
+					A3(elm$core$Elm$JsArray$slice, 0, elm$core$Array$bitMask & end, tail));
+			} else {
+				var endIdx = elm$core$Array$tailIndex(end);
+				var depth = elm$core$Basics$floor(
+					A2(
+						elm$core$Basics$logBase,
+						elm$core$Array$branchFactor,
+						A2(elm$core$Basics$max, 1, endIdx - 1)));
+				var newShift = A2(elm$core$Basics$max, 5, depth * elm$core$Array$shiftStep);
+				return A4(
+					elm$core$Array$Array_elm_builtin,
+					end,
+					newShift,
+					A3(
+						elm$core$Array$hoistTree,
+						startShift,
+						newShift,
+						A3(elm$core$Array$sliceTree, startShift, endIdx, tree)),
+					A4(elm$core$Array$fetchNewTail, startShift, end, endIdx, tree));
+			}
+		}
+	});
+var elm$core$Array$translateIndex = F2(
+	function (index, _n0) {
+		var len = _n0.a;
+		var posIndex = (index < 0) ? (len + index) : index;
+		return (posIndex < 0) ? 0 : ((_Utils_cmp(posIndex, len) > 0) ? len : posIndex);
+	});
+var elm$core$Array$slice = F3(
+	function (from, to, array) {
+		var correctTo = A2(elm$core$Array$translateIndex, to, array);
+		var correctFrom = A2(elm$core$Array$translateIndex, from, array);
+		return (_Utils_cmp(correctFrom, correctTo) > 0) ? elm$core$Array$empty : A2(
+			elm$core$Array$sliceLeft,
+			correctFrom,
+			A2(elm$core$Array$sliceRight, correctTo, array));
+	});
+var author$project$Otter$genSuggestion = F2(
+	function (oldRecords, records) {
+		var usedSuggestions = A2(
+			elm$core$Array$filter,
+			A2(elm$core$Basics$composeL, elm$core$Basics$not, elm$core$String$isEmpty),
+			A2(
+				elm$core$Array$map,
+				function ($) {
+					return $.oldLotNo;
+				},
+				records));
+		var allSuggestions = A2(
+			elm$core$Array$map,
+			function ($) {
+				return $.lotNo;
+			},
+			oldRecords);
+		var freshIndex = A3(
+			author$project$Prelude$maybe,
+			elm$core$Maybe$Just(0),
+			function (lSugg) {
+				return A2(
+					elm$core$Maybe$map,
+					author$project$Prelude$succ,
+					A2(author$project$Prelude$findIndexFromEnd, lSugg, allSuggestions));
+			},
+			author$project$Prelude$laast(usedSuggestions));
+		var openSuggestions = A3(
+			author$project$Prelude$maybe,
+			elm$core$Array$fromList(_List_Nil),
+			function (index) {
+				return A3(
+					elm$core$Array$slice,
+					index,
+					elm$core$Array$length(allSuggestions),
+					allSuggestions);
+			},
+			freshIndex);
+		var unusedSuggestions = A2(
+			elm$core$Array$filter,
+			A2(
+				elm$core$Basics$composeL,
+				elm$core$Basics$not,
+				A2(author$project$Prelude$flip, author$project$Prelude$mamber, usedSuggestions)),
+			openSuggestions);
+		return A2(elm$core$Array$get, 0, unusedSuggestions);
+	});
+var author$project$Otter$getFreshLotNo = function (records) {
+	return A3(
+		author$project$Prelude$maybe,
+		elm$core$Maybe$Just(1),
+		A2(
+			elm$core$Basics$composeL,
+			A2(
+				elm$core$Basics$composeL,
+				elm$core$Maybe$map(author$project$Prelude$succ),
+				elm$core$String$toInt),
+			function ($) {
+				return $.lotNo;
+			}),
+		author$project$Prelude$laast(records));
+};
+var author$project$Prelude$find = function (cond) {
+	return A2(
+		elm$core$Basics$composeL,
+		elm$core$Array$get(0),
+		elm$core$Array$filter(cond));
+};
+var author$project$Records$oldToNew = F2(
+	function (oldLotNo, _n0) {
+		var lotNo = _n0.lotNo;
+		var vendor = _n0.vendor;
+		var description = _n0.description;
+		var reserve = _n0.reserve;
+		return A5(author$project$Records$Record, oldLotNo, lotNo, vendor, description, reserve);
+	});
+var author$project$Otter$getSuggestion = F3(
+	function (suggestion, record, oldRecords) {
+		var oldLotNo = A2(
+			elm$core$Maybe$withDefault,
+			'',
+			_Utils_eq(
+				_Utils_update(
+					record,
+					{lotNo: ''}),
+				author$project$Records$emptyRecord) ? suggestion : elm$core$Maybe$Just(record.oldLotNo));
+		return A3(
+			author$project$Prelude$maybe,
+			_Utils_update(
+				record,
+				{oldLotNo: ''}),
+			author$project$Records$oldToNew(oldLotNo),
+			A2(
+				author$project$Prelude$find,
+				A2(
+					elm$core$Basics$composeL,
+					elm$core$Basics$eq(oldLotNo),
+					function ($) {
+						return $.lotNo;
+					}),
+				oldRecords));
+	});
+var author$project$Otter$getNewRecord = function (model) {
+	var newRecord = A3(author$project$Otter$getSuggestion, model.suggested, model.newRecord, model.oldRecords);
+	return (model.newRecord.lotNo === '') ? _Utils_update(
+		newRecord,
+		{
+			lotNo: A3(
+				author$project$Prelude$maybe,
+				'',
+				elm$core$String$fromInt,
+				author$project$Otter$getFreshLotNo(model.records))
+		}) : newRecord;
+};
+var author$project$Otter$row_height = 34;
+var elm$core$Basics$min = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) < 0) ? x : y;
+	});
+var author$project$Otter$getVisibleRows = F3(
+	function (numRecords, viewportHeight, viewportY) {
+		var top = author$project$Prelude$pred(
+			A2(
+				elm$core$Basics$min,
+				numRecords + 1,
+				author$project$Prelude$pred(
+					elm$core$Basics$ceiling((viewportY + viewportHeight) / author$project$Otter$row_height))));
+		var bottom = author$project$Prelude$pred(
+			A2(
+				elm$core$Basics$max,
+				1,
+				elm$core$Basics$floor(viewportY / author$project$Otter$row_height)));
+		return _Utils_Tuple2(bottom, top);
+	});
+var elm$core$Basics$clamp = F3(
+	function (low, high, number) {
+		return (_Utils_cmp(number, low) < 0) ? low : ((_Utils_cmp(number, high) > 0) ? high : number);
+	});
+var author$project$Otter$maybeClamp = F3(
+	function (recordNum, f, m) {
+		var n = A2(elm$core$Maybe$withDefault, recordNum, m);
+		var c = A3(
+			elm$core$Basics$clamp,
+			0,
+			recordNum,
+			f(n));
+		return _Utils_eq(c, recordNum) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(c);
+	});
+var author$project$Otter$tableHeight = function (model) {
+	return (elm$core$Array$length(model.records) + 2) * author$project$Otter$row_height;
+};
+var elm$browser$Browser$Dom$setViewportOf = _Browser_setViewportOf;
+var elm$core$Basics$always = F2(
+	function (a, _n0) {
+		return a;
+	});
+var author$project$Otter$updateScrollBar = function (newViewportY) {
+	return A2(
+		elm$core$Task$attempt,
+		author$project$Otter$handleError(
+			elm$core$Basics$always(author$project$Otter$NoOp)),
+		A3(elm$browser$Browser$Dom$setViewportOf, 'scrollbar', 0, newViewportY));
+};
+var author$project$Otter$scroll_wait = 100;
+var elm$core$Process$sleep = _Process_sleep;
+var author$project$Otter$updateVisibleRows = A2(
+	elm$core$Task$perform,
+	elm$core$Basics$always(author$project$Otter$VirUpdate),
+	elm$core$Process$sleep(author$project$Otter$scroll_wait));
+var elm$json$Json$Encode$string = _Json_wrap;
+var author$project$Ports$example = _Platform_outgoingPort('example', elm$json$Json$Encode$string);
+var author$project$Prelude$updateAt = F3(
+	function (n, f, lst) {
+		var _n0 = _Utils_Tuple2(n, lst);
+		if (!_n0.b.b) {
+			return _List_Nil;
+		} else {
+			if (!_n0.a) {
+				var _n1 = _n0.b;
+				var x = _n1.a;
+				var xs = _n1.b;
+				return A2(
+					elm$core$List$cons,
+					f(x),
+					xs);
+			} else {
+				var nn = _n0.a;
+				var _n2 = _n0.b;
+				var x = _n2.a;
+				var xs = _n2.b;
+				return A2(
+					elm$core$List$cons,
+					x,
+					A3(author$project$Prelude$updateAt, nn - 1, f, xs));
+			}
+		}
+	});
 var elm$core$Array$setHelp = F4(
 	function (shift, index, value, tree) {
 		var pos = elm$core$Array$bitMask & (index >>> shift);
@@ -6375,10 +6655,10 @@ var elm$core$Array$set = F3(
 			A4(elm$core$Array$setHelp, startShift, index, value, tree),
 			tail));
 	});
-var author$project$Main$updateAtt = F3(
+var author$project$Prelude$updateAtt = F3(
 	function (i, f, a) {
 		return A4(
-			author$project$Main$maybe,
+			author$project$Prelude$maybe,
 			elm$core$Basics$identity,
 			elm$core$Array$set(i),
 			A2(
@@ -6387,44 +6667,123 @@ var author$project$Main$updateAtt = F3(
 				A2(elm$core$Array$get, i, a)),
 			a);
 	});
-var author$project$Main$updateScrollBar = function (newViewportY) {
-	return A2(
-		elm$core$Task$attempt,
-		author$project$Main$handleError(
-			elm$core$Basics$always(author$project$Main$NoOp)),
-		A3(elm$browser$Browser$Dom$setViewportOf, 'scrollbar', 0, newViewportY));
-};
-var author$project$Main$scroll_wait = 100;
-var elm$core$Process$sleep = _Process_sleep;
-var author$project$Main$updateVisibleRows = A2(
-	elm$core$Task$perform,
-	elm$core$Basics$always(author$project$Main$VirUpdate),
-	elm$core$Process$sleep(author$project$Main$scroll_wait));
-var elm$json$Json$Encode$string = _Json_wrap;
-var author$project$Ports$example = _Platform_outgoingPort('example', elm$json$Json$Encode$string);
-var elm$core$Elm$JsArray$appendN = _JsArray_appendN;
-var elm$core$Elm$JsArray$slice = _JsArray_slice;
-var elm$core$Array$appendHelpBuilder = F2(
-	function (tail, builder) {
-		var tailLen = elm$core$Elm$JsArray$length(tail);
-		var notAppended = (elm$core$Array$branchFactor - elm$core$Elm$JsArray$length(builder.tail)) - tailLen;
-		var appended = A3(elm$core$Elm$JsArray$appendN, elm$core$Array$branchFactor, builder.tail, tail);
-		return (notAppended < 0) ? {
-			nodeList: A2(
-				elm$core$List$cons,
-				elm$core$Array$Leaf(appended),
-				builder.nodeList),
-			nodeListSize: builder.nodeListSize + 1,
-			tail: A3(elm$core$Elm$JsArray$slice, notAppended, tailLen, tail)
-		} : ((!notAppended) ? {
-			nodeList: A2(
-				elm$core$List$cons,
-				elm$core$Array$Leaf(appended),
-				builder.nodeList),
-			nodeListSize: builder.nodeListSize + 1,
-			tail: elm$core$Elm$JsArray$empty
-		} : {nodeList: builder.nodeList, nodeListSize: builder.nodeListSize, tail: appended});
+var elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2(elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
 	});
+var elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var author$project$Prelude$pad = F3(
+	function (n, def, list) {
+		return _Utils_ap(
+			list,
+			A2(
+				elm$core$List$repeat,
+				A2(
+					elm$core$Basics$max,
+					n - elm$core$List$length(list),
+					0),
+				def));
+	});
+var author$project$Records$OldRecord = F4(
+	function (lotNo, vendor, description, reserve) {
+		return {description: description, lotNo: lotNo, reserve: reserve, vendor: vendor};
+	});
+var author$project$Records$errorOldRecord = A4(author$project$Records$OldRecord, 'ERROR', 'ERROR', 'ERROR', 'ERROR');
+var author$project$Records$importListToOldRecord = function (list) {
+	var _n0 = A3(author$project$Prelude$pad, 4, '', list);
+	if (((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) {
+		var a = _n0.a;
+		var _n1 = _n0.b;
+		var b = _n1.a;
+		var _n2 = _n1.b;
+		var c = _n2.a;
+		var _n3 = _n2.b;
+		var d = _n3.a;
+		var xs = _n3.b;
+		return A4(author$project$Records$OldRecord, a, b, c, d);
+	} else {
+		return author$project$Records$errorOldRecord;
+	}
+};
+var author$project$Records$errorRecord = A5(author$project$Records$Record, 'ERROR', 'ERROR', 'ERROR', 'ERROR', 'ERROR');
+var author$project$Records$importListToRecord = function (list) {
+	var _n0 = A3(author$project$Prelude$pad, 4, '', list);
+	if (((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) {
+		var a = _n0.a;
+		var _n1 = _n0.b;
+		var b = _n1.a;
+		var _n2 = _n1.b;
+		var c = _n2.a;
+		var _n3 = _n2.b;
+		var d = _n3.a;
+		var xs = _n3.b;
+		return A5(author$project$Records$Record, '', a, b, c, d);
+	} else {
+		return author$project$Records$errorRecord;
+	}
+};
+var author$project$Records$listToRecord = function (list) {
+	var _n0 = A3(author$project$Prelude$pad, 5, '', list);
+	if ((((_n0.b && _n0.b.b) && _n0.b.b.b) && _n0.b.b.b.b) && _n0.b.b.b.b.b) {
+		var a = _n0.a;
+		var _n1 = _n0.b;
+		var b = _n1.a;
+		var _n2 = _n1.b;
+		var c = _n2.a;
+		var _n3 = _n2.b;
+		var d = _n3.a;
+		var _n4 = _n3.b;
+		var e = _n4.a;
+		var xs = _n4.b;
+		return A5(author$project$Records$Record, a, b, c, d, e);
+	} else {
+		return author$project$Records$errorRecord;
+	}
+};
+var author$project$Records$recordToList = function (_n0) {
+	var oldLotNo = _n0.oldLotNo;
+	var lotNo = _n0.lotNo;
+	var vendor = _n0.vendor;
+	var description = _n0.description;
+	var reserve = _n0.reserve;
+	return _List_fromArray(
+		[oldLotNo, lotNo, vendor, description, reserve]);
+};
+var author$project$Records$recordsToCsv = function (records) {
+	var recordToCsv = function (_n0) {
+		var oldLotNo = _n0.oldLotNo;
+		var lotNo = _n0.lotNo;
+		var vendor = _n0.vendor;
+		var description = _n0.description;
+		var reserve = _n0.reserve;
+		return A2(
+			elm$core$String$join,
+			',',
+			_List_fromArray(
+				[lotNo, vendor, description, reserve]));
+	};
+	return A2(
+		elm$core$String$join,
+		'\r\n',
+		elm$core$Array$toList(
+			A2(elm$core$Array$map, recordToCsv, records)));
+};
 var elm$core$Elm$JsArray$push = _JsArray_push;
 var elm$core$Elm$JsArray$singleton = _JsArray_singleton;
 var elm$core$Array$insertTailInTree = F4(
@@ -6585,8 +6944,8 @@ var elm$core$Array$push = F2(
 			array);
 	});
 var elm$core$Basics$neq = _Utils_notEqual;
-var elm$core$Basics$not = _Basics_not;
 var elm$core$Basics$round = _Basics_round;
+var elm$core$Debug$log = _Debug_log;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var elm$time$Time$Posix = function (a) {
 	return {$: 'Posix', a: a};
@@ -7279,7 +7638,7 @@ var periodic$elm_csv$Csv$parse = function (s) {
 		_Utils_chr(','),
 		s);
 };
-var author$project$Main$update = F2(
+var author$project$Otter$update = F2(
 	function (msg, model) {
 		update:
 		while (true) {
@@ -7289,123 +7648,17 @@ var author$project$Main$update = F2(
 				case 'HandleErrorEvent':
 					var message = msg.a;
 					return _Utils_Tuple2(
-						A2(author$project$Main$print, message, model),
-						elm$core$Platform$Cmd$none);
-				case 'TableViewport':
-					var event = msg.a;
-					var recordNum = elm$core$Array$length(model.records);
-					var cursorPosition = model.cursorPosition;
-					return A3(
-						author$project$Main$flip,
-						author$project$Main$update,
-						model,
-						function () {
-							var _n1 = event.keyCode;
-							switch (_n1.$) {
-								case 'Left':
-									return A2(
-										author$project$Main$CursorMoved,
-										false,
-										_Utils_update(
-											cursorPosition,
-											{
-												x: A2(
-													elm$core$Basics$max,
-													0,
-													author$project$Main$pred(cursorPosition.x))
-											}));
-								case 'Right':
-									return A2(
-										author$project$Main$CursorMoved,
-										false,
-										_Utils_update(
-											cursorPosition,
-											{
-												x: A2(
-													elm$core$Basics$min,
-													4,
-													author$project$Main$succ(cursorPosition.x))
-											}));
-								case 'Tab':
-									return A2(
-										author$project$Main$CursorMoved,
-										false,
-										_Utils_update(
-											cursorPosition,
-											{
-												x: A2(
-													elm$core$Basics$min,
-													4,
-													author$project$Main$succ(cursorPosition.x))
-											}));
-								case 'Up':
-									return A2(
-										author$project$Main$CursorMoved,
-										false,
-										_Utils_update(
-											cursorPosition,
-											{
-												y: A3(author$project$Main$maybeClamp, recordNum, author$project$Main$pred, cursorPosition.y)
-											}));
-								case 'Down':
-									return A2(
-										author$project$Main$CursorMoved,
-										false,
-										_Utils_update(
-											cursorPosition,
-											{
-												y: A3(author$project$Main$maybeClamp, recordNum, author$project$Main$succ, cursorPosition.y)
-											}));
-								case 'Enter':
-									return A2(
-										author$project$Main$CursorMoved,
-										false,
-										_Utils_update(
-											cursorPosition,
-											{
-												y: A3(author$project$Main$maybeClamp, recordNum, author$project$Main$succ, cursorPosition.y)
-											}));
-								default:
-									return author$project$Main$NoOp;
-							}
-						}());
-				case 'NewRow':
-					var event = msg.a;
-					if (_Utils_eq(event.keyCode, SwiftsNamesake$proper_keyboard$Keyboard$Key$Enter)) {
-						var $temp$msg = author$project$Main$VirUpdate,
-							$temp$model = _Utils_update(
+						A2(
+							elm$core$Basics$always,
 							model,
-							{
-								cursorPosition: {x: 0, y: elm$core$Maybe$Nothing},
-								newRecord: author$project$Main$emptyRecord,
-								records: A2(elm$core$Array$push, model.newRecord, model.records)
-							});
-						msg = $temp$msg;
-						model = $temp$model;
-						continue update;
-					} else {
-						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
-					}
+							A2(elm$core$Debug$log, 'Error', message)),
+						elm$core$Platform$Cmd$none);
 				case 'ToggleSidePanel':
-					var newExpanded = !model.sidePanelExpanded;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{sidePanelExpanded: newExpanded}),
+							{sidePanelExpanded: !model.sidePanelExpanded}),
 						elm$core$Platform$Cmd$none);
-				case 'ClearAllRecords':
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								cursorPosition: A2(author$project$Main$CursorPosition, 0, elm$core$Maybe$Nothing),
-								newRecord: author$project$Main$emptyRecord,
-								records: elm$core$Array$fromList(_List_Nil),
-								viewportY: 0,
-								visibleEndIndex: 0,
-								visibleStartIndex: 0
-							}),
-						author$project$Main$focusCursor);
 				case 'FilenameEdited':
 					var newText = msg.a;
 					return _Utils_Tuple2(
@@ -7413,6 +7666,18 @@ var author$project$Main$update = F2(
 							model,
 							{filename: newText}),
 						elm$core$Platform$Cmd$none);
+				case 'PortExample':
+					return _Utils_Tuple2(
+						model,
+						author$project$Ports$example(model.filename));
+				case 'DontScrollViewport':
+					return _Utils_Tuple2(
+						model,
+						A2(
+							elm$core$Task$attempt,
+							author$project$Otter$handleError(
+								elm$core$Basics$always(author$project$Otter$NoOp)),
+							A3(elm$browser$Browser$Dom$setViewportOf, 'table-viewport', 0, 0)));
 				case 'CsvRequested':
 					var suggestion = msg.a;
 					return _Utils_Tuple2(
@@ -7420,8 +7685,8 @@ var author$project$Main$update = F2(
 						A2(
 							elm$file$File$Select$file,
 							_List_fromArray(
-								[author$project$Main$csv_mime]),
-							author$project$Main$CsvSelected(suggestion)));
+								[author$project$Otter$csv_mime]),
+							author$project$Otter$CsvSelected(suggestion)));
 				case 'CsvSelected':
 					var suggestion = msg.a;
 					var file = msg.b;
@@ -7430,66 +7695,189 @@ var author$project$Main$update = F2(
 						A2(
 							elm$core$Task$perform,
 							A2(
-								author$project$Main$CsvLoaded,
+								author$project$Otter$CsvLoaded,
 								suggestion,
 								elm$file$File$name(file)),
 							elm$file$File$toString(file)));
-				case 'CsvLoaded':
-					var suggestion = msg.a;
-					var fileName = msg.b;
-					var fileContent = msg.c;
-					var _n2 = periodic$elm_csv$Csv$parse(fileContent);
-					if (_n2.$ === 'Err') {
-						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
-					} else {
-						var csv = _n2.a;
-						return suggestion ? _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									oldRecords: elm$core$Array$fromList(
-										A2(elm$core$List$map, author$project$Main$importListToOldRecord, csv.records))
-								}),
-							elm$core$Platform$Cmd$none) : _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									records: A2(
-										elm$core$Array$append,
-										model.records,
-										elm$core$Array$fromList(
-											A2(elm$core$List$map, author$project$Main$importListToRecord, csv.records))),
-									scrollLock: true
-								}),
-							author$project$Main$updateVisibleRows);
-					}
 				case 'CsvExported':
 					return _Utils_Tuple2(
 						model,
 						A3(
 							elm$file$File$Download$string,
 							((model.filename === '') ? 'export' : model.filename) + '.csv',
-							author$project$Main$csv_mime,
-							author$project$Main$recordsToCsv(model.records)));
+							author$project$Otter$csv_mime,
+							author$project$Records$recordsToCsv(model.records)));
+				case 'CsvLoaded':
+					var suggestion = msg.a;
+					var fileName = msg.b;
+					var fileContent = msg.c;
+					var _n1 = periodic$elm_csv$Csv$parse(fileContent);
+					if (_n1.$ === 'Err') {
+						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+					} else {
+						var csv = _n1.a;
+						if (suggestion) {
+							var newOldRecords = elm$core$Array$fromList(
+								A2(elm$core$List$map, author$project$Records$importListToOldRecord, csv.records));
+							return _Utils_Tuple2(
+								_Utils_update(
+									model,
+									{
+										oldRecords: newOldRecords,
+										suggested: A2(author$project$Otter$genSuggestion, newOldRecords, model.records)
+									}),
+								elm$core$Platform$Cmd$none);
+						} else {
+							var newNewRecords = A2(
+								elm$core$Array$append,
+								model.records,
+								elm$core$Array$fromList(
+									A2(elm$core$List$map, author$project$Records$importListToRecord, csv.records)));
+							return _Utils_Tuple2(
+								_Utils_update(
+									model,
+									{
+										records: newNewRecords,
+										scrollLock: true,
+										suggested: A2(author$project$Otter$genSuggestion, model.oldRecords, newNewRecords)
+									}),
+								author$project$Otter$updateVisibleRows);
+						}
+					}
+				case 'TableViewport':
+					var event = msg.a;
+					var recordNum = elm$core$Array$length(model.records);
+					var cursorPosition = model.cursorPosition;
+					return A3(
+						author$project$Prelude$flip,
+						author$project$Otter$update,
+						model,
+						function () {
+							var _n2 = event.keyCode;
+							switch (_n2.$) {
+								case 'Left':
+									return A2(
+										author$project$Otter$CursorMoved,
+										false,
+										_Utils_update(
+											cursorPosition,
+											{
+												x: A2(
+													elm$core$Basics$max,
+													0,
+													author$project$Prelude$pred(cursorPosition.x))
+											}));
+								case 'Right':
+									return A2(
+										author$project$Otter$CursorMoved,
+										false,
+										_Utils_update(
+											cursorPosition,
+											{
+												x: A2(
+													elm$core$Basics$min,
+													4,
+													author$project$Prelude$succ(cursorPosition.x))
+											}));
+								case 'Tab':
+									return A2(
+										author$project$Otter$CursorMoved,
+										false,
+										_Utils_update(
+											cursorPosition,
+											{
+												x: A2(
+													elm$core$Basics$min,
+													4,
+													author$project$Prelude$succ(cursorPosition.x))
+											}));
+								case 'Up':
+									return A2(
+										author$project$Otter$CursorMoved,
+										false,
+										_Utils_update(
+											cursorPosition,
+											{
+												y: A3(author$project$Otter$maybeClamp, recordNum, author$project$Prelude$pred, cursorPosition.y)
+											}));
+								case 'Down':
+									return A2(
+										author$project$Otter$CursorMoved,
+										false,
+										_Utils_update(
+											cursorPosition,
+											{
+												y: A3(author$project$Otter$maybeClamp, recordNum, author$project$Prelude$succ, cursorPosition.y)
+											}));
+								case 'Enter':
+									return A2(
+										author$project$Otter$CursorMoved,
+										false,
+										_Utils_update(
+											cursorPosition,
+											{
+												y: A3(author$project$Otter$maybeClamp, recordNum, author$project$Prelude$succ, cursorPosition.y)
+											}));
+								default:
+									return author$project$Otter$NoOp;
+							}
+						}());
+				case 'NewRow':
+					var event = msg.a;
+					if (_Utils_eq(event.keyCode, SwiftsNamesake$proper_keyboard$Keyboard$Key$Enter)) {
+						var newNewRecords = A2(
+							elm$core$Array$push,
+							author$project$Otter$getNewRecord(model),
+							model.records);
+						var $temp$msg = author$project$Otter$VirUpdate,
+							$temp$model = _Utils_update(
+							model,
+							{
+								cursorPosition: {x: 0, y: elm$core$Maybe$Nothing},
+								newRecord: author$project$Records$emptyRecord,
+								records: newNewRecords,
+								suggested: A2(author$project$Otter$genSuggestion, model.oldRecords, newNewRecords)
+							});
+						msg = $temp$msg;
+						model = $temp$model;
+						continue update;
+					} else {
+						return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+					}
+				case 'ClearAllRecords':
+					var newNewRecords = elm$core$Array$fromList(_List_Nil);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								cursorPosition: A2(author$project$Otter$CursorPosition, 0, elm$core$Maybe$Nothing),
+								newRecord: author$project$Records$emptyRecord,
+								records: newNewRecords,
+								suggested: A2(author$project$Otter$genSuggestion, model.oldRecords, newNewRecords),
+								viewportY: 0,
+								visibleEndIndex: 0,
+								visibleStartIndex: 0
+							}),
+						author$project$Otter$focusCursor);
 				case 'VirWheelScroll':
 					var event = msg.a;
 					var $temp$msg = A2(
-						author$project$Main$VirScroll,
+						author$project$Otter$VirScroll,
 						false,
 						A2(
-							author$project$Main$flip,
+							author$project$Prelude$flip,
 							(event.deltaY >= 0) ? elm$core$Basics$add : elm$core$Basics$sub,
-							author$project$Main$row_height)),
+							author$project$Otter$row_height)),
 						$temp$model = model;
 					msg = $temp$msg;
 					model = $temp$model;
 					continue update;
 				case 'VirScrollbarScroll':
-					return _Utils_Tuple2(model, author$project$Main$checkScrollbar);
+					return _Utils_Tuple2(model, author$project$Otter$checkScrollbar);
 				case 'VirScrollbarInfo':
 					var viewport = msg.a;
 					var $temp$msg = A2(
-						author$project$Main$VirScroll,
+						author$project$Otter$VirScroll,
 						true,
 						elm$core$Basics$always(
 							elm$core$Basics$round(viewport.viewport.y))),
@@ -7503,7 +7891,7 @@ var author$project$Main$update = F2(
 					var newViewportY = A3(
 						elm$core$Basics$clamp,
 						0,
-						author$project$Main$tableHeight(model) - model.viewportHeight,
+						author$project$Otter$tableHeight(model) - model.viewportHeight,
 						modify(model.viewportY));
 					return _Utils_Tuple2(
 						_Utils_update(
@@ -7512,21 +7900,21 @@ var author$project$Main$update = F2(
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
-									model.scrollLock ? elm$core$Platform$Cmd$none : author$project$Main$updateVisibleRows,
-									fromScrollBar ? elm$core$Platform$Cmd$none : author$project$Main$updateScrollBar(newViewportY)
+									model.scrollLock ? elm$core$Platform$Cmd$none : author$project$Otter$updateVisibleRows,
+									fromScrollBar ? elm$core$Platform$Cmd$none : author$project$Otter$updateScrollBar(newViewportY)
 								])));
 				case 'VirUpdate':
 					var numRecords = elm$core$Array$length(model.records);
-					var _n3 = model.enableVirtualization ? A3(author$project$Main$getVisibleRows, numRecords, model.viewportHeight, model.viewportY) : _Utils_Tuple2(0, numRecords - 1);
+					var _n3 = model.enableVirtualization ? A3(author$project$Otter$getVisibleRows, numRecords, model.viewportHeight, model.viewportY) : _Utils_Tuple2(0, numRecords - 1);
 					var bottom = _n3.a;
 					var top = _n3.b;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{scrollLock: false, visibleEndIndex: top, visibleStartIndex: bottom}),
-						author$project$Main$focusCursor);
+						author$project$Otter$focusCursor);
 				case 'VirResize':
-					return _Utils_Tuple2(model, author$project$Main$checkTableViewport);
+					return _Utils_Tuple2(model, author$project$Otter$checkTableViewport);
 				case 'VirViewportInfo':
 					var viewport = msg.a;
 					return _Utils_Tuple2(
@@ -7535,7 +7923,7 @@ var author$project$Main$update = F2(
 							{
 								viewportHeight: elm$core$Basics$round(viewport.viewport.height)
 							}),
-						author$project$Main$updateVisibleRows);
+						author$project$Otter$updateVisibleRows);
 				case 'VirToggle':
 					return _Utils_Tuple2(
 						_Utils_update(
@@ -7550,21 +7938,23 @@ var author$project$Main$update = F2(
 								elm$core$Basics$composeL,
 								A2(
 									elm$core$Basics$composeL,
-									author$project$Main$listToRecord,
+									author$project$Records$listToRecord,
 									A2(
-										author$project$Main$updateAt,
+										author$project$Prelude$updateAt,
 										model.cursorPosition.x,
 										elm$core$Basics$always(newText))),
-								author$project$Main$recordToList);
+								author$project$Records$recordToList);
 							var rowUpdate = function (cursorY) {
+								var newNewRecords = A3(author$project$Prelude$updateAtt, cursorY, columnUpdate, model.records);
 								return _Utils_update(
 									model,
 									{
-										records: A3(author$project$Main$updateAtt, cursorY, columnUpdate, model.records)
+										records: newNewRecords,
+										suggested: A2(author$project$Otter$genSuggestion, model.oldRecords, newNewRecords)
 									});
 							};
 							return A3(
-								author$project$Main$maybe,
+								author$project$Prelude$maybe,
 								_Utils_update(
 									model,
 									{
@@ -7574,22 +7964,22 @@ var author$project$Main$update = F2(
 								model.cursorPosition.y);
 						}(),
 						elm$core$Platform$Cmd$none);
-				case 'CursorMoved':
+				default:
 					var fromMouse = msg.a;
 					var cursorPosition = msg.b;
 					var realCursorY = A2(
 						elm$core$Maybe$withDefault,
 						elm$core$Array$length(model.records),
 						cursorPosition.y);
-					var topClamp = realCursorY * author$project$Main$row_height;
+					var topClamp = realCursorY * author$project$Otter$row_height;
 					var newModel = _Utils_update(
 						model,
 						{cursorPosition: cursorPosition});
-					var bottomClamp = (topClamp + (3 * author$project$Main$row_height)) - model.viewportHeight;
+					var bottomClamp = (topClamp + (3 * author$project$Otter$row_height)) - model.viewportHeight;
 					var clampedViewportY = A3(elm$core$Basics$clamp, bottomClamp, topClamp, model.viewportY);
 					if ((!fromMouse) && (!_Utils_eq(clampedViewportY, model.viewportY))) {
 						var $temp$msg = A2(
-							author$project$Main$VirScroll,
+							author$project$Otter$VirScroll,
 							false,
 							elm$core$Basics$always(clampedViewportY)),
 							$temp$model = newModel;
@@ -7597,47 +7987,34 @@ var author$project$Main$update = F2(
 						model = $temp$model;
 						continue update;
 					} else {
-						return _Utils_Tuple2(newModel, author$project$Main$focusCursor);
+						return _Utils_Tuple2(newModel, author$project$Otter$focusCursor);
 					}
-				case 'PortExample':
-					return _Utils_Tuple2(
-						model,
-						author$project$Ports$example(model.filename));
-				default:
-					return _Utils_Tuple2(model, author$project$Main$stopScrollingThat);
 			}
 		}
 	});
-var author$project$Main$ClearAllRecords = {$: 'ClearAllRecords'};
-var author$project$Main$CsvExported = {$: 'CsvExported'};
-var author$project$Main$CsvRequested = function (a) {
+var author$project$Otter$ClearAllRecords = {$: 'ClearAllRecords'};
+var author$project$Otter$CsvExported = {$: 'CsvExported'};
+var author$project$Otter$CsvRequested = function (a) {
 	return {$: 'CsvRequested', a: a};
 };
-var author$project$Main$DontScrollViewport = {$: 'DontScrollViewport'};
-var author$project$Main$FilenameEdited = function (a) {
+var author$project$Otter$DontScrollViewport = {$: 'DontScrollViewport'};
+var author$project$Otter$FilenameEdited = function (a) {
 	return {$: 'FilenameEdited', a: a};
 };
-var author$project$Main$PortExample = {$: 'PortExample'};
-var author$project$Main$TableViewport = function (a) {
+var author$project$Otter$PortExample = {$: 'PortExample'};
+var author$project$Otter$TableViewport = function (a) {
 	return {$: 'TableViewport', a: a};
 };
-var author$project$Main$ToggleSidePanel = {$: 'ToggleSidePanel'};
-var author$project$Main$VirScrollbarScroll = {$: 'VirScrollbarScroll'};
-var author$project$Main$VirToggle = {$: 'VirToggle'};
-var author$project$Main$VirWheelScroll = function (a) {
+var author$project$Otter$ToggleSidePanel = {$: 'ToggleSidePanel'};
+var author$project$Otter$VirScrollbarScroll = {$: 'VirScrollbarScroll'};
+var author$project$Otter$VirToggle = {$: 'VirToggle'};
+var author$project$Otter$VirWheelScroll = function (a) {
 	return {$: 'VirWheelScroll', a: a};
 };
-var author$project$Main$debug = true;
+var author$project$Otter$debug = true;
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
-var author$project$Main$html_empty = elm$html$Html$text('');
-var author$project$Main$isJust = function (m) {
-	if (m.$ === 'Just') {
-		return true;
-	} else {
-		return false;
-	}
-};
+var author$project$Otter$html_empty = elm$html$Html$text('');
 var Gizra$elm_keyboard_event$Keyboard$Event$KeyboardEvent = F7(
 	function (altKey, ctrlKey, key, keyCode, metaKey, repeat, shiftKey) {
 		return {altKey: altKey, ctrlKey: ctrlKey, key: key, keyCode: keyCode, metaKey: metaKey, repeat: repeat, shiftKey: shiftKey};
@@ -7978,22 +8355,22 @@ var elm$html$Html$Events$on = F2(
 			event,
 			elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
-var author$project$Main$onKeydown = function (msg) {
+var author$project$Otter$onKeydown = function (msg) {
 	return A2(
 		elm$html$Html$Events$on,
 		'keydown',
 		A2(elm$json$Json$Decode$map, msg, Gizra$elm_keyboard_event$Keyboard$Event$decodeKeyboardEvent));
 };
-var author$project$Main$onScroll = function (msg) {
+var author$project$Otter$onScroll = function (msg) {
 	return A2(
 		elm$html$Html$Events$on,
 		'scroll',
 		elm$json$Json$Decode$succeed(msg));
 };
-var author$project$Main$NewRow = function (a) {
+var author$project$Otter$NewRow = function (a) {
 	return {$: 'NewRow', a: a};
 };
-var author$project$Main$CursorEdited = function (a) {
+var author$project$Otter$CursorEdited = function (a) {
 	return {$: 'CursorEdited', a: a};
 };
 var elm$html$Html$div = _VirtualDom_node('div');
@@ -8047,7 +8424,7 @@ var elm$html$Html$Events$onInput = function (tagger) {
 			elm$html$Html$Events$alwaysStop,
 			A2(elm$json$Json$Decode$map, tagger, elm$html$Html$Events$targetValue)));
 };
-var author$project$Main$elemToCell = F2(
+var author$project$Otter$elemToCell = F2(
 	function (mCursorPosition, content) {
 		if (mCursorPosition.$ === 'Nothing') {
 			return A2(
@@ -8073,7 +8450,7 @@ var author$project$Main$elemToCell = F2(
 										elm$html$Html$Attributes$id('cursor-input'),
 										elm$html$Html$Attributes$type_('text'),
 										elm$html$Html$Attributes$value(content),
-										elm$html$Html$Events$onInput(author$project$Main$CursorEdited)
+										elm$html$Html$Events$onInput(author$project$Otter$CursorEdited)
 									]),
 								_List_Nil)
 							]))
@@ -8085,7 +8462,7 @@ var author$project$Main$elemToCell = F2(
 				_List_fromArray(
 					[
 						elm$html$Html$Events$onClick(
-						A2(author$project$Main$CursorMoved, true, cursorPosition))
+						A2(author$project$Otter$CursorMoved, true, cursorPosition))
 					]),
 				_List_fromArray(
 					[
@@ -8093,9 +8470,66 @@ var author$project$Main$elemToCell = F2(
 					]));
 		}
 	});
-var author$project$Main$zipWith = F3(
-	function (f, a, b) {
-		var _n0 = _Utils_Tuple2(a, b);
+var elm$html$Html$Attributes$placeholder = elm$html$Html$Attributes$stringProperty('placeholder');
+var author$project$Otter$elemToCelll = F3(
+	function (suggested, mCursorPosition, content) {
+		if (mCursorPosition.$ === 'Nothing') {
+			return A2(
+				elm$html$Html$td,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$id('cursor')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						elm$html$Html$div,
+						_List_fromArray(
+							[
+								elm$html$Html$Attributes$class('ui fluid input focus')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								elm$html$Html$input,
+								_List_fromArray(
+									[
+										elm$html$Html$Attributes$id('cursor-input'),
+										elm$html$Html$Attributes$type_('text'),
+										elm$html$Html$Attributes$value(content),
+										elm$html$Html$Events$onInput(author$project$Otter$CursorEdited),
+										elm$html$Html$Attributes$placeholder(
+										A2(elm$core$Maybe$withDefault, '', suggested))
+									]),
+								_List_Nil)
+							]))
+					]));
+		} else {
+			var cursorPosition = mCursorPosition.a;
+			return A2(
+				elm$html$Html$td,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(
+						A2(author$project$Otter$CursorMoved, true, cursorPosition))
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(
+						(content === '') ? A2(elm$core$Maybe$withDefault, '', suggested) : content)
+					]));
+		}
+	});
+var author$project$Prelude$isJust = function (m) {
+	if (m.$ === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var author$project$Prelude$listZipAp = F2(
+	function (f, a) {
+		var _n0 = _Utils_Tuple2(f, a);
 		if (!_n0.a.b) {
 			return _List_Nil;
 		} else {
@@ -8110,55 +8544,48 @@ var author$project$Main$zipWith = F3(
 				var ys = _n2.b;
 				return A2(
 					elm$core$List$cons,
-					A2(f, x, y),
-					A3(author$project$Main$zipWith, f, xs, ys));
+					x(y),
+					A2(author$project$Prelude$listZipAp, xs, ys));
 			}
 		}
 	});
 var elm$html$Html$tr = _VirtualDom_node('tr');
-var author$project$Main$recordToRow = F3(
-	function (mCursorX, cursorY, record) {
+var author$project$Otter$recordToRoww = F4(
+	function (suggested, mCursorX, cursorY, record) {
 		var updateFunc = function (cursorX) {
 			return A2(
-				author$project$Main$updateAt,
+				author$project$Prelude$updateAt,
 				cursorX,
 				elm$core$Basics$always(elm$core$Maybe$Nothing));
 		};
 		var cursorPositions = A2(
 			elm$core$List$map,
-			A2(author$project$Main$flip, author$project$Main$CursorPosition, cursorY),
+			A2(author$project$Prelude$flip, author$project$Otter$CursorPosition, cursorY),
 			A2(elm$core$List$range, 0, 4));
 		var mCursorPositions = A4(
-			author$project$Main$maybe,
+			author$project$Prelude$maybe,
 			elm$core$Basics$identity,
 			updateFunc,
 			mCursorX,
 			A2(elm$core$List$map, elm$core$Maybe$Just, cursorPositions));
-		var cells = A3(
-			author$project$Main$zipWith,
-			author$project$Main$elemToCell,
-			mCursorPositions,
-			author$project$Main$recordToList(record));
+		var cells = A2(
+			author$project$Prelude$listZipAp,
+			A2(
+				author$project$Prelude$listZipAp,
+				A2(
+					elm$core$List$cons,
+					author$project$Otter$elemToCelll(suggested),
+					A2(elm$core$List$repeat, 4, author$project$Otter$elemToCell)),
+				mCursorPositions),
+			author$project$Records$recordToList(record));
 		return A2(
 			elm$html$Html$tr,
-			author$project$Main$isJust(cursorY) ? _List_Nil : _List_fromArray(
+			author$project$Prelude$isJust(cursorY) ? _List_Nil : _List_fromArray(
 				[
 					elm$html$Html$Attributes$class('positive'),
-					author$project$Main$onKeydown(author$project$Main$NewRow)
+					author$project$Otter$onKeydown(author$project$Otter$NewRow)
 				]),
 			cells);
-	});
-var elm$core$Array$filter = F2(
-	function (isGood, array) {
-		return elm$core$Array$fromList(
-			A3(
-				elm$core$Array$foldr,
-				F2(
-					function (x, xs) {
-						return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
-					}),
-				_List_Nil,
-				array));
 	});
 var elm$core$Elm$JsArray$indexedMap = _JsArray_indexedMap;
 var elm$core$Array$indexedMap = F2(
@@ -8197,7 +8624,7 @@ var elm$core$Array$indexedMap = F2(
 			true,
 			A3(elm$core$Elm$JsArray$foldl, helper, initialBuilder, tree));
 	});
-var author$project$Main$filterVisible = F3(
+var author$project$Otter$filterVisible = F3(
 	function (start, end, list) {
 		var filterRange = F2(
 			function (index, elem) {
@@ -8206,31 +8633,85 @@ var author$project$Main$filterVisible = F3(
 		return elm$core$Array$toList(
 			A2(
 				elm$core$Array$map,
-				elm$core$Maybe$withDefault(author$project$Main$errorRecord),
+				elm$core$Maybe$withDefault(author$project$Records$errorRecord),
 				A2(
 					elm$core$Array$filter,
-					author$project$Main$isJust,
+					author$project$Prelude$isJust,
 					A2(elm$core$Array$indexedMap, filterRange, list))));
 	});
-var author$project$Main$recordsToRows = F3(
+var author$project$Prelude$zipWith = F3(
+	function (f, a, b) {
+		var _n0 = _Utils_Tuple2(a, b);
+		if (!_n0.a.b) {
+			return _List_Nil;
+		} else {
+			if (!_n0.b.b) {
+				return _List_Nil;
+			} else {
+				var _n1 = _n0.a;
+				var x = _n1.a;
+				var xs = _n1.b;
+				var _n2 = _n0.b;
+				var y = _n2.a;
+				var ys = _n2.b;
+				return A2(
+					elm$core$List$cons,
+					A2(f, x, y),
+					A3(author$project$Prelude$zipWith, f, xs, ys));
+			}
+		}
+	});
+var author$project$Otter$recordToRow = F3(
+	function (mCursorX, cursorY, record) {
+		var updateFunc = function (cursorX) {
+			return A2(
+				author$project$Prelude$updateAt,
+				cursorX,
+				elm$core$Basics$always(elm$core$Maybe$Nothing));
+		};
+		var cursorPositions = A2(
+			elm$core$List$map,
+			A2(author$project$Prelude$flip, author$project$Otter$CursorPosition, cursorY),
+			A2(elm$core$List$range, 0, 4));
+		var mCursorPositions = A4(
+			author$project$Prelude$maybe,
+			elm$core$Basics$identity,
+			updateFunc,
+			mCursorX,
+			A2(elm$core$List$map, elm$core$Maybe$Just, cursorPositions));
+		var cells = A3(
+			author$project$Prelude$zipWith,
+			author$project$Otter$elemToCell,
+			mCursorPositions,
+			author$project$Records$recordToList(record));
+		return A2(
+			elm$html$Html$tr,
+			author$project$Prelude$isJust(cursorY) ? _List_Nil : _List_fromArray(
+				[
+					elm$html$Html$Attributes$class('positive'),
+					author$project$Otter$onKeydown(author$project$Otter$NewRow)
+				]),
+			cells);
+	});
+var author$project$Otter$recordsToRows = F3(
 	function (visibleStartIndex, cursorPosition, records) {
 		var cursorRowNum = A2(elm$core$Maybe$withDefault, -1, cursorPosition.y) - visibleStartIndex;
 		var createRow = F2(
 			function (rowNum, record) {
 				return A3(
-					author$project$Main$recordToRow,
+					author$project$Otter$recordToRow,
 					_Utils_eq(rowNum, cursorRowNum) ? elm$core$Maybe$Just(cursorPosition.x) : elm$core$Maybe$Nothing,
 					elm$core$Maybe$Just(rowNum + visibleStartIndex),
 					record);
 			});
 		return A2(elm$core$List$indexedMap, createRow, records);
 	});
-var author$project$Main$renderedRows = function (model) {
+var author$project$Otter$renderedRows = function (model) {
 	return A3(
-		author$project$Main$recordsToRows,
+		author$project$Otter$recordsToRows,
 		model.visibleStartIndex,
 		model.cursorPosition,
-		A3(author$project$Main$filterVisible, model.visibleStartIndex, model.visibleEndIndex, model.records));
+		A3(author$project$Otter$filterVisible, model.visibleStartIndex, model.visibleEndIndex, model.records));
 };
 var elm$core$Basics$modBy = _Basics_modBy;
 var elm$html$Html$button = _VirtualDom_node('button');
@@ -8249,7 +8730,6 @@ var elm$virtual_dom$VirtualDom$attribute = F2(
 			_VirtualDom_noJavaScriptOrHtmlUri(value));
 	});
 var elm$html$Html$Attributes$attribute = elm$virtual_dom$VirtualDom$attribute;
-var elm$html$Html$Attributes$placeholder = elm$html$Html$Attributes$stringProperty('placeholder');
 var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
 var mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$defaultOptions = {preventDefault: true, stopPropagation: false};
@@ -8382,7 +8862,7 @@ var mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWithOptions = F2(
 				mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$eventDecoder));
 	});
 var mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel = mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWithOptions(mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$defaultOptions);
-var author$project$Main$vieww = function (model) {
+var author$project$Otter$vieww = function (model) {
 	return A2(
 		elm$html$Html$div,
 		_List_fromArray(
@@ -8414,9 +8894,9 @@ var author$project$Main$vieww = function (model) {
 								_List_fromArray(
 									[
 										elm$html$Html$Attributes$id('table-viewport'),
-										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Main$VirWheelScroll),
-										author$project$Main$onKeydown(author$project$Main$TableViewport),
-										author$project$Main$onScroll(author$project$Main$DontScrollViewport)
+										author$project$Otter$onKeydown(author$project$Otter$TableViewport),
+										mpizenberg$elm_pointer_events$Html$Events$Extra$Wheel$onWheel(author$project$Otter$VirWheelScroll),
+										author$project$Otter$onScroll(author$project$Otter$DontScrollViewport)
 									]),
 								_List_fromArray(
 									[
@@ -8521,7 +9001,7 @@ var author$project$Main$vieww = function (model) {
 												_Utils_ap(
 													_List_fromArray(
 														[
-															((A2(elm$core$Basics$modBy, 2, model.visibleStartIndex) === 1) && model.enableVirtualization) ? A2(elm$html$Html$tr, _List_Nil, _List_Nil) : author$project$Main$html_empty,
+															((A2(elm$core$Basics$modBy, 2, model.visibleStartIndex) === 1) && model.enableVirtualization) ? A2(elm$html$Html$tr, _List_Nil, _List_Nil) : author$project$Otter$html_empty,
 															A2(
 															elm$html$Html$tr,
 															_List_Nil,
@@ -8534,13 +9014,13 @@ var author$project$Main$vieww = function (model) {
 																			A2(
 																			elm$html$Html$Attributes$style,
 																			'height',
-																			elm$core$String$fromInt(model.visibleStartIndex * author$project$Main$row_height) + 'px')
+																			elm$core$String$fromInt(model.visibleStartIndex * author$project$Otter$row_height) + 'px')
 																		]),
 																	_List_Nil)
 																]))
 														]),
 													_Utils_ap(
-														author$project$Main$renderedRows(model),
+														author$project$Otter$renderedRows(model),
 														_List_fromArray(
 															[
 																A2(
@@ -8556,13 +9036,14 @@ var author$project$Main$vieww = function (model) {
 																				elm$html$Html$Attributes$style,
 																				'height',
 																				elm$core$String$fromInt(
-																					((elm$core$Array$length(model.records) - 1) - model.visibleEndIndex) * author$project$Main$row_height) + 'px')
+																					((elm$core$Array$length(model.records) - 1) - model.visibleEndIndex) * author$project$Otter$row_height) + 'px')
 																			]),
 																		_List_Nil)
 																	])),
-																A3(
-																author$project$Main$recordToRow,
-																author$project$Main$isJust(model.cursorPosition.y) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(model.cursorPosition.x),
+																A4(
+																author$project$Otter$recordToRoww,
+																model.suggested,
+																author$project$Prelude$isJust(model.cursorPosition.y) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(model.cursorPosition.x),
 																elm$core$Maybe$Nothing,
 																model.newRecord)
 															]))))
@@ -8573,7 +9054,7 @@ var author$project$Main$vieww = function (model) {
 								_List_fromArray(
 									[
 										elm$html$Html$Attributes$id('scrollbar'),
-										author$project$Main$onScroll(author$project$Main$VirScrollbarScroll)
+										author$project$Otter$onScroll(author$project$Otter$VirScrollbarScroll)
 									]),
 								_List_fromArray(
 									[
@@ -8585,7 +9066,7 @@ var author$project$Main$vieww = function (model) {
 												elm$html$Html$Attributes$style,
 												'height',
 												elm$core$String$fromInt(
-													author$project$Main$tableHeight(model)) + 'px')
+													author$project$Otter$tableHeight(model)) + 'px')
 											]),
 										_List_Nil)
 									]))
@@ -8654,7 +9135,7 @@ var author$project$Main$vieww = function (model) {
 																		_List_fromArray(
 																			[
 																				elm$html$Html$Attributes$placeholder('Filename'),
-																				elm$html$Html$Events$onInput(author$project$Main$FilenameEdited),
+																				elm$html$Html$Events$onInput(author$project$Otter$FilenameEdited),
 																				elm$html$Html$Attributes$type_('text'),
 																				elm$html$Html$Attributes$value(model.filename)
 																			]),
@@ -8692,7 +9173,7 @@ var author$project$Main$vieww = function (model) {
 																		_List_fromArray(
 																			[
 																				elm$html$Html$Attributes$class('ui button blue'),
-																				elm$html$Html$Events$onClick(author$project$Main$ClearAllRecords)
+																				elm$html$Html$Events$onClick(author$project$Otter$ClearAllRecords)
 																			]),
 																		_List_fromArray(
 																			[
@@ -8711,7 +9192,7 @@ var author$project$Main$vieww = function (model) {
 																			[
 																				elm$html$Html$Attributes$class('ui button yellow'),
 																				elm$html$Html$Events$onClick(
-																				author$project$Main$CsvRequested(true))
+																				author$project$Otter$CsvRequested(true))
 																			]),
 																		_List_fromArray(
 																			[
@@ -8729,7 +9210,7 @@ var author$project$Main$vieww = function (model) {
 																		_List_fromArray(
 																			[
 																				elm$html$Html$Attributes$class('ui button green'),
-																				elm$html$Html$Events$onClick(author$project$Main$CsvExported)
+																				elm$html$Html$Events$onClick(author$project$Otter$CsvExported)
 																			]),
 																		_List_fromArray(
 																			[
@@ -8748,7 +9229,7 @@ var author$project$Main$vieww = function (model) {
 																			[
 																				elm$html$Html$Attributes$class('ui button purple'),
 																				elm$html$Html$Events$onClick(
-																				author$project$Main$CsvRequested(false))
+																				author$project$Otter$CsvRequested(false))
 																			]),
 																		_List_fromArray(
 																			[
@@ -8764,8 +9245,8 @@ var author$project$Main$vieww = function (model) {
 																	]))
 															]))
 													]))
-											])) : author$project$Main$html_empty,
-										(model.sidePanelExpanded && author$project$Main$debug) ? A2(
+											])) : author$project$Otter$html_empty,
+										(model.sidePanelExpanded && author$project$Otter$debug) ? A2(
 										elm$html$Html$div,
 										_List_fromArray(
 											[
@@ -8802,7 +9283,7 @@ var author$project$Main$vieww = function (model) {
 																		_List_fromArray(
 																			[
 																				elm$html$Html$Attributes$class('ui button blue'),
-																				elm$html$Html$Events$onClick(author$project$Main$VirToggle)
+																				elm$html$Html$Events$onClick(author$project$Otter$VirToggle)
 																			]),
 																		_List_fromArray(
 																			[
@@ -8813,7 +9294,7 @@ var author$project$Main$vieww = function (model) {
 																		_List_fromArray(
 																			[
 																				elm$html$Html$Attributes$class('ui button blue'),
-																				elm$html$Html$Events$onClick(author$project$Main$PortExample)
+																				elm$html$Html$Events$onClick(author$project$Otter$PortExample)
 																			]),
 																		_List_fromArray(
 																			[
@@ -8822,7 +9303,7 @@ var author$project$Main$vieww = function (model) {
 																	]))
 															]))
 													]))
-											])) : author$project$Main$html_empty,
+											])) : author$project$Otter$html_empty,
 										A2(
 										elm$html$Html$div,
 										_List_fromArray(
@@ -8836,7 +9317,7 @@ var author$project$Main$vieww = function (model) {
 												_List_fromArray(
 													[
 														elm$html$Html$Attributes$class('huge circular blue ui icon button'),
-														elm$html$Html$Events$onClick(author$project$Main$ToggleSidePanel)
+														elm$html$Html$Events$onClick(author$project$Otter$ToggleSidePanel)
 													]),
 												_List_fromArray(
 													[
@@ -8865,15 +9346,15 @@ var elm$core$List$singleton = function (value) {
 };
 var elm$virtual_dom$VirtualDom$lazy = _VirtualDom_lazy;
 var elm$html$Html$Lazy$lazy = elm$virtual_dom$VirtualDom$lazy;
-var author$project$Main$view = A2(
+var author$project$Otter$view = A2(
 	elm$core$Basics$composeR,
-	elm$html$Html$Lazy$lazy(author$project$Main$vieww),
+	elm$html$Html$Lazy$lazy(author$project$Otter$vieww),
 	A2(
 		elm$core$Basics$composeR,
 		elm$core$List$singleton,
 		elm$browser$Browser$Document('Otter')));
 var elm$browser$Browser$document = _Browser_document;
-var author$project$Main$main = elm$browser$Browser$document(
-	{init: author$project$Main$init, subscriptions: author$project$Main$subscriptions, update: author$project$Main$update, view: author$project$Main$view});
-_Platform_export({'Main':{'init':author$project$Main$main(
+var author$project$Otter$main = elm$browser$Browser$document(
+	{init: author$project$Otter$init, subscriptions: author$project$Otter$subscriptions, update: author$project$Otter$update, view: author$project$Otter$view});
+_Platform_export({'Otter':{'init':author$project$Otter$main(
 	elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
