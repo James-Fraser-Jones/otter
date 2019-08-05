@@ -6028,6 +6028,105 @@ var author$project$Otter$checkScrollbar = A2(
 	author$project$Otter$handleError(author$project$Otter$VirScrollbarInfo),
 	elm$browser$Browser$Dom$getViewportOf('scrollbar'));
 var author$project$Otter$csv_mime = 'text/csv';
+var elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(x);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var author$project$Prelude$getAt = F2(
+	function (n, list) {
+		return elm$core$List$head(
+			A2(elm$core$List$drop, n, list));
+	});
+var author$project$Prelude$maybeAp = F2(
+	function (mf, ma) {
+		var _n0 = _Utils_Tuple2(mf, ma);
+		if ((_n0.a.$ === 'Just') && (_n0.b.$ === 'Just')) {
+			var f = _n0.a.a;
+			var a = _n0.b.a;
+			return elm$core$Maybe$Just(
+				f(a));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$core$Basics$not = _Basics_not;
+var elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var author$project$Otter$filterEmptyAndSold = function (records) {
+	var cond = function (elem) {
+		return A2(
+			elm$core$Maybe$withDefault,
+			false,
+			A2(
+				author$project$Prelude$maybeAp,
+				A2(
+					elm$core$Maybe$map,
+					elm$core$Basics$and,
+					A2(
+						elm$core$Maybe$map,
+						A2(elm$core$Basics$composeL, elm$core$Basics$not, elm$core$String$isEmpty),
+						A2(author$project$Prelude$getAt, 0, elem))),
+				A2(
+					elm$core$Maybe$map,
+					elm$core$String$isEmpty,
+					A2(author$project$Prelude$getAt, 6, elem))));
+	};
+	return A2(elm$core$List$filter, cond, records);
+};
 var author$project$Prelude$flip = F3(
 	function (f, a, b) {
 		return A2(f, b, a);
@@ -6132,7 +6231,6 @@ var elm$core$Array$isEmpty = function (_n0) {
 	var len = _n0.a;
 	return !len;
 };
-var elm$core$Basics$not = _Basics_not;
 var author$project$Prelude$mamber = function (x) {
 	return A2(
 		elm$core$Basics$composeL,
@@ -6140,25 +6238,6 @@ var author$project$Prelude$mamber = function (x) {
 		elm$core$Array$filter(
 			elm$core$Basics$eq(x)));
 };
-var elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return elm$core$Maybe$Nothing;
-		}
-	});
-var elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
 var author$project$Prelude$maybe = F3(
 	function (b, f, ma) {
 		return A2(
@@ -6214,27 +6293,6 @@ var elm$core$Array$appendHelpBuilder = F2(
 			nodeListSize: builder.nodeListSize + 1,
 			tail: elm$core$Elm$JsArray$empty
 		} : {nodeList: builder.nodeList, nodeListSize: builder.nodeListSize, tail: appended});
-	});
-var elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
 	});
 var elm$core$Array$sliceLeft = F2(
 	function (from, array) {
@@ -6716,7 +6774,7 @@ var author$project$Records$importListToOldRecord = function (list) {
 		var _n3 = _n2.b;
 		var d = _n3.a;
 		var xs = _n3.b;
-		return A4(author$project$Records$OldRecord, a, b, c, d);
+		return A4(author$project$Records$OldRecord, b, a, c, d);
 	} else {
 		return author$project$Records$errorOldRecord;
 	}
@@ -6733,7 +6791,7 @@ var author$project$Records$importListToRecord = function (list) {
 		var _n3 = _n2.b;
 		var d = _n3.a;
 		var xs = _n3.b;
-		return A5(author$project$Records$Record, '', a, b, c, d);
+		return A5(author$project$Records$Record, '', b, a, c, d);
 	} else {
 		return author$project$Records$errorRecord;
 	}
@@ -6765,6 +6823,7 @@ var author$project$Records$recordToList = function (_n0) {
 	return _List_fromArray(
 		[oldLotNo, lotNo, vendor, description, reserve]);
 };
+var elm$core$String$append = _String_append;
 var author$project$Records$recordsToCsv = function (records) {
 	var recordToCsv = function (_n0) {
 		var oldLotNo = _n0.oldLotNo;
@@ -6776,13 +6835,16 @@ var author$project$Records$recordsToCsv = function (records) {
 			elm$core$String$join,
 			',',
 			_List_fromArray(
-				[lotNo, vendor, description, reserve]));
+				[vendor, lotNo, description, reserve]));
 	};
 	return A2(
-		elm$core$String$join,
-		'\r\n',
-		elm$core$Array$toList(
-			A2(elm$core$Array$map, recordToCsv, records)));
+		elm$core$String$append,
+		'Vendor,Lot No.,Item Description,Reserve,Pre-Sale Bids,Sale Price,Purchaser,Sale ID\r\n',
+		A2(
+			elm$core$String$join,
+			'\r\n',
+			elm$core$Array$toList(
+				A2(elm$core$Array$map, recordToCsv, records))));
 };
 var elm$core$Elm$JsArray$push = _JsArray_push;
 var elm$core$Elm$JsArray$singleton = _JsArray_singleton;
@@ -7718,15 +7780,25 @@ var author$project$Otter$update = F2(
 						var csv = _n1.a;
 						if (suggestion) {
 							var newOldRecords = elm$core$Array$fromList(
-								A2(elm$core$List$map, author$project$Records$importListToOldRecord, csv.records));
-							return _Utils_Tuple2(
-								_Utils_update(
-									model,
-									{
-										oldRecords: newOldRecords,
-										suggested: A2(author$project$Otter$genSuggestion, newOldRecords, model.records)
-									}),
-								elm$core$Platform$Cmd$none);
+								A2(
+									elm$core$List$map,
+									author$project$Records$importListToOldRecord,
+									author$project$Otter$filterEmptyAndSold(csv.records)));
+							return A3(
+								author$project$Prelude$flip,
+								elm$core$Basics$always,
+								A2(
+									elm$core$Debug$log,
+									'suggesstions',
+									elm$core$Array$length(newOldRecords)),
+								_Utils_Tuple2(
+									_Utils_update(
+										model,
+										{
+											oldRecords: newOldRecords,
+											suggested: A2(author$project$Otter$genSuggestion, newOldRecords, model.records)
+										}),
+									elm$core$Platform$Cmd$none));
 						} else {
 							var newNewRecords = A2(
 								elm$core$Array$append,
@@ -7992,7 +8064,6 @@ var author$project$Otter$update = F2(
 			}
 		}
 	});
-var author$project$Otter$ClearAllRecords = {$: 'ClearAllRecords'};
 var author$project$Otter$CsvExported = {$: 'CsvExported'};
 var author$project$Otter$CsvRequested = function (a) {
 	return {$: 'CsvRequested', a: a};
@@ -8011,7 +8082,7 @@ var author$project$Otter$VirToggle = {$: 'VirToggle'};
 var author$project$Otter$VirWheelScroll = function (a) {
 	return {$: 'VirWheelScroll', a: a};
 };
-var author$project$Otter$debug = true;
+var author$project$Otter$debug = false;
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var author$project$Otter$html_empty = elm$html$Html$text('');
@@ -9168,24 +9239,6 @@ var author$project$Otter$vieww = function (model) {
 																	]),
 																_List_fromArray(
 																	[
-																		A2(
-																		elm$html$Html$button,
-																		_List_fromArray(
-																			[
-																				elm$html$Html$Attributes$class('ui button blue'),
-																				elm$html$Html$Events$onClick(author$project$Otter$ClearAllRecords)
-																			]),
-																		_List_fromArray(
-																			[
-																				A2(
-																				elm$html$Html$i,
-																				_List_fromArray(
-																					[
-																						elm$html$Html$Attributes$class('asterisk icon')
-																					]),
-																				_List_Nil),
-																				elm$html$Html$text('New')
-																			])),
 																		A2(
 																		elm$html$Html$button,
 																		_List_fromArray(

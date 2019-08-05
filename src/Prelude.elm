@@ -2,11 +2,7 @@ module Prelude exposing (..)
 
 import Array exposing (Array)
 
-silence : Result e a -> Maybe a
-silence result =
-  case result of
-    Ok value -> Just value
-    Err _ -> Nothing
+--Functions
 
 flip : (a -> b -> c) -> b -> a -> c
 flip f a b = f b a
@@ -16,6 +12,8 @@ curry f (a, b) = f a b
 
 uncurry : ((a, b) -> c) -> a -> b -> c
 uncurry f a b = f (a, b)
+
+--Lists
 
 zipWith : (a -> b -> c) -> List a -> List b -> List c
 zipWith f a b =
@@ -37,6 +35,15 @@ updateAt n f lst =
     (_, []) -> []
     (0, (x :: xs)) -> f x :: xs
     (nn, (x :: xs)) -> x :: updateAt (nn - 1) f xs
+
+getAt : Int -> List a -> Maybe a
+getAt n list = List.drop n list |> List.head
+
+pad : Int -> a -> List a -> List a
+pad n def list =
+  list ++ List.repeat (max (n - List.length list) 0) def
+
+--Arrays
 
 updateAtt : Int -> (a -> a) -> Array a -> Array a
 updateAtt i f a = maybe identity (Array.set i) (Maybe.map f <| Array.get i a) a
@@ -63,9 +70,16 @@ findIndexFromEnd elem array =
 find : (a -> Bool) -> Array a -> Maybe a
 find cond = Array.get 0 << Array.filter cond
 
-pad : Int -> a -> List a -> List a
-pad n def list =
-  list ++ List.repeat (max (n - List.length list) 0) def
+--Maybes
+
+maybe : b -> (a -> b) -> Maybe a -> b
+maybe b f ma = Maybe.withDefault b <| Maybe.map f ma
+
+maybeAp : Maybe (a -> b) -> Maybe a -> Maybe b
+maybeAp mf ma =
+  case (mf, ma) of
+    (Just f, Just a) -> Just <| f a
+    _ -> Nothing
 
 isJust : Maybe a -> Bool
 isJust m =
@@ -76,11 +90,18 @@ isJust m =
 isNothing : Maybe a -> Bool
 isNothing = not << isJust
 
+--Results
+
+either : (a -> c) -> (b -> c) -> Result a b -> c
+either f g e =
+  case e of
+    Ok v -> g v
+    Err w -> f w
+
+--Numbers
+
 succ : number -> number
 succ = (+) 1
 
 pred : number -> number
 pred = flip (-) 1
-
-maybe : b -> (a -> b) -> Maybe a -> b
-maybe b f ma = Maybe.withDefault b <| Maybe.map f ma

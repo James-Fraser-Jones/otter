@@ -194,14 +194,14 @@ vieww model =
                             ]
                         , div [ class "field" ]
                             [ div [ class "ui vertical fluid buttons" ]
-                                [ button [ class "ui button blue", onClick ClearAllRecords ]
-                                    [ i [ class "asterisk icon" ] []
-                                    , text "New"
-                                    ]
-                                , button [ class "ui button yellow", onClick <| CsvRequested True ]
+                                [ button [ class "ui button yellow", onClick <| CsvRequested True ]
                                     [ i [ class "certificate icon" ] []
                                     , text "Add Suggestions"
                                     ]
+                                -- , button [ class "ui button blue", onClick ClearAllRecords ]
+                                --     [ i [ class "asterisk icon" ] []
+                                --     , text "New"
+                                --     ]
                                 , button [ class "ui button green", onClick CsvExported ]
                                     [ i [ class "file export icon" ] []
                                     , text "Save"
@@ -324,8 +324,8 @@ update msg model =
       case Csv.parse fileContent of
           Err _ -> (model, Cmd.none)
           Ok csv -> if suggestion
-                    then let newOldRecords = Array.fromList <| List.map importListToOldRecord csv.records
-                          in ({model | oldRecords = newOldRecords, suggested = genSuggestion newOldRecords model.records}, Cmd.none)
+                    then let newOldRecords = Array.fromList <| List.map importListToOldRecord <| filterEmptyAndSold csv.records
+                          in flip always (Debug.log "suggesstions" (Array.length newOldRecords)) ({model | oldRecords = newOldRecords, suggested = genSuggestion newOldRecords model.records}, Cmd.none)
                     else let newNewRecords = Array.append model.records <| Array.fromList <| List.map importListToRecord csv.records
                           in ({model | records = newNewRecords, scrollLock = True, suggested = genSuggestion model.oldRecords newNewRecords}, updateVisibleRows)
     TableViewport event ->
@@ -439,6 +439,11 @@ genSuggestion oldRecords records =
       unusedSuggestions = Array.filter (not << flip mamber usedSuggestions) openSuggestions
    in Array.get 0 unusedSuggestions
 
+filterEmptyAndSold : List (List String) -> List (List String)
+filterEmptyAndSold records =
+  let cond elem = Maybe.withDefault False <| maybeAp (Maybe.map (&&) (Maybe.map (not << String.isEmpty) <| getAt 0 elem)) (Maybe.map String.isEmpty <| getAt 6 elem)
+   in List.filter cond records
+
 --Generic Helpers
 
 maybeClamp : Int -> (Int -> Int) -> Maybe Int -> Maybe Int
@@ -481,7 +486,7 @@ html_empty = text ""
 --==================================================================== GLOBAL SETTINGS
 
 debug : Bool
-debug = True
+debug = False
 
 scroll_wait : number
 scroll_wait = 100

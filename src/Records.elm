@@ -18,13 +18,13 @@ oldRecordToList {lotNo, vendor, description, reserve} =
 importListToRecord : List String -> Record
 importListToRecord list =
   case pad 4 "" list of
-    (a :: b :: c :: d :: xs) -> Record "" a b c d
+    (a :: b :: c :: d :: xs) -> Record "" b a c d
     _ -> errorRecord
 
 importListToOldRecord : List String -> OldRecord
 importListToOldRecord list =
   case pad 4 "" list of
-    (a :: b :: c :: d :: xs) -> OldRecord a b c d
+    (a :: b :: c :: d :: xs) -> OldRecord b a c d
     _ -> errorOldRecord
 
 listToRecord : List String -> Record
@@ -39,8 +39,8 @@ oldToNew oldLotNo {lotNo, vendor, description, reserve} =
 
 recordsToCsv : Array Record -> String
 recordsToCsv records =
-  let recordToCsv {oldLotNo, lotNo, vendor, description, reserve} = String.join "," [lotNo, vendor, description, reserve]
-   in String.join "\r\n" <| Array.toList <| Array.map recordToCsv records
+  let recordToCsv {oldLotNo, lotNo, vendor, description, reserve} = String.join "," [vendor, lotNo, description, reserve]
+   in String.append "Vendor,Lot No.,Item Description,Reserve,Pre-Sale Bids,Sale Price,Purchaser,Sale ID\r\n" (String.join "\r\n" <| Array.toList <| Array.map recordToCsv records)
 
 emptyRecord : Record
 emptyRecord = Record "" "" "" "" ""
