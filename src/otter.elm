@@ -1,3 +1,5 @@
+module Otter exposing (..)
+
 --==================================================================== COMMANDS
 {-
     elm repl
@@ -5,6 +7,8 @@
     elm reactor
     elm install NAME/PACKAGE
     elm make --output=FILENAME.js FILENAME.elm
+    ../../nwjs-sdk-v0.40.2-win-x64/nw.exe .
+    ../../nwjs-sdk-v0.40.2-win-x64/nwjc.exe src/otter.js src/otter.bin
 -}
 --==================================================================== PACKAGE DEPENDENCIES
 {-
@@ -20,7 +24,6 @@
     periodic/elm-csv
 -}
 --==================================================================== IMPORTS
-module Otter exposing (..)
 
 --My modules
 import Ports
@@ -37,16 +40,13 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (class, value, type_, placeholder, style, id, attribute)
 import Html.Lazy as Lazy
-
 import Browser
 import Browser.Dom as Dom
 import Browser.Events as BEvent
-
 import File
 import File.Select as Select
 import File.Download as Download
-
-import Json.Decode as Decode
+import Json.Decode as Decode exposing (Decoder)
 
 --Uncommon modules
 import Csv

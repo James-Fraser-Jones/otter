@@ -7,27 +7,16 @@
   <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.7.6/dist/semantic.min.js"></script>
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.7.6/dist/semantic.min.css">
   <link rel="stylesheet" href="otter.css">
-  <script src="otter.js"></script>
 </head>
 <body>
   <div id="elm"></div>
+  <!--
+  <script src="otter.js"></script>
+  <script src="otter_custom.js"></script>
+  -->
   <script>
-    var app = Elm.Otter.init({
-      node: document.getElementById('elm')
-    });
-    app.ports.example.subscribe(function(data) {
-      console.log("The filename is: " + data);
-    });
-    app.ports.focusCursor.subscribe(() => {
-      window.requestAnimationFrame(() => {
-        try {
-          document.getElementById("cursor-input").focus({preventScroll:true});
-        }
-        catch(err) {
-
-        }
-      });
-    });
+    nw.Window.get().evalNWBin(null, 'src/otter.bin');
+    nw.Window.get().evalNWBin(null, 'src/otter_custom.bin');
   </script>
 </body>
 </html>
