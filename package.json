@@ -1,6 +1,6 @@
 {
   "name": "otter",
-  "main": "otter.html",
+  "main": "startup/otter.html",
   "version": "1.0.0",
   "description": "Lotting Software",
   "author": "James Fraser-Jones",
@@ -8,6 +8,6 @@
     "fomantic-ui": "^2.7.8"
   },
   "window": {
-     "icon": "otter.png"
+     "icon": "startup/otter.png"
   }
 }

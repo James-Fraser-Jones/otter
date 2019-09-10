@@ -1,0 +1,5 @@
+1. Use elm compiler (with dev mode disabled) to compile all elm modules into executable javascript file.
+2. Use nwjc tool to compile the elm js file and the accompanying custom js file into executable v8 binary files.
+3. Both of these then to be included in "bin" folder.
+4. "semantic" and "startup" folders to be included.
+6. package.json and semantic.json to be included in root folder.
