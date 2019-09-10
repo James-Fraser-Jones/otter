@@ -18,13 +18,17 @@
     <script src="semantic/dist/jquery_3.3.1.min.js"></script>
     <script src="semantic/dist/semantic.min.js"></script>
 
+    <!--
     <script src="bin/otter.js"></script>
     <script src="src/otter_custom.js"></script>
+    -->
 
-    <!-- <script>
-      nw.Window.get().evalNWBin(null, 'bin/otter.bin');
-      nw.Window.get().evalNWBin(null, 'bin/otter_custom.bin');
-    </script> -->
+    <script>
+      var defaultWindow = nw.Window.get();
+      defaultWindow.evalNWBin(null, 'bin/otter.bin');
+      defaultWindow.evalNWBin(null, 'bin/otter_custom.bin');
+      defaultWindow.maximize();
+    </script>
 
   </body>
 
