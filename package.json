@@ -1,4 +1,10 @@
 {
   "name": "otter",
-  "main": "src/otter.html"
+  "main": "otter.html",
+  "version": "1.0.0",
+  "description": "Lotting Software",
+  "author": "James Fraser-Jones",
+  "dependencies": {
+    "fomantic-ui": "^2.7.8"
+  }
 }
