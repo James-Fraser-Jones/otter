@@ -38,7 +38,8 @@ Source: "C:\Users\smudge\Documents\Computer Science\nwjs-v0.40.2-win-x64\otter.e
 Source: "C:\Users\smudge\Documents\Computer Science\nwjs-v0.40.2-win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\semantic\*"; DestDir: "{app}\semantic"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\startup\*"; DestDir: "{app}\startup"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\build\Output\otter.bin"; DestDir: "{app}\bin"; Flags: ignoreversion
+Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\build\Output\otter_custom.bin"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\package.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\semantic.json"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files

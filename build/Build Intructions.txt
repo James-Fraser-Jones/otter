@@ -1,14 +1,16 @@
 Otter Installer Script:
 1. Add all files from Non-SDK version of NWJS.
-2. Add "bin", "startup" and "semantic" folders.
+2. Add both compiled binary js files to "bin" folder.
+3. Add "startup" and "semantic" folders.
 3. Add "package.json" and "semantic.json" files.
 
 Build Script:
-0. Delete old installer.
+0. Delete old Output folder.
 1. Use elm compiler (with optimizations enabled) to compile all elm modules in "src" folder.
 2. Minify and compress resulting js file using uglifyjs
 3. Use nwjc tool to compile the compressed js file and the custom js file into executable v8 binary files in "bin" folder.
+4. Move generated "v8.log" file into Output folder.
 4. Compile otter installer script.
-5. Rename default output installer in output folder.
+5. Rename default installer name.
 
 
