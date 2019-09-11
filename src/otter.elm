@@ -7,8 +7,8 @@ module Otter exposing (..)
     elm reactor
     elm install NAME/PACKAGE
     elm make --output=FILENAME.js FILENAME.elm
-    ../../nwjs-sdk-v0.40.2-win-x64/nw.exe .
-    ../../nwjs-sdk-v0.40.2-win-x64/nwjc.exe src/otter.js src/otter.bin
+    ../../nwjs-sdk-v0.40.2-win-x64/otter.exe .
+    ../../nwjs-sdk-v0.40.2-win-x64/nwjc.exe src/otter.js bin/otter.bin
 -}
 --==================================================================== PACKAGE DEPENDENCIES
 {-
@@ -310,7 +310,7 @@ update msg model =
   case msg of
     --Simple stuff
     NoOp -> (model, Cmd.none)
-    HandleErrorEvent message -> (Debug.log "Error" message |> always model, Cmd.none)
+    HandleErrorEvent message -> (message |> always model, Cmd.none)
     ToggleSidePanel -> ({model | sidePanelExpanded = not model.sidePanelExpanded}, Cmd.none)
     FilenameEdited newText -> ({model | filename = newText}, Cmd.none)
     PortExample -> (model, Ports.example model.filename)
@@ -325,7 +325,7 @@ update msg model =
           Err _ -> (model, Cmd.none)
           Ok csv -> if suggestion
                     then let newOldRecords = Array.fromList <| List.map importListToOldRecord <| filterEmptyAndSold csv.records
-                          in flip always (Debug.log "suggesstions" (Array.length newOldRecords)) ({model | oldRecords = newOldRecords, suggested = genSuggestion newOldRecords model.records}, Cmd.none)
+                          in flip always ((Array.length newOldRecords)) ({model | oldRecords = newOldRecords, suggested = genSuggestion newOldRecords model.records}, Cmd.none)
                     else let newNewRecords = Array.append model.records <| Array.fromList <| List.map importListToRecord csv.records
                           in ({model | records = newNewRecords, scrollLock = True, suggested = genSuggestion model.oldRecords newNewRecords}, updateVisibleRows)
     TableViewport event ->
