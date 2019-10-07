@@ -37,7 +37,9 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "C:\Users\smudge\Documents\Computer Science\nwjs-v0.40.2-win-x64\otter.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\smudge\Documents\Computer Science\nwjs-v0.40.2-win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\semantic\*"; DestDir: "{app}\semantic"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\startup\*"; DestDir: "{app}\startup"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\startup\otter.html"; DestDir: "{app}\startup"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\startup\otter.png"; DestDir: "{app}\startup"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\startup\otter_custom.css"; DestDir: "{app}\startup"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\build\Output\otter.bin"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\build\Output\otter_custom.bin"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "C:\Users\smudge\Documents\Computer Science\elm\otter\package.json"; DestDir: "{app}"; Flags: ignoreversion
