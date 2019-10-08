@@ -171,7 +171,7 @@ vieww model =
                            ]
                         ++ renderedRows model
                         ++ [ tr [] [ div [ style "height" <| (String.fromInt <| (Array.length model.records - 1 - model.visibleEndIndex) * row_height) ++ "px" ] [] ]
-                           , recordToRoww model.suggested (if isJust model.cursorPosition.y then Nothing else Just model.cursorPosition.x) Nothing model.newRecord
+                           , bottomRow model.suggested (if isJust model.cursorPosition.y then Nothing else Just model.cursorPosition.x) Nothing model.newRecord
                            ]
                         )
                     ]
@@ -198,10 +198,6 @@ vieww model =
                                     [ i [ class "certificate icon" ] []
                                     , text "Add Suggestions"
                                     ]
-                                -- , button [ class "ui button blue", onClick ClearAllRecords ]
-                                --     [ i [ class "asterisk icon" ] []
-                                --     , text "New"
-                                --     ]
                                 , button [ class "ui button green", onClick CsvExported ]
                                     [ i [ class "file export icon" ] []
                                     , text "Save"
@@ -250,24 +246,35 @@ onScroll msg = on "scroll" (Decode.succeed msg)
 
 --Virtualization and cursor rendering logic (this should allow whole model to flow the whole way through, regardless of whether info is relevent or not!)
 
+--Take the records, slice out the visible portion based on start and end indecies, convert to a list and send to next function
+--BUG: Slice method seems to be causing bottom row to stop being rendered when scrolling downwards very quickly.
 renderedRows : Model -> List (Html Msg)
 renderedRows model =
-  recordsToRows model.visibleStartIndex model.cursorPosition <| filterVisible model.visibleStartIndex model.visibleEndIndex model.records
+  Array.slice model.visibleStartIndex (model.visibleEndIndex + 1) model.records
+  |> Array.toList
+  |> recordsToRows model.visibleStartIndex model.cursorPosition
 
+--cursorRowNum is the (local) index of the row with the cursor inside it, if it exists (and isn't the bottom row which gets rendered seperately)
+--createRow function calls recordToRow with the cell index containing the cursor (if applicable) and the (global) row index
 recordsToRows : Int -> CursorPosition -> List Record -> List (Html Msg)
 recordsToRows visibleStartIndex cursorPosition records =
-  let cursorRowNum = Maybe.withDefault (-1) cursorPosition.y - visibleStartIndex
-      createRow rowNum record = recordToRow (if rowNum == cursorRowNum then Just cursorPosition.x else Nothing) (Just <| rowNum + visibleStartIndex) record
+  let cursorRowNum = Maybe.map (flip (-) visibleStartIndex) cursorPosition.y
+      createRow rowNum record = recordToRow (if cursorRowNum == Just rowNum then Just cursorPosition.x else Nothing) (rowNum + visibleStartIndex |> Just) record
    in List.indexedMap createRow records
 
+--"cursorPositions" is a list of tuples containing each combination of (global) co-ordinates for each of the visible cells (excluding bottom row)
+--"mCursorPositions" is this same list but as Maybe values with the combination for the cell with the cursor missing (because this information isn't needed for that cell)
+--"cells" is the list of rendered cells produced by zipping the co-ordinates with the corresponding cell content
 recordToRow : Maybe Int -> Maybe Int -> Record -> Html Msg
 recordToRow mCursorX cursorY record =
   let cursorPositions = List.map (flip CursorPosition cursorY) (List.range 0 4)
-      updateFunc cursorX = updateAt cursorX (always Nothing)
-      mCursorPositions = maybe identity updateFunc mCursorX <| List.map Just cursorPositions
-      cells = zipWith elemToCell mCursorPositions <| recordToList record
-   in tr (if isJust cursorY then [] else [class "positive", onKeydown NewRow]) cells
+      mCursorPositions = List.map Just cursorPositions |> updateAt (Maybe.withDefault (-1) mCursorX) (always Nothing)
+      cells = recordToList record |> zipWith elemToCell mCursorPositions
+   in tr [] cells
 
+--mCursorPosition possibly contains the cursor position of the cell being rendered, but only if the cursor isn't currently focused on this cell
+--this cursor position is used in order to move the cursor to a different cell when it is clicked
+--"content" contains the text to be rendered inside the cell
 elemToCell : Maybe CursorPosition -> String -> Html Msg
 elemToCell mCursorPosition content =
   case mCursorPosition of
@@ -279,26 +286,23 @@ elemToCell mCursorPosition content =
     Just cursorPosition ->
       td [ onClick <| CursorMoved True cursorPosition ] [ text content ]
 
-filterVisible : Int -> Int -> Array Record -> List Record
-filterVisible start end list =
-  let filterRange index elem = if index >= start && index <= end then Just elem else Nothing
-   in Array.indexedMap filterRange list |> Array.filter isJust |> Array.map (Maybe.withDefault errorRecord) |> Array.toList
-
-recordToRoww : Maybe String -> Maybe Int -> Maybe Int -> Record -> Html Msg
-recordToRoww suggested mCursorX cursorY record =
+--possibly had a "suggested" string with it
+--zipping process avoids having to explicitly define zip3 by using listZipAp instead
+bottomRow : Maybe String -> Maybe Int -> Maybe Int -> Record -> Html Msg
+bottomRow suggested mCursorX cursorY record =
   let cursorPositions = List.map (flip CursorPosition cursorY) (List.range 0 4)
-      updateFunc cursorX = updateAt cursorX (always Nothing)
-      mCursorPositions = maybe identity updateFunc mCursorX <| List.map Just cursorPositions
-      cells = listZipAp (listZipAp (elemToCelll suggested :: List.repeat 4 elemToCell) mCursorPositions) <| recordToList record
-   in tr (if isJust cursorY then [] else [class "positive", onKeydown NewRow]) cells
+      mCursorPositions = List.map Just cursorPositions |> updateAt (Maybe.withDefault (-1) mCursorX) (always Nothing)
+      cells = recordToList record |> listZipAp (listZipAp (suggestionCell suggested :: List.repeat 4 elemToCell) mCursorPositions)
+   in tr [class "positive", onKeydown NewRow] cells
 
-elemToCelll : Maybe String -> Maybe CursorPosition -> String -> Html Msg
-elemToCelll suggested mCursorPosition content =
+--same as "elemToCell"
+suggestionCell : Maybe String -> Maybe CursorPosition -> String -> Html Msg
+suggestionCell suggested mCursorPosition content =
   case mCursorPosition of
     Nothing ->
       td [ id "cursor" ]
         [ div [ class "ui fluid input focus" ]
-            [ input [ id "cursor-input", type_ "text", value content, onInput CursorEdited, placeholder <| Maybe.withDefault "" suggested ] [] ]
+            [ input [ id "cursor-input", type_ "text", value content, onInput CursorEdited, Maybe.withDefault "" suggested |> placeholder ] [] ]
         ]
     Just cursorPosition ->
       td [ onClick <| CursorMoved True cursorPosition ] [ text (if content == "" then Maybe.withDefault "" suggested else content) ]
@@ -486,7 +490,7 @@ html_empty = text ""
 --==================================================================== GLOBAL SETTINGS
 
 debug : Bool
-debug = False
+debug = True
 
 scroll_wait : number
 scroll_wait = 100

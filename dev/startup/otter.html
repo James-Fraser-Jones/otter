@@ -30,7 +30,7 @@
       const {execSync} = require('child_process');
 
       gulp.task('elm', function () {
-        execSync('elm make src\\otter.elm --output=src\\otter.js');
+        execSync('elm make src\\otter.elm --output=src\\otter.js')
         if (location) location.reload();
       });
 
