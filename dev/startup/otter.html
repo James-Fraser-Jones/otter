@@ -25,6 +25,23 @@
       defaultWindow.maximize();
     </script>
 
+    <script>
+      var gulp = require('gulp');
+      const {execSync} = require('child_process');
+
+      gulp.task('elm', function () {
+        execSync('elm make src\\otter.elm --output=src\\otter.js');
+        if (location) location.reload();
+      });
+
+      gulp.task('css', function () {
+        if (location) location.reload();
+      });
+
+      gulp.watch(['**/*.elm'], gulp.task('elm'));
+      gulp.watch(['**/*.css'], gulp.task('css'));
+    </script>
+
   </body>
 
 </html>

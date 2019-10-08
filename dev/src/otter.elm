@@ -7,8 +7,8 @@ module Otter exposing (..)
     elm reactor
     elm install NAME/PACKAGE
     elm make --output=FILENAME.js FILENAME.elm
-    ../nwjs/nwjs-sdk-v0.40.2-win-x64/nw.exe .
-    ../nwjs/nwjs-sdk-v0.40.2-win-x64/nwjc.exe src/otter.js bin/otter.bin
+    "..\nwjs\nwjs-sdk-v0.40.2-win-x64\nw.exe" .
+    "..\nwjs\nwjs-sdk-v0.40.2-win-x64\nwjc.exe" "src\otter.js" "bin\otter.bin"
 -}
 --==================================================================== PACKAGE DEPENDENCIES
 {-

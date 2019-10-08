@@ -1,4 +1,5 @@
 prod/
 nwjs/
 dev/src/otter.js
+dev/node_modules/
 build/Output/
