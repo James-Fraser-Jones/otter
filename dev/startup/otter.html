@@ -35,6 +35,7 @@
           if (location) location.reload();
         }
         catch (err) {
+          console.clear();
           console.log(err);
           this.emit('end');
         }

@@ -38,7 +38,7 @@ import Task
 --Common modules
 import Html exposing (..)
 import Html.Events exposing (..)
-import Html.Attributes exposing (class, value, type_, placeholder, style, id, attribute)
+import Html.Attributes exposing (class, value, type_, placeholder, style, id, attribute, autocomplete)
 import Html.Lazy as Lazy
 import Browser
 import Browser.Dom as Dom
@@ -86,8 +86,6 @@ type alias Model =
   , cursorPosition : CursorPosition --The current cursor position
 
   --Virtualization
-  , enableVirtualization : Bool     --Whether or not to enable virtualization (should probably be removed to simplify application logic)
-  , scrollLock : Bool               --Whether or not to temporarily prevent scrolling using mouse wheel to prevent over frequent scroll updates when using mouse wheel
   , visibleStartIndex : Int         --index of top visible row, starts at 0
   , visibleEndIndex : Int           --index of bottom visible row, starts at 0
   , viewportHeight : Int            --height of viewport, in pixels
@@ -101,7 +99,6 @@ type Msg
 
   --Simple
   | ToggleSidePanel                 --Toggle whether side panel is visible or not
-  | ClearAllRecords                 --Delete all records (NOTE: not currently being used)
   | FilenameEdited String           --Modify export filename based on what user enters in the box
   | NewRow KeyboardEvent            --Respond to new row being added by "enter" key being pressed when on bottom row
   | DontScrollViewport              --Prevent viewport from scrolling in the traditional way when using mousewheel
@@ -120,7 +117,6 @@ type Msg
 
   --Virtualization
   | VirUpdate                       --Virtualization Update
-  | VirToggle                       --Toggle Virtualization (NOTE: Should probably remove this)
 
   --Window Resizing
   | WinResize                       --Window Resize
@@ -138,7 +134,7 @@ type Msg
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( Model True "" (Array.fromList []) (Array.fromList []) emptyRecord Nothing (CursorPosition 0 Nothing) True False 0 0 0 0
+  ( Model True "" (Array.fromList []) (Array.fromList []) emptyRecord Nothing (CursorPosition 0 Nothing) 0 0 0 0
   , Cmd.batch [checkTableViewport, focusCursor]
   )
 
@@ -173,7 +169,7 @@ vieww model =
                             ]
                         ]
                     , tbody []
-                        (  [ if modBy 2 model.visibleStartIndex == 1 && model.enableVirtualization then tr [] [] else html_empty
+                        (  [ if modBy 2 model.visibleStartIndex == 1 then tr [] [] else html_empty
                            , tr [] [ div [ style "height" <| (String.fromInt <| model.visibleStartIndex * row_height) ++ "px" ] [] ]
                            ]
                         ++ renderedRows model
@@ -223,8 +219,7 @@ vieww model =
                     [ div [ class "ui form" ]
                         [ div [ class "field" ]
                             [ div [ class "ui vertical fluid buttons" ]
-                                [ button [ class "ui button blue", onClick VirToggle ] [ text "Toggle Virtualization" ]
-                                , button [ class "ui button blue", onClick PortExample ] [ text "Port Example" ]
+                                [ button [ class "ui button blue", onClick PortExample ] [ text "Port Example" ]
                                 ]
                             ]
                         ]
@@ -288,7 +283,7 @@ elemToCell mCursorPosition content =
     Nothing ->
       td [ id "cursor" ]
         [ div [ class "ui fluid input focus" ]
-            [ input [ id "cursor-input", type_ "text", value content, onInput CursorEdited ] [] ]
+            [ input [ id "cursor-input", type_ "text", value content, onInput CursorEdited, autocomplete False ] [] ]
         ]
     Just cursorPosition ->
       td [ onClick <| CursorMoved True cursorPosition ] [ text content ]
@@ -309,7 +304,7 @@ suggestionCell suggested mCursorPosition content =
     Nothing ->
       td [ id "cursor" ]
         [ div [ class "ui fluid input focus" ]
-            [ input [ id "cursor-input", type_ "text", value content, onInput CursorEdited, Maybe.withDefault "" suggested |> placeholder ] [] ]
+            [ input [ id "cursor-input", type_ "text", value content, onInput CursorEdited, Maybe.withDefault "" suggested |> placeholder, autocomplete False ] [] ]
         ]
     Just cursorPosition ->
       td [ onClick <| CursorMoved True cursorPosition ] [ text (if content == "" then Maybe.withDefault "" suggested else content) ]
@@ -319,18 +314,24 @@ suggestionCell suggested mCursorPosition content =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    --Simple stuff
+    --Standard
     NoOp -> (model, Cmd.none)
     HandleErrorEvent message -> (message |> always model, Cmd.none)
+
+    --Simple
     ToggleSidePanel -> ({model | sidePanelExpanded = not model.sidePanelExpanded}, Cmd.none)
     FilenameEdited newText -> ({model | filename = newText}, Cmd.none)
-    PortExample -> (model, Ports.example model.filename)
+    NewRow event ->
+      if event.keyCode == Key.Enter then
+        let newNewRecords = Array.push (getNewRecord model) model.records
+         in update VirUpdate {model | records = newNewRecords, newRecord = emptyRecord, cursorPosition = {x = 0, y = Nothing}, suggested = genSuggestion model.oldRecords newNewRecords}
+      else
+        (model, Cmd.none)
     DontScrollViewport -> (model, Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf "table-viewport" 0 0)
+
+    --CSV Import/Export
     CsvRequested suggestion -> (model, Select.file [csv_mime] <| CsvSelected suggestion)
     CsvSelected suggestion file -> (model, Task.perform (CsvLoaded suggestion <| File.name file) (File.toString file))
-    CsvExported -> (model, Download.string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records))
-
-    --Complicated tangle
     CsvLoaded suggestion fileName fileContent ->
       case Csv.parse fileContent of
           Err _ -> (model, Cmd.none)
@@ -338,7 +339,28 @@ update msg model =
                     then let newOldRecords = Array.fromList <| List.map importListToOldRecord <| filterEmptyAndSold csv.records
                           in flip always ((Array.length newOldRecords)) ({model | oldRecords = newOldRecords, suggested = genSuggestion newOldRecords model.records}, Cmd.none)
                     else let newNewRecords = Array.append model.records <| Array.fromList <| List.map importListToRecord csv.records
-                          in ({model | records = newNewRecords, scrollLock = True, suggested = genSuggestion model.oldRecords newNewRecords}, updateVisibleRows)
+                          in update VirUpdate ({model | records = newNewRecords, suggested = genSuggestion model.oldRecords newNewRecords})
+    CsvExported -> (model, Download.string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records))
+
+    --Scrolling
+    ScrollWheel event -> update (ScrollUpdate False <| flip (if event.deltaY >= 0 then (+) else (-)) row_height) model
+    ScrollBar -> (model, checkScrollbar)
+    ScrollBarInfo viewport -> update (ScrollUpdate True <| always <| round viewport.viewport.y) model
+    ScrollUpdate fromScrollBar modify ->
+      let newViewportY = clamp 0 (tableHeight model - model.viewportHeight) <| modify model.viewportY
+       in ({model | viewportY = newViewportY}, Cmd.batch [if fromScrollBar then Cmd.none else updateScrollBar newViewportY, virUpdate])
+
+    --Virtualization
+    VirUpdate ->
+      let numRecords = Array.length model.records
+          (bottom, top) = getVisibleRows numRecords model.viewportHeight model.viewportY
+       in ({model | visibleStartIndex = bottom, visibleEndIndex = top}, focusCursor)
+
+    --Window Resizing
+    WinResize -> (model, checkTableViewport)
+    WinViewportInfo viewport -> update VirUpdate ({model | viewportHeight = round viewport.viewport.height})
+
+    --Cursor
     CursorArrow event ->
       let cursorPosition = model.cursorPosition
           recordNum = Array.length model.records
@@ -350,42 +372,16 @@ update msg model =
           Key.Down -> CursorMoved False {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
           Key.Enter -> CursorMoved False {cursorPosition | y = maybeClamp recordNum succ cursorPosition.y}
           _ -> NoOp
-    NewRow event ->
-      if event.keyCode == Key.Enter then
-        let newNewRecords = Array.push (getNewRecord model) model.records
-         in update VirUpdate {model | records = newNewRecords, newRecord = emptyRecord, cursorPosition = {x = 0, y = Nothing}, suggested = genSuggestion model.oldRecords newNewRecords}
-      else
-        (model, Cmd.none)
-    ClearAllRecords ->
-      let newNewRecords = Array.fromList []
-      in ( {model | records = newNewRecords,
-                    cursorPosition = CursorPosition 0 Nothing,
-                    visibleStartIndex = 0,
-                    visibleEndIndex = 0,
-                    viewportY = 0,
-                    newRecord = emptyRecord,
-                    suggested = genSuggestion model.oldRecords newNewRecords}
-         , focusCursor
-         )
-    ScrollWheel event -> update (ScrollUpdate False <| flip (if event.deltaY >= 0 then (+) else (-)) row_height) model
-    ScrollBar -> (model, checkScrollbar)
-    ScrollBarInfo viewport -> update (ScrollUpdate True <| always <| round viewport.viewport.y) model
-    ScrollUpdate fromScrollBar modify ->
-      let newViewportY = clamp 0 (tableHeight model - model.viewportHeight) <| modify model.viewportY
-       in ( {model | scrollLock = True, viewportY = newViewportY}
-          , Cmd.batch [ if model.scrollLock then Cmd.none else updateVisibleRows
-                      , if fromScrollBar then Cmd.none else updateScrollBar newViewportY
-                      ]
-          )
-    VirUpdate ->
-      let numRecords = Array.length model.records
-          (bottom, top) = if model.enableVirtualization
-                          then getVisibleRows numRecords model.viewportHeight model.viewportY
-                          else (0, numRecords - 1)
-       in ({model | visibleStartIndex = bottom, visibleEndIndex = top, scrollLock = False}, focusCursor)
-    WinResize -> (model, checkTableViewport)
-    WinViewportInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
-    VirToggle -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
+    CursorMoved fromMouse cursorPosition ->
+      let realCursorY = Maybe.withDefault (Array.length model.records) cursorPosition.y
+          topClamp = realCursorY * row_height
+          bottomClamp = topClamp + 2*row_height - model.viewportHeight
+          clampedViewportY = clamp bottomClamp topClamp model.viewportY
+          newModel = {model | cursorPosition = cursorPosition}
+       in if not fromMouse && clampedViewportY /= model.viewportY then
+            update (ScrollUpdate False (always clampedViewportY)) newModel
+          else
+            (newModel, focusCursor)
     CursorEdited newText ->
       ( let columnUpdate = listToRecord << updateAt model.cursorPosition.x (always newText) << recordToList
             rowUpdate cursorY =
@@ -394,16 +390,9 @@ update msg model =
          in maybe {model | newRecord = columnUpdate model.newRecord} rowUpdate model.cursorPosition.y
       , Cmd.none
       )
-    CursorMoved fromMouse cursorPosition ->
-      let realCursorY = Maybe.withDefault (Array.length model.records) cursorPosition.y
-          topClamp = realCursorY * row_height
-          bottomClamp = topClamp + 3*row_height - model.viewportHeight
-          clampedViewportY = clamp bottomClamp topClamp model.viewportY
-          newModel = {model | cursorPosition = cursorPosition}
-       in if not fromMouse && clampedViewportY /= model.viewportY then
-            update (ScrollUpdate False (always clampedViewportY)) newModel
-          else
-            (newModel, focusCursor)
+
+    --Debug
+    PortExample -> (model, Ports.example model.filename)
 
 --Commands
 
@@ -413,13 +402,13 @@ focusCursor = Ports.focusCursor ()
 checkTableViewport : Cmd Msg
 checkTableViewport = Task.attempt (handleError WinViewportInfo) (Dom.getViewportOf "table-viewport")
 
-updateVisibleRows : Cmd Msg
-updateVisibleRows = Task.perform (always VirUpdate) (Process.sleep scroll_wait)
+virUpdate : Cmd Msg --calls "VirUpdate" from a "Cmd" rather than by recursively calling "update" (this allows you to batch other "Cmd"s alongside invoking "VirUpdate")
+virUpdate = Task.perform (always VirUpdate) (Task.succeed ())
 
-checkScrollbar : Cmd Msg --only used in one place
+checkScrollbar : Cmd Msg
 checkScrollbar = Task.attempt (handleError ScrollBarInfo) (Dom.getViewportOf "scrollbar")
 
-updateScrollBar : Int -> Cmd Msg --only used in one place
+updateScrollBar : Int -> Cmd Msg
 updateScrollBar newViewportY = Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf "scrollbar" 0 <| toFloat newViewportY
 
 --Suggestion logic
@@ -457,17 +446,19 @@ filterEmptyAndSold records =
 
 --Generic Helpers
 
+--takes cursorY, converts to non-maybe index (where bottom row has index equal to number of non-bottom-row records), applies a modifier function,
+--clamps between the valid range of indecies, then converts back to a maybe index
 maybeClamp : Int -> (Int -> Int) -> Maybe Int -> Maybe Int
-maybeClamp recordNum f m =
-  let n = Maybe.withDefault recordNum m
-      c = clamp 0 recordNum (f n)
-   in if c == recordNum then Nothing else Just c
+maybeClamp totalRecords f m =
+  let n = Maybe.withDefault totalRecords m
+      c = clamp 0 totalRecords (f n)
+   in if c < totalRecords then Just c else Nothing
 
+--produces indecies for visible rows (including bottom row), weirdly will keep rendering bottom 2 rows when they get scrolled out of view
 getVisibleRows : Int -> Int -> Int -> (Int, Int)
 getVisibleRows numRecords viewportHeight viewportY =
-  let bottom = pred <| max 1 <| floor <| toFloat viewportY / row_height
-      top = pred <| min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + viewportHeight) / row_height
-   in (bottom, top)
+  let f = toFloat >> flip (/) row_height >> floor
+   in (f viewportY, f <| viewportY + viewportHeight)
 
 tableHeight : Model -> Int
 tableHeight model = (Array.length model.records + 2) * row_height
