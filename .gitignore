@@ -2,4 +2,5 @@ prod/
 nwjs/
 dev/src/otter.js
 dev/node_modules/
+dev/elm-stuff/
 build/Output/

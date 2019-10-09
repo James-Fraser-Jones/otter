@@ -13,6 +13,10 @@ curry f (a, b) = f a b
 uncurry : ((a, b) -> c) -> a -> b -> c
 uncurry f a b = f (a, b)
 
+const = always
+
+id = identity
+
 --Lists
 
 zipWith : (a -> b -> c) -> List a -> List b -> List c

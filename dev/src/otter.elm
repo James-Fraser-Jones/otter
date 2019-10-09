@@ -67,65 +67,72 @@ main =
 
 --==================================================================== MODEL
 
-type alias CursorPosition = {x : Int, y : Maybe Int}
+type alias CursorPosition = {x : Int, y : Maybe Int} --"x" is column index starts at 0, "y" is row index starts at 0 or "Nothing" when on the bottom row
 
 type alias Model =
-  { sidePanelExpanded : Bool     --Settings
-  , filename : String
+  --Settings
+  { sidePanelExpanded : Bool        --Whether or not the side panel has been expanded
+  , filename : String               --What to call the exported file
 
-  , records : Array Record        --Data
-  , oldRecords : Array OldRecord
-  , newRecord : Record
+  --Data
+  , records : Array Record          --The record store
+  , oldRecords : Array OldRecord    --The store of previous records to be suggested
+  , newRecord : Record              --The record representing the bottom row
 
-  , suggested : Maybe String --Suggestion
+  --Suggestion
+  , suggested : Maybe String        --The currently suggested "old lot no" for the bottom row (if one exists)
 
-  , cursorPosition : CursorPosition --Cursor
+  --Cursor
+  , cursorPosition : CursorPosition --The current cursor position
 
-  , enableVirtualization : Bool  --Virtualization
-  , scrollLock : Bool
-  , visibleStartIndex : Int
-  , visibleEndIndex : Int
-  , viewportHeight : Int
-  , viewportY : Int
+  --Virtualization
+  , enableVirtualization : Bool     --Whether or not to enable virtualization (should probably be removed to simplify application logic)
+  , scrollLock : Bool               --Whether or not to temporarily prevent scrolling using mouse wheel to prevent over frequent scroll updates when using mouse wheel
+  , visibleStartIndex : Int         --index of top visible row, starts at 0
+  , visibleEndIndex : Int           --index of bottom visible row, starts at 0
+  , viewportHeight : Int            --height of viewport, in pixels
+  , viewportY : Int                 --offset of viewport from the top of the grid, in pixels
   }
 
 type Msg
   --Standard
-  = NoOp
-  | HandleErrorEvent String
-
-  --Keyboard
-  | TableViewport KeyboardEvent
-  | NewRow KeyboardEvent
+  = NoOp                            --Do nothing
+  | HandleErrorEvent String         --Handle an error, (NOTE: actually does nothing but should probably log to an error file)
 
   --Simple
-  | ToggleSidePanel
-  | ClearAllRecords
-  | FilenameEdited String
+  | ToggleSidePanel                 --Toggle whether side panel is visible or not
+  | ClearAllRecords                 --Delete all records (NOTE: not currently being used)
+  | FilenameEdited String           --Modify export filename based on what user enters in the box
+  | NewRow KeyboardEvent            --Respond to new row being added by "enter" key being pressed when on bottom row
+  | DontScrollViewport              --Prevent viewport from scrolling in the traditional way when using mousewheel
 
   --CSV Import/Export
-  | CsvRequested Bool
-  | CsvSelected Bool File.File
-  | CsvLoaded Bool String String
-  | CsvExported
+  | CsvRequested Bool               --Request to select file from filesystem, either to populate records or oldrecords
+  | CsvSelected Bool File.File      --Confirmation of file
+  | CsvLoaded Bool String String    --Loading of file into memory
+  | CsvExported                     --Request to export current records
+
+  --Scrolling
+  | ScrollWheel Wheel.Event         --Wheel Scroll Invoker
+  | ScrollBar                       --Scrollbar Scroll Invoker
+  | ScrollBarInfo Dom.Viewport      --Get information from the DOM about the scrollbar offset
+  | ScrollUpdate Bool (Int -> Int)  --Scroll Performer
 
   --Virtualization
-  | VirWheelScroll Wheel.Event --Wheel Scroll Invoker
-  | VirScrollbarScroll --Scrollbar Scroll Invoker
-  | VirScrollbarInfo Dom.Viewport
-  | VirScroll Bool (Int -> Int) --Scroll Performer
-  | VirUpdate --Virtualization Update
-  | VirResize --Window Resize
-  | VirViewportInfo Dom.Viewport
-  | VirToggle --Toggle Virtualization
+  | VirUpdate                       --Virtualization Update
+  | VirToggle                       --Toggle Virtualization (NOTE: Should probably remove this)
+
+  --Window Resizing
+  | WinResize                       --Window Resize
+  | WinViewportInfo Dom.Viewport    --Get information from the DOM about the current size of the viewport
 
   --Cursor
-  | CursorEdited String
-  | CursorMoved Bool CursorPosition
+  | CursorArrow KeyboardEvent       --Change of cursor position due to arrowkey press
+  | CursorMoved Bool CursorPosition --Cursor move event, either through clicking or arrowkey press
+  | CursorEdited String             --Cell content edit event
 
   --Debug
-  | PortExample
-  | DontScrollViewport
+  | PortExample                     --Calls custom "example" js function from ports module
 
 --==================================================================== INIT
 
@@ -145,7 +152,7 @@ vieww model =
   div [ id "grid", class "ui two column grid" ]
     [ div [ class "row" ]
         [ div [ class <| (if model.sidePanelExpanded then "thirteen" else "fifteen") ++ " wide column" ]
-            [ div [ id "table-viewport", onKeydown TableViewport, Wheel.onWheel VirWheelScroll, onScroll DontScrollViewport ]
+            [ div [ id "table-viewport", onKeydown CursorArrow, Wheel.onWheel ScrollWheel, onScroll DontScrollViewport ]
                 [ table
                     [ id "table"
                     , class "ui single line fixed unstackable celled striped compact table"
@@ -176,7 +183,7 @@ vieww model =
                         )
                     ]
                 ]
-            , div [ id "scrollbar", onScroll VirScrollbarScroll ]
+            , div [ id "scrollbar", onScroll ScrollBar ]
                 [ div [ style "height" (String.fromInt (tableHeight model) ++ "px") ] []
                 ]
             ]
@@ -332,7 +339,7 @@ update msg model =
                           in flip always ((Array.length newOldRecords)) ({model | oldRecords = newOldRecords, suggested = genSuggestion newOldRecords model.records}, Cmd.none)
                     else let newNewRecords = Array.append model.records <| Array.fromList <| List.map importListToRecord csv.records
                           in ({model | records = newNewRecords, scrollLock = True, suggested = genSuggestion model.oldRecords newNewRecords}, updateVisibleRows)
-    TableViewport event ->
+    CursorArrow event ->
       let cursorPosition = model.cursorPosition
           recordNum = Array.length model.records
        in flip update model <| case event.keyCode of
@@ -360,10 +367,10 @@ update msg model =
                     suggested = genSuggestion model.oldRecords newNewRecords}
          , focusCursor
          )
-    VirWheelScroll event -> update (VirScroll False <| flip (if event.deltaY >= 0 then (+) else (-)) row_height) model
-    VirScrollbarScroll -> (model, checkScrollbar)
-    VirScrollbarInfo viewport -> update (VirScroll True <| always <| round viewport.viewport.y) model
-    VirScroll fromScrollBar modify ->
+    ScrollWheel event -> update (ScrollUpdate False <| flip (if event.deltaY >= 0 then (+) else (-)) row_height) model
+    ScrollBar -> (model, checkScrollbar)
+    ScrollBarInfo viewport -> update (ScrollUpdate True <| always <| round viewport.viewport.y) model
+    ScrollUpdate fromScrollBar modify ->
       let newViewportY = clamp 0 (tableHeight model - model.viewportHeight) <| modify model.viewportY
        in ( {model | scrollLock = True, viewportY = newViewportY}
           , Cmd.batch [ if model.scrollLock then Cmd.none else updateVisibleRows
@@ -376,8 +383,8 @@ update msg model =
                           then getVisibleRows numRecords model.viewportHeight model.viewportY
                           else (0, numRecords - 1)
        in ({model | visibleStartIndex = bottom, visibleEndIndex = top, scrollLock = False}, focusCursor)
-    VirResize -> (model, checkTableViewport)
-    VirViewportInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
+    WinResize -> (model, checkTableViewport)
+    WinViewportInfo viewport -> ({model | viewportHeight = round viewport.viewport.height}, updateVisibleRows)
     VirToggle -> ({model | enableVirtualization = not model.enableVirtualization}, Cmd.none)
     CursorEdited newText ->
       ( let columnUpdate = listToRecord << updateAt model.cursorPosition.x (always newText) << recordToList
@@ -394,7 +401,7 @@ update msg model =
           clampedViewportY = clamp bottomClamp topClamp model.viewportY
           newModel = {model | cursorPosition = cursorPosition}
        in if not fromMouse && clampedViewportY /= model.viewportY then
-            update (VirScroll False (always clampedViewportY)) newModel
+            update (ScrollUpdate False (always clampedViewportY)) newModel
           else
             (newModel, focusCursor)
 
@@ -404,13 +411,13 @@ focusCursor : Cmd Msg
 focusCursor = Ports.focusCursor ()
 
 checkTableViewport : Cmd Msg
-checkTableViewport = Task.attempt (handleError VirViewportInfo) (Dom.getViewportOf "table-viewport")
+checkTableViewport = Task.attempt (handleError WinViewportInfo) (Dom.getViewportOf "table-viewport")
 
 updateVisibleRows : Cmd Msg
 updateVisibleRows = Task.perform (always VirUpdate) (Process.sleep scroll_wait)
 
 checkScrollbar : Cmd Msg --only used in one place
-checkScrollbar = Task.attempt (handleError VirScrollbarInfo) (Dom.getViewportOf "scrollbar")
+checkScrollbar = Task.attempt (handleError ScrollBarInfo) (Dom.getViewportOf "scrollbar")
 
 updateScrollBar : Int -> Cmd Msg --only used in one place
 updateScrollBar newViewportY = Task.attempt (handleError <| always NoOp) <| Dom.setViewportOf "scrollbar" 0 <| toFloat newViewportY
@@ -474,7 +481,7 @@ handleError onSuccess result =
 --==================================================================== SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
-subscriptions _ = BEvent.onResize (\_ _ -> VirResize)
+subscriptions _ = BEvent.onResize (\_ _ -> WinResize)
 
 --==================================================================== CONSTS
 
