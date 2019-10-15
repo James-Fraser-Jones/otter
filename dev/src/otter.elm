@@ -454,11 +454,17 @@ maybeClamp totalRecords f m =
       c = clamp 0 totalRecords (f n)
    in if c < totalRecords then Just c else Nothing
 
---produces indecies for visible rows (including bottom row), weirdly will keep rendering bottom 2 rows when they get scrolled out of view
+--produces indecies for visible rows (including bottom row)
+--NOTE: Magic code, can't remember how or why this works, not sure I ever really knew,
+--attempts to replace with code below was a failure due to scroll behavior when rows hadn't filled screen yet
 getVisibleRows : Int -> Int -> Int -> (Int, Int)
 getVisibleRows numRecords viewportHeight viewportY =
-  let f = toFloat >> flip (/) row_height >> floor
-   in (f viewportY, f <| viewportY + viewportHeight)
+  let bottom = pred <| max 1 <| floor <| toFloat viewportY / row_height
+      top = pred <| min (numRecords + 1) <| pred <| ceiling <| toFloat (viewportY + viewportHeight) / row_height
+   in (bottom, top)
+
+  -- let f = toFloat >> flip (/) row_height >> floor
+  --  in (f viewportY, f <| viewportY + viewportHeight)
 
 tableHeight : Model -> Int
 tableHeight model = (Array.length model.records + 2) * row_height
