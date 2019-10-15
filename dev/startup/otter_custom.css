@@ -38,11 +38,19 @@
 }
 
 /***********************************/
-/*Color styling table header*/
+/*Color styling table header, every other row and the bottom row*/
 
 #table th {
   background-color: #0E6EB8;
   color: white;
+}
+
+tr:nth-child(even) {
+  background-color: #e7f3fd;
+}
+
+#bottomRow {
+  background-color: #e9fced;
 }
 
 /***********************************/

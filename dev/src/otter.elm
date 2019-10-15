@@ -151,7 +151,7 @@ vieww model =
             [ div [ id "table-viewport", onKeydown CursorArrow, Wheel.onWheel ScrollWheel, onScroll DontScrollViewport ]
                 [ table
                     [ id "table"
-                    , class "ui single line fixed unstackable celled striped compact table"
+                    , class "ui single line fixed unstackable celled compact table"
                     , style "top" ("-" ++ String.fromInt model.viewportY ++ "px")
                     ]
                     [ col [ attribute "width" "100px" ] []
@@ -169,7 +169,7 @@ vieww model =
                             ]
                         ]
                     , tbody []
-                        (  [ if modBy 2 model.visibleStartIndex == 1 then tr [] [] else html_empty
+                        (  [ if modBy 2 model.visibleStartIndex == 0 then tr [] [] else html_empty
                            , tr [] [ div [ style "height" <| (String.fromInt <| model.visibleStartIndex * row_height) ++ "px" ] [] ]
                            ]
                         ++ renderedRows model
@@ -295,7 +295,7 @@ bottomRow suggested mCursorX cursorY record =
   let cursorPositions = List.map (flip CursorPosition cursorY) (List.range 0 4)
       mCursorPositions = List.map Just cursorPositions |> updateAt (Maybe.withDefault (-1) mCursorX) (always Nothing)
       cells = recordToList record |> listZipAp (listZipAp (suggestionCell suggested :: List.repeat 4 elemToCell) mCursorPositions)
-   in tr [class "positive", onKeydown NewRow] cells
+   in tr [id "bottomRow", onKeydown NewRow] cells
 
 --same as "elemToCell"
 suggestionCell : Maybe String -> Maybe CursorPosition -> String -> Html Msg
