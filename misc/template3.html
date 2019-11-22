@@ -10,72 +10,47 @@
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.7.6/dist/semantic.min.js"></script>
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.7.6/dist/semantic.min.css">
-  <!-- <link rel="stylesheet" type="text/css" href="template.css"> -->
+  <link rel="stylesheet" type="text/css" href="template3.css">
 </head>
 
 <body>
-  <div id="toolbar">
-    <div style="margin:8px">
-      <div id="doc-icon" style="display:inline-block">
-        <i class="file csv huge icon" style="color:forestgreen"></i>
+  <div id="grid">
+    <i id="icon" class="file csv huge fitted teal icon"></i>
+    <div id="filename" class="ui huge transparent input">
+      <input type="text" placeholder="Untitled sheet">
+    </div>
+    <div id="main-menu" class="ui secondary menu">
+      <div class="ui dropdown link item">
+        <span class="text">File</span>
       </div>
-      <div style="display:inline-block">
-        <div id="file-name" class="ui huge transparent input">
-          <input type="text" placeholder="Untitled sheet">
-        </div>
-        <div class="ui secondary relaxed menu" style="margin-top:0px">
-          <div class="ui dropdown link item" style="padding:8px; margin:0px">
-            <span class="text">File</span>
-          </div>
-          <div class="ui dropdown link item" style="padding:8px; margin:0px">
-            <span class="text">Edit</span>
-            <div class="menu">
-              <div class="header">Categories</div>
-              <div class="item">
-                <i class="dropdown icon"></i>
-                <span class="text">Clothing</span>
-                <div class="menu">
-                  <div class="header">Mens</div>
-                  <div class="item">Shirts</div>
-                  <div class="item">Pants</div>
-                  <div class="item">Jeans</div>
-                  <div class="item">Shoes</div>
-                  <div class="divider"></div>
-                  <div class="header">Womens</div>
-                  <div class="item">Dresses</div>
-                  <div class="item">Shoes</div>
-                  <div class="item">Bags</div>
-                </div>
-              </div>
-              <div class="item">Home Goods</div>
-              <div class="item">Bedroom</div>
-              <div class="divider"></div>
-              <div class="header">Order</div>
-              <div class="item">Status</div>
-              <div class="item">Cancellations</div>
-            </div>
-          </div>
-          <div class="ui dropdown link item" style="padding:8px; margin:0px">
-            <span class="text">View</span>
-          </div>
-          <div class="ui dropdown link item" style="padding:8px; margin:0px">
-            <span class="text">Help</span>
-          </div>
-        </div>
+      <div class="ui dropdown link item">
+        <span class="text">Edit</span>
+      </div>
+      <div class="ui dropdown link item">
+        <span class="text">View</span>
+      </div>
+      <div class="ui dropdown link item">
+        <span class="text">Help</span>
       </div>
     </div>
-    <div id="quick-access">
-      <div class="ui icon menu">
-        <a class="item">
-          <i class="gamepad icon"></i>
-        </a>
-        <a class="item">
-          <i class="video camera icon"></i>
-        </a>
-        <a class="item">
-          <i class="video play icon"></i>
-        </a>
+    <div id="quick-access" class="ui secondary menu">
+      <div class="link item">
+        <i class="yellow certificate icon"></i>
+        <span class="text">Add Suggestions</span>
       </div>
+      <div class="link item">
+        <i class="purple file import icon"></i>
+        <span class="text">Import</span>
+      </div>
+      <div class="link item">
+        <i class="green file export icon"></i>
+        <span class="text">Save</span>
+      </div>
+    </div>
+    <div id="collapse">
+      <button class="circular ui icon button">
+        <i class="icon large angle up"></i>
+      </button>
     </div>
   </div>
   <script src="template3.js"></script>
