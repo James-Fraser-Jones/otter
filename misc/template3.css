@@ -1,9 +1,25 @@
+.item {
+  padding: 8px !important;
+  margin: 0px !important;
+}
+
+.menu {
+  margin: 0px !important
+}
+
+::placeholder {
+  color: rgba(0,0,0,.2);
+  opacity: 1;
+}
+
 #grid {
   display: grid;
-  grid-template-columns: 67px auto 45px;
-  grid-template-rows: 27px 40px 45px;
+  height: 100vh;
+  width: 100vw;
+  grid-template-columns: 67px auto 42px;
+  grid-template-rows: 27px 40px 42px auto 41px;
 
-  padding-top: 8px
+  padding-top: 8px;
 }
 
 #icon {
@@ -27,8 +43,6 @@
   grid-column-end: span 1;
   grid-row-start: 2;
   grid-row-end: span 1;
-
-  margin: 0px;
 }
 
 #quick-access {
@@ -39,12 +53,6 @@
 
   border-top: 1px solid rgba(0,0,0,.2);
   padding-left: 8px;
-  margin: 0px;
-}
-
-.item {
-  padding: 8px !important;
-  margin: 0px !important;
 }
 
 #collapse {
@@ -54,5 +62,27 @@
   grid-row-end: span 1;
 
   border-top: 1px solid rgba(0,0,0,.2);
-  padding: 1px;
+  padding: 4.1px;
+}
+
+#collapse button {
+  margin: 0px !important;
+}
+
+#main-window {
+  grid-column-start: 1;
+  grid-column-end: span 3;
+  grid-row-start: 4;
+  grid-row-end: span 1;
+
+  border-top: 1px solid rgba(0,0,0,.2);
+}
+
+#paginator {
+  grid-column-start: 1;
+  grid-column-end: span 3;
+  grid-row-start: 5;
+  grid-row-end: span 1;
+
+  border-top: 1px solid rgba(0,0,0,.2);
 }
