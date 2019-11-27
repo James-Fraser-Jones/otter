@@ -16,23 +16,57 @@
 <body>
   <div id="grid">
     <div id="icon">
-      <i class="file csv huge fitted teal icon"></i>
+      <i class="file csv huge fitted icon"></i>
     </div>
     <div id="filename" class="ui huge transparent input">
       <input type="text" placeholder="Untitled sheet">
     </div>
     <div id="main-menu" class="ui secondary icon text menu">
       <div class="ui dropdown link item">
-        <span class="text">File</span>
+        File
+        <div class="menu">
+          <div class="link item">
+            <i class="yellow file icon"></i>
+            <span class="text">New</span>
+          </div>
+          <div class="link item">
+            <i class="blue folder open icon"></i>
+            <span class="text">Open</span>
+          </div>
+          <div class="link item">
+            <i class="green file export icon"></i>
+            <span class="text">Save</span>
+          </div>
+          <div class="link item">
+            <i class="purple file import icon"></i>
+            <span class="text">Import</span>
+          </div>
+        </div>
       </div>
       <div class="ui dropdown link item">
-        <span class="text">Edit</span>
+        Edit
+        <div class="menu">
+          <div class="link item">
+            <i class="grey undo icon"></i>
+            <span class="text">Undo</span>
+          </div>
+          <div class="link item">
+            <i class="yellow certificate icon"></i>
+            <span class="text">Add Suggestions</span>
+          </div>
+          <div class="link item">
+            <i class="blue tools icon"></i>
+            <span class="text">Settings</span>
+          </div>
+        </div>
       </div>
       <div class="ui dropdown link item">
-        <span class="text">View</span>
-      </div>
-      <div class="ui dropdown link item">
-        <span class="text">Help</span>
+        Help
+        <div class="menu">
+          <div class="link item">
+            ???
+          </div>
+        </div>
       </div>
     </div>
     <div id="quick-access" class="ui secondary icon text menu">
@@ -55,7 +89,7 @@
       </button>
     </div>
     <div id="main-window">
-      <table id="table" class="ui single line fixed unstackable celled compact striped table">
+      <table id="table" class="ui single line fixed unstackable celled compact table">
         <thead>
           <tr>
             <th style="width:1300px">Name</th>
@@ -72,7 +106,11 @@
             <td>No</td>
           </tr>
           <tr>
-            <td>Jamie Harington</td>
+            <td id="cursor">
+              <div class="ui fluid input focus">
+                <input id="cursor-input", type="text", value="James Fraser-Jones", autocomplete="off"></input>
+              </div>
+            </td>
             <td>January 11, 2014</td>
             <td>jamieharingonton@yahoo.com</td>
             <td>Yes</td>
@@ -203,7 +241,7 @@
             <td>jilsewris22@yahoo.com</td>
             <td>Yes</td>
           </tr>
-          <tr>
+          <tr id="bottom-row">
             <td>John Lilki</td>
             <td>September 14, 2013</td>
             <td>jhlilk22@yahoo.com</td>
@@ -232,6 +270,23 @@
         <input type="text" placeholder="Go to page...">
         <div class="ui button">Go</div>
       </div>
+    </div>
+  </div>
+  <div id="settings" class="ui modal">
+    <div class="header">
+      Settings
+    </div>
+    <div class="image content">
+      <div class="image">
+        An image can appear on left or an icon
+      </div>
+      <div class="description">
+        A description can appear on the right
+      </div>
+    </div>
+    <div class="actions">
+      <div class="ui button">Discard Changes</div>
+      <div class="ui button">Save Changes</div>
     </div>
   </div>
   <script src="template3.js"></script>

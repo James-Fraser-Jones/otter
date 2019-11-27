@@ -34,6 +34,8 @@
   align-items: top;
   justify-content: center;
 
+  color: #0E6EB8;
+
   grid-column-start: 1;
   grid-column-end: span 1;
   grid-row-start: 1;
@@ -69,7 +71,7 @@
 #collapse {
   display: flex;
   align-items: center;
-  justify-content: right;
+  justify-content: flex-end;
 
   grid-column-start: 3;
   grid-column-end: span 1;
@@ -106,7 +108,7 @@
 #page-search {
   display: flex;
   align-items: center;
-  justify-content: right;
+  justify-content: flex-end;
 
   grid-column-start: 3;
   grid-column-end: span 1;
@@ -116,6 +118,8 @@
   padding-top: 8px;
 }
 
+/*Table Styling*/
+
 #table {
   border: 0px;
 }
@@ -123,4 +127,33 @@
 #table thead th {
   position: sticky;
   top: 0;
+  z-index: 1; /*go in front of cursor input*/
+}
+
+#table th {
+  background-color: #0E6EB8;
+  color: white;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+#table tr:nth-child(even) {
+  background-color: #e7f3fd;
+}
+
+#table #bottom-row {
+  background-color: #e9fced;
+}
+
+/*Cursor Styling*/
+
+#table #cursor {
+  padding: 0px;
+}
+
+#table #cursor input {
+  border-width: 2px;
+  background-color: inherit;
+  height: 33px;
+  padding-left: 7.8px;
 }
