@@ -4,10 +4,9 @@ $('.ui.modal').modal(); //set up for settings modal
 function send_error(msg){
   $('body').toast({
     class: 'red',
-    position: 'bottom center',
     title: 'Error:',
-    showIcon: 'microphone',
-    closeIcon: true,
+    position: 'bottom center',
+    showIcon: 'exclamation',
     displayTime: 0,
     message: msg
   });
@@ -16,12 +15,16 @@ function send_error(msg){
 function send_info(msg){
   $('body').toast({
     class: 'blue',
+    title: 'Info:',
     position: 'bottom center',
-    showIcon: 'microphone',
-    closeIcon: true,
+    showIcon: 'info',
     displayTime: 0,
     message: msg
   });
+}
+
+function close_messages(){
+  $('.ui.toast').toast('close');
 }
 
 function open_settings(){
