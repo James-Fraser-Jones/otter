@@ -272,23 +272,48 @@
       </div>
     </div>
   </div>
-  <div id="settings" class="ui modal">
-    <div class="header">
-      Settings
+
+  <div id="settings" style="display:grid;">
+    <div id="setting-icon">
+      <i class="big blue tools icon"></i>
     </div>
-    <div class="image content">
-      <div class="image">
-        An image can appear on left or an icon
-      </div>
-      <div class="description">
-        A description can appear on the right
-      </div>
+    <div id="setting-title">
+      <h2>Settings</h2>
     </div>
-    <div class="actions">
-      <div class="ui button">Discard Changes</div>
-      <div class="ui button">Save Changes</div>
+    <div id="setting-tabs" class="four ui buttons">
+      <button class="ui button active">General</button>
+      <button class="ui button">Columns</button>
+      <button class="ui button">Suggestions</button>
+      <button class="ui button">License</button>
+    </div>
+    <div id="setting-window" class="ui segment">
+      <form class="ui form">
+        <div class="field">
+          <label>First Name</label>
+          <input type="text" name="first-name" placeholder="First Name">
+        </div>
+        <div class="field">
+          <label>Last Name</label>
+          <input type="text" name="last-name" placeholder="Last Name">
+        </div>
+        <div class="field">
+          <div class="ui checkbox">
+            <input type="checkbox" tabindex="0" class="hidden">
+            <label>I agree to the Terms and Conditions</label>
+          </div>
+        </div>
+        <button class="ui button" type="submit">Submit</button>
+      </form>
+    </div>
+    <div id="setting-buttons">
+      <div class="ui buttons">
+        <button class="ui button">Cancel</button>
+        <button class="ui green button">Save</button>
+      </div>
     </div>
   </div>
+  <div id="dimmer" style="display:block;"></div>
+
   <script src="template3.js"></script>
 </body>
 </html>
