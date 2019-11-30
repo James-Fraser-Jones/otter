@@ -1,0 +1,161 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Lotter</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.2/dist/semantic.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.2/dist/semantic.min.css">
+  <link rel="stylesheet" type="text/css" href="template3.css">
+</head>
+<body>
+  <div id="grid">
+    <div id="icon">
+      <i class="file csv huge fitted icon"></i>
+    </div>
+    <div id="filename" class="ui huge transparent input">
+      <input type="text" placeholder="Untitled sheet">
+    </div>
+    <div id="main-menu" class="ui secondary icon text menu">
+      <div class="ui dropdown link item">
+        File
+        <div class="menu">
+          <div class="link item">
+            <i class="yellow file icon"></i>
+            <span class="text">New</span>
+          </div>
+          <div class="link item">
+            <i class="blue folder open icon"></i>
+            <span class="text">Open</span>
+          </div>
+          <div class="link item">
+            <i class="green file export icon"></i>
+            <span class="text">Save</span>
+          </div>
+          <div class="link item">
+            <i class="purple file import icon"></i>
+            <span class="text">Import</span>
+          </div>
+        </div>
+      </div>
+      <div class="ui dropdown link item">
+        Edit
+        <div class="menu">
+          <div class="link item">
+            <i class="grey undo icon"></i>
+            <span class="text">Undo</span>
+          </div>
+          <div class="link item">
+            <i class="yellow certificate icon"></i>
+            <span class="text">Add Suggestions</span>
+          </div>
+          <div class="link item">
+            <i class="blue tools icon"></i>
+            <span class="text">Settings</span>
+          </div>
+        </div>
+      </div>
+      <div class="ui dropdown link item">
+        Help
+        <div class="menu">
+          <div class="link item">
+            ???
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="quick-access" class="ui secondary icon text menu">
+      <div class="link item">
+        <i class="yellow certificate icon"></i>
+        <span class="text">Add Suggestions</span>
+      </div>
+      <div class="link item">
+        <i class="purple file import icon"></i>
+        <span class="text">Import</span>
+      </div>
+      <div class="link item">
+        <i class="green file export icon"></i>
+        <span class="text">Save</span>
+      </div>
+    </div>
+    <div id="collapse">
+      <button class="mini circular ui icon basic button">
+        <i class="icon large angle up"></i>
+      </button>
+    </div>
+    <div id="main-window">
+      <table id="table" class="ui single line fixed unstackable celled compact table">
+        <thead>
+          <tr>
+            <th style="width:50px">FOREIGN_KEY</th>
+            <th style="width:50px">PRIMARY_KEY</th>
+            <th style="width:300px">ITEM</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="bottom-row">
+            <td id="cursor">
+              <div class="ui fluid input focus">
+                <input id="cursor-input", type="text", value=""></input>
+              </div>
+            </td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="paginator" class="ui secondary icon text menu">
+      <div class="link item">
+        <i class="icon angle left"></i>
+      </div>
+      <div class="item">
+        <span class="text">
+          <b>1</b>
+          of
+          <b>1</b>
+        </span>
+      </div>
+      <div class="link item">
+        <i class="icon angle right"></i>
+      </div>
+    </div>
+    <div id="page-search">
+      <div class="ui action input">
+        <input type="text" placeholder="Go to page...">
+        <div class="ui button">Go</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings">
+    <div id="setting-icon">
+      <i class="big blue tools icon"></i>
+    </div>
+    <div id="setting-title">
+      <h2>Settings</h2>
+    </div>
+    <div id="setting-tabs" class="four ui buttons">
+      <button class="ui button active">General</button>
+      <button class="ui button">Columns</button>
+      <button class="ui button">Suggestions</button>
+      <button class="ui button">License</button>
+    </div>
+    <div id="setting-window" class="ui segment">
+      <!-- ... -->
+    </div>
+    <div id="setting-buttons">
+      <div class="ui buttons">
+        <button class="ui button">Cancel</button>
+        <button class="ui green button">Save</button>
+      </div>
+    </div>
+  </div>
+  <div id="dimmer"></div>
+
+  <script src="template3.js"></script>
+</body>
+</html>

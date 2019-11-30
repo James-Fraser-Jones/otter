@@ -20,6 +20,14 @@ function send_info(msg){
   });
 }
 
-function close_messages(){
+function close_all(){
   $('.ui.toast').toast('close');
+}
+
+function close_newest(){
+  $('.ui.toast').last().toast('close');
+}
+
+function close_oldest(){
+  $('.ui.toast').first().toast('close');
 }

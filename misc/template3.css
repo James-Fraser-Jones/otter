@@ -27,8 +27,8 @@
   display: grid;
   height: 100vh;
   width: 100vw;
-  grid-template-columns: 67px auto 250px;
-  grid-template-rows: 27px 40px 42px auto 45px;
+  grid-template-columns: 60px auto 250px;
+  grid-template-rows: 27px 41px 41px auto 45px;
 
   padding: 8px;
 }
@@ -44,11 +44,13 @@
   grid-column-end: span 1;
   grid-row-start: 1;
   grid-row-end: span 2;
+
+  border-bottom: 1px solid rgba(0,0,0,.2);
 }
 
 #filename {
   grid-column-start: 2;
-  grid-column-end: span 1;
+  grid-column-end: span 2;
   grid-row-start: 1;
   grid-row-end: span 1;
 
@@ -57,9 +59,11 @@
 
 #main-menu {
   grid-column-start: 2;
-  grid-column-end: span 1;
+  grid-column-end: span 2;
   grid-row-start: 2;
   grid-row-end: span 1;
+
+  border-bottom: 1px solid rgba(0,0,0,.2);
 }
 
 #quick-access {
@@ -67,9 +71,6 @@
   grid-column-end: span 2;
   grid-row-start: 3;
   grid-row-end: span 1;
-
-  border-top: 1px solid rgba(0,0,0,.2);
-  padding-left: 8px;
 }
 
 #collapse {
@@ -81,8 +82,6 @@
   grid-column-end: span 1;
   grid-row-start: 3;
   grid-row-end: span 1;
-
-  border-top: 1px solid rgba(0,0,0,.2);
 }
 
 #main-window {
@@ -91,7 +90,6 @@
   grid-row-start: 4;
   grid-row-end: span 1;
 
-  border-top: 1px solid rgba(0,0,0,.2);
   overflow: auto;
 }
 
