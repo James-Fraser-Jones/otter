@@ -1,0 +1,124 @@
+/******************************************************************************/
+/*Non table specific*/
+
+.horizontal-center {
+  text-align: center !important;
+}
+
+/******************************************************************************/
+/*Grid specific*/
+
+#grid {
+  margin: 0;
+}
+
+#grid .row {
+  padding: 0;
+}
+
+#grid .column {
+  padding: 0;
+}
+
+/******************************************************************************/
+/*Table specific*/
+
+/***********************************/
+/*Make table header sticky*/
+
+#table-viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 100vh;
+}
+
+#table thead th {
+  position: sticky;
+  top: 0;
+}
+
+/***********************************/
+/*Color styling table header, every other row and the bottom row*/
+
+#table th {
+  background-color: #0E6EB8;
+  color: white;
+}
+
+tr:nth-child(even) {
+  background-color: #e7f3fd;
+}
+
+#bottomRow {
+  background-color: #e9fced;
+}
+
+/***********************************/
+/*Make table position relative*/
+
+#table {
+  position: relative;
+}
+
+/***********************************/
+/*Prevent table from being larger height than its rows*/
+/*Force header and subsequent rows to be same height*/
+
+#table {
+  border-top-width: 0;
+  border-bottom-width: 0;
+}
+
+#table th {
+  height: 34px;
+  border-bottom: 1px solid rgba(34,36,38,.1);
+  border-top-width: 0;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+#table td {
+  height: 34px;
+  border-bottom: 1px solid rgba(34,36,38,.1);
+  border-top-width: 0;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+/***********************************/
+/*Fit virtual scrollbar*/
+
+#table-viewport {
+  width: calc(100% - 13px);
+  vertical-align: top;
+  display: inline-block;
+}
+
+#scrollbar {
+  width: 10px;
+  height: 100vh;
+  overflow-y: auto;
+  display: inline-block;
+  vertical-align: top;
+}
+
+/***********************************/
+/*Cursor*/
+
+#table #cursor {
+  padding: 0
+}
+
+#table #cursor input {
+  border-width: 2px;
+
+  background-color: inherit;
+
+  width: 100%;
+  height: 33px;
+
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 7.8px;
+  padding-right: 7.8px;
+}

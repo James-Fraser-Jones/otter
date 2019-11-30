@@ -5,7 +5,7 @@
   "description": "Lotting Software",
   "author": "James Fraser-Jones",
   "dependencies": {
-    "fomantic-ui": "^2.7.8"
+    "fomantic-ui": "^2.8.2"
   },
   "window": {
     "icon": "startup/otter.png"
