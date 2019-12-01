@@ -27,7 +27,7 @@ module Otter exposing (..)
 
 --My modules
 import Ports as P
-import Records exposing (..)
+import Types exposing (..)
 import Prelude exposing (..)
 
 --Core modules

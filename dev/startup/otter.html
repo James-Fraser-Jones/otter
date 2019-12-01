@@ -29,7 +29,7 @@
       var gulp = require('gulp');
       const {execSync} = require('child_process');
 
-      gulp.task('elm', function () {
+      gulp.task('recompile', function () {
         try {
           execSync('elm make src\\otter.elm --output=src\\otter.js');
           if (location) location.reload();
@@ -41,12 +41,13 @@
         }
       });
 
-      gulp.task('css', function () {
+      gulp.task('refresh', function () {
         if (location) location.reload();
       });
 
-      gulp.watch(['**/*.elm'], gulp.task('elm'));
-      gulp.watch(['**/*.css'], gulp.task('css'));
+      gulp.watch(['**/*.elm'], gulp.task('recompile'));
+      gulp.watch(['**/*.css'], gulp.task('refresh'));
+      gulp.watch(['**/*.js'], gulp.task('refresh'));
     </script>
 
   </body>
