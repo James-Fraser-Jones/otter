@@ -1,23 +1,51 @@
 module Types exposing (..)
 
--- type alias Model =
---   --data
---   { records : Array Record
---   , suggestions : Array Record
---   --pages
---   , pageIndex : Int
---   , pageTotal : Int
---   --settings
---   , settings : Settings
---   , newSettings : Maybe NewSettings
---   --cursor
---   , cursorX : Int
---   , mCursorY : Maybe Int
---   --misc
---   , newRecord : NewRecord
---   , topBar : Bool
---   , filename : String
---   }
+import Array exposing (Array)
+
+type Msg =
+    NoOp
+  | ToggleTopbar
+
+{-
+Toggle Top Panel
+
+Toggle Settings Panel
+Switch Settings Category
+Change Setting
+Apply Settings Changes
+
+Go To Page
+
+Filename Clicked
+Filename Edited
+
+Row Push
+Row Pop
+
+Import CSV
+Export CSV
+
+Cursor Moved
+Cell Clicked
+Cell Edited
+Foreign Key Edited
+-}
+
+type alias Model =
+  --data
+  { records : Array Record
+  , suggestions : Array Record
+  --settings
+  , settings : Settings
+  , newSettings : Maybe NewSettings
+  --misc
+  , cursorX : Int --, mCursorY : Maybe Int
+  , newRecord : Record
+  , suggestion : Maybe String
+  , topbar : Bool
+  , filename : String
+  , pageIndex : Int
+  }
 
 type alias Record =
   { pk : String
@@ -25,10 +53,10 @@ type alias Record =
   , fields : List String
   }
 
-type NewRecord =
-    Auto
-  | ByKey Int
-  | Manual Record
+-- type NewRecord =
+--     Auto
+--   | ByKey Int
+--   | Manual Record
 
 type alias Column =
   { name : String
@@ -49,6 +77,7 @@ type alias Settings =
   , colSeperator : String
   --misc
   , pageSize : Int
+  , pkAutoIncrement : Bool
   }
 
 type SettingCategory =

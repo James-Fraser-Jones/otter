@@ -38,7 +38,7 @@ import Task
 --Common modules
 import Html exposing (..)
 import Html.Events exposing (..)
-import Html.Attributes exposing (class, value, type_, placeholder, style, id, attribute, autocomplete)
+import Html.Attributes exposing (..)
 import Html.Lazy as Lazy
 import Browser
 import Browser.Dom as Dom
@@ -65,61 +65,36 @@ main =
     , subscriptions = subscriptions
     }
 
---==================================================================== MODEL
-
-type alias CursorPosition = {x : Int, y : Maybe Int}
-
--- type alias Model =
---   --Settings
---   { sidePanelExpanded : Bool        --Whether or not the side panel has been expanded
---   , filename : String               --What to call the exported file
---
---   --Data
---   , records : Array Record          --The record store
---   , oldRecords : Array Record       --The store of previous records to be suggested
---   , newRecord : Record              --The record representing the bottom row
---
---   --Suggestion
---   , suggested : Maybe String        --The currently suggested "old lot no" for the bottom row (if one exists)
---
---   --Cursor
---   , cursorPosition : CursorPosition --The current cursor position
---
---   --Settings, pagination...
---   }
-
-type alias Model = { simple: () }
-
--- type Msg
---   --Standard
---   = NoOp                            --Do nothing
---   | HandleErrorEvent String         --Handle an error, (NOTE: actually does nothing but should probably log to an error file)
---
---   --Simple
---   | ToggleSidePanel                 --Toggle whether side panel is visible or not
---   | FilenameEdited String           --Modify export filename based on what user enters in the box
---   | NewRow KeyboardEvent            --Respond to new row being added by "enter" key being pressed when on bottom row
---
---   --CSV Import/Export
---   | CsvRequested Bool               --Request to select file from filesystem, either to populate records or oldrecords
---   | CsvSelected Bool File.File      --Confirmation of file
---   | CsvLoaded Bool String String    --Loading of file into memory
---   | CsvExported                     --Request to export current records
---
---   --Cursor
---   | CursorArrow KeyboardEvent       --Change of cursor position due to arrowkey press
---   | CursorMoved Bool CursorPosition --Cursor move event, either through clicking or arrowkey press
---   | CursorEdited String             --Cell content edit event
---
---   --Debug
---   | PortExample                     --Calls custom "example" js function from ports module
-
-type Msg = NoOp
-
 --==================================================================== INIT
 
+defaultSettings : Settings
+defaultSettings =
+  Settings
+    (Column "FOREIGN_KEY" "FOREIGN_KEY" 4)
+    (Column "PRIMARY_KEY" "PRIMARY_KEY" 4)
+    []
+    "Untitled sheet"
+    False
+    ","
+    windows_newline
+    100
+    False
+
 init : () -> (Model, Cmd Msg)
-init _ = (Model (), Cmd.none)
+init _ =
+  ( Model
+      Array.empty
+      Array.empty
+      defaultSettings
+      Nothing
+      0
+      (Record "" "" [])
+      Nothing
+      True
+      ""
+      0
+  , Cmd.none
+  )
 
 --==================================================================== VIEW
 
@@ -129,7 +104,7 @@ view = Lazy.lazy vieww >> List.singleton >> Browser.Document "Otter"
 vieww : Model -> Html Msg
 vieww model =
   div []
-    [ div [ id "grid" ]
+    [ div ([ id "grid" ] |> iff model.topbar identity ((::) (class "hide-topbar")))
         [ div [ id "icon" ]
             [ i [ class "file csv huge fitted icon" ]
                 []
@@ -220,8 +195,8 @@ vieww model =
                 ]
             ]
         , div [ id "collapse" ]
-            [ button [ class "mini circular ui icon basic button" ]
-                [ i [ class "icon large angle up" ]
+            [ button [ class "mini circular ui icon basic button", onClick ToggleTopbar ]
+                [ i [ class (String.append "icon large angle " (iff model.topbar "up" "down")) ]
                     []
                 ]
             ]
@@ -296,39 +271,20 @@ onScroll msg = on "scroll" (Decode.succeed msg)
 
 --==================================================================== UPDATE
 
--- update : Msg -> Model -> (Model, Cmd Msg)
--- update msg model =
---   case msg of
---     --Standard
---     NoOp -> (model, Cmd.none)
---     HandleErrorEvent message -> (message |> always model, Cmd.none)
---
---     --Simple
---     ToggleSidePanel -> ({model | sidePanelExpanded = not model.sidePanelExpanded}, Cmd.none)
---     FilenameEdited newText -> ({model | filename = newText}, Cmd.none)
---
---     --CSV Import/Export
---     CsvRequested suggestion -> (model, Select.file [csv_mime] <| CsvSelected suggestion)
---     CsvSelected suggestion file -> (model, Task.perform (CsvLoaded suggestion <| File.name file) (File.toString file))
---     CsvLoaded suggestion fileName fileContent ->
---       case Csv.parse fileContent of
---           Err _ -> (model, Cmd.none)
---           Ok csv -> (model, Cmd.none)
---     CsvExported -> (model, Download.string ((if model.filename == "" then "export" else model.filename) ++ ".csv") csv_mime (recordsToCsv model.records))
---
---     --Debug
---     PortExample -> (model, Ports.example model.filename)
-
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    NoOp -> (Model (), Cmd.none)
+    NoOp -> (model, Cmd.none)
+    ToggleTopbar -> (toggleTopbar model, Cmd.none)
 
 -- handleError : (a -> Msg) -> Result Dom.Error a -> Msg
 -- handleError onSuccess result =
 --   case result of
 --     Err (Dom.NotFound message) -> HandleErrorEvent message
 --     Ok value -> onSuccess value
+
+toggleTopbar : Model -> Model
+toggleTopbar model = {model | topbar = not model.topbar}
 
 --==================================================================== SUBSCRIPTIONS
 
@@ -345,3 +301,6 @@ html_empty = text ""
 
 debug : Bool
 debug = True
+
+windows_newline : String
+windows_newline = "\r\n"

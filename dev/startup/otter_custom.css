@@ -17,10 +17,6 @@
   margin-left: 4px !important;
 }
 
-.tab {
-  padding: 14px !important;
-}
-
 /*Structure*/
 
 #grid {
@@ -237,4 +233,20 @@
   grid-column-end: span 1;
   grid-row-start: 4;
   grid-row-end: span 1;
+}
+
+/*Programatic Styling Changes*/
+
+.hide-topbar {
+  grid-template-rows: 0px 0px 41px auto 45px !important;
+  padding-top: 0 !important;
+}
+.hide-topbar #icon {
+  visibility: hidden;
+}
+.hide-topbar #filename {
+  visibility: hidden;
+}
+.hide-topbar #main-menu {
+  visibility: hidden;
 }

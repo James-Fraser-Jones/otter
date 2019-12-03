@@ -15,7 +15,8 @@ uncurry f a b = f (a, b)
 
 const = always
 
-id = identity
+iff : Bool -> a -> a -> a
+iff b a1 a2 = if b then a1 else a2
 
 --Lists
 
