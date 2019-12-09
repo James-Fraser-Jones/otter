@@ -250,3 +250,11 @@
 .hide-topbar #main-menu {
   visibility: hidden;
 }
+
+.show-settings #settings {
+  display: grid;
+}
+
+.show-settings #dimmer {
+  display: block;
+}

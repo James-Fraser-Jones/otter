@@ -88,7 +88,8 @@ init _ =
       defaultSettings
       Nothing
       0
-      (Record "" "" [])
+      Nothing
+      Auto
       Nothing
       True
       ""
@@ -98,13 +99,16 @@ init _ =
 
 --==================================================================== VIEW
 
+addAttr : Bool -> (Attribute msg) -> List (Attribute msg) -> List (Attribute msg)
+addAttr b a = if b then (::) a else identity
+
 view : Model -> Browser.Document Msg
 view = Lazy.lazy vieww >> List.singleton >> Browser.Document "Otter"
 
 vieww : Model -> Html Msg
 vieww model =
-  div []
-    [ div ([ id "grid" ] |> iff model.topbar identity ((::) (class "hide-topbar")))
+  div ([] |> addAttr (isJust model.newSettings) (class "show-settings"))
+    [ div ([ id "grid" ] |> addAttr (not model.topbar) (class "hide-topbar"))
         [ div [ id "icon" ]
             [ i [ class "file csv huge fitted icon" ]
                 []
@@ -158,7 +162,7 @@ vieww model =
                         , span [ class "text" ]
                             [ text "Add Suggestions" ]
                         ]
-                    , div [ class "link item" ]
+                    , div [ class "link item", onClick OpenSettings ]
                         [ i [ class "blue tools icon" ]
                             []
                         , span [ class "text" ]
@@ -256,6 +260,61 @@ vieww model =
                 ]
             ]
         ]
+    , div [ id "settings" ]
+        [ div [ id "setting-icon" ]
+            [ i [ class "big blue tools icon" ]
+                []
+            ]
+        , div [ id "setting-title" ]
+            [ h2 []
+                [ text "Settings" ]
+            ]
+        , div [ class "four ui buttons", id "setting-tabs" ]
+            [ button [ class "ui button active" ]
+                [ text "General" ]
+            , button [ class "ui button" ]
+                [ text "Columns" ]
+            , button [ class "ui button" ]
+                [ text "Suggestions" ]
+            , button [ class "ui button" ]
+                [ text "License" ]
+            ]
+        , div [ class "ui segment", id "setting-window" ]
+            [ Html.form [ class "ui form" ]
+                [ div [ class "field" ]
+                    [ label []
+                        [ text "First Name" ]
+                    , input [ name "first-name", placeholder "First Name", type_ "text" ]
+                        []
+                    ]
+                , div [ class "field" ]
+                    [ label []
+                        [ text "Last Name" ]
+                    , input [ name "last-name", placeholder "Last Name", type_ "text" ]
+                        []
+                    ]
+                , div [ class "field" ]
+                    [ div [ class "ui checkbox" ]
+                        [ input [ class "hidden", attribute "tabindex" "0", type_ "checkbox" ]
+                            []
+                        , label []
+                            [ text "I agree to the Terms and Conditions" ]
+                        ]
+                    ]
+                , button [ class "ui button", type_ "submit" ]
+                    [ text "Submit" ]
+                ]
+            ]
+        , div [ id "setting-buttons" ]
+            [ div [ class "ui buttons" ]
+                [ button [ class "ui button", onClick <| CloseSettings False ]
+                    [ text "Cancel" ]
+                , button [ class "ui green button", onClick <| CloseSettings True ]
+                    [ text "Save" ]
+                ]
+            ]
+        ]
+    , div [ id "dimmer" ] []
     ]
 
 --Event handlers
@@ -276,6 +335,8 @@ update msg model =
   case msg of
     NoOp -> (model, Cmd.none)
     ToggleTopbar -> (toggleTopbar model, Cmd.none)
+    OpenSettings -> (openSettings model, Cmd.none)
+    CloseSettings save -> (model |> iff save saveSettings identity |> closeSettings, Cmd.none)
 
 -- handleError : (a -> Msg) -> Result Dom.Error a -> Msg
 -- handleError onSuccess result =
@@ -283,8 +344,23 @@ update msg model =
 --     Err (Dom.NotFound message) -> HandleErrorEvent message
 --     Ok value -> onSuccess value
 
+{-
+pure state transitions below
+should make it impossible to reach an invalid state via any possible combination or ordering of transitions
+error handling for reaching an invalid state is not provided since it should be impossible
+-}
+
 toggleTopbar : Model -> Model
 toggleTopbar model = {model | topbar = not model.topbar}
+
+openSettings : Model -> Model
+openSettings model = {model | newSettings = Just <| NewSettings General model.settings}
+
+closeSettings : Model -> Model
+closeSettings model = {model | newSettings = Nothing}
+
+saveSettings : Model -> Model
+saveSettings model = {model | settings = maybe model.settings (.settings) model.newSettings}
 
 --==================================================================== SUBSCRIPTIONS
 

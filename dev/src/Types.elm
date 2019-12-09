@@ -5,14 +5,12 @@ import Array exposing (Array)
 type Msg =
     NoOp
   | ToggleTopbar
+  | OpenSettings
+  | CloseSettings Bool
 
 {-
-Toggle Top Panel
-
-Toggle Settings Panel
 Switch Settings Category
 Change Setting
-Apply Settings Changes
 
 Go To Page
 
@@ -38,9 +36,11 @@ type alias Model =
   --settings
   , settings : Settings
   , newSettings : Maybe NewSettings
+  --cursor
+  , cursorX : Int
+  , mCursorY : Maybe Int
   --misc
-  , cursorX : Int --, mCursorY : Maybe Int
-  , newRecord : Record
+  , newRecord : NewRecord
   , suggestion : Maybe String
   , topbar : Bool
   , filename : String
@@ -53,10 +53,10 @@ type alias Record =
   , fields : List String
   }
 
--- type NewRecord =
---     Auto
---   | ByKey Int
---   | Manual Record
+type NewRecord =
+    Auto
+  | ByKey Int
+  | Manual Record
 
 type alias Column =
   { name : String
