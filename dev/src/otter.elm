@@ -99,6 +99,14 @@ init _ =
 
 --==================================================================== VIEW
 
+showSettingCategory : SettingCategory -> String
+showSettingCategory c =
+  case c of
+    General -> "General"
+    Columns -> "Columns"
+    Suggestions -> "Suggestions"
+    License -> "License"
+
 addAttr : Bool -> (Attribute msg) -> List (Attribute msg) -> List (Attribute msg)
 addAttr b a = if b then (::) a else identity
 
@@ -270,20 +278,20 @@ vieww model =
                 [ text "Settings" ]
             ]
         , div [ class "four ui buttons", id "setting-tabs" ]
-            [ button [ class "ui button active" ]
+            [ button [ class "ui button active", onClick <| SwitchCategory General ]
                 [ text "General" ]
-            , button [ class "ui button" ]
+            , button [ class "ui button", onClick <| SwitchCategory Columns ]
                 [ text "Columns" ]
-            , button [ class "ui button" ]
+            , button [ class "ui button", onClick <| SwitchCategory Suggestions ]
                 [ text "Suggestions" ]
-            , button [ class "ui button" ]
+            , button [ class "ui button", onClick <| SwitchCategory License ]
                 [ text "License" ]
             ]
         , div [ class "ui segment", id "setting-window" ]
             [ Html.form [ class "ui form" ]
                 [ div [ class "field" ]
                     [ label []
-                        [ text "First Name" ]
+                        [ text <| maybe "uh oh" (.category >> showSettingCategory) model.newSettings ]
                     , input [ name "first-name", placeholder "First Name", type_ "text" ]
                         []
                     ]
@@ -310,7 +318,7 @@ vieww model =
                 [ button [ class "ui button", onClick <| CloseSettings False ]
                     [ text "Cancel" ]
                 , button [ class "ui green button", onClick <| CloseSettings True ]
-                    [ text "Save" ]
+                    [ text "Save Changes" ]
                 ]
             ]
         ]
@@ -337,6 +345,7 @@ update msg model =
     ToggleTopbar -> (toggleTopbar model, Cmd.none)
     OpenSettings -> (openSettings model, Cmd.none)
     CloseSettings save -> (model |> iff save saveSettings identity |> closeSettings, Cmd.none)
+    SwitchCategory cat -> (switchCategory cat model, Cmd.none)
 
 -- handleError : (a -> Msg) -> Result Dom.Error a -> Msg
 -- handleError onSuccess result =
@@ -361,6 +370,11 @@ closeSettings model = {model | newSettings = Nothing}
 
 saveSettings : Model -> Model
 saveSettings model = {model | settings = maybe model.settings (.settings) model.newSettings}
+
+switchCategory : SettingCategory -> Model -> Model
+switchCategory category model =
+  let setCategory c r = {r | category = c}
+   in {model | newSettings = Maybe.map (setCategory category) model.newSettings}
 
 --==================================================================== SUBSCRIPTIONS
 

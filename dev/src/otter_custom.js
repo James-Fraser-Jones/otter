@@ -2,7 +2,9 @@ var app = Elm.Otter.init({
   node: document.getElementById('elm')
 });
 
-$('.dropdown').dropdown({transition: 'slide down', on: 'hover'}); //auto dropdown on hover menu items
+$('.dropdown').dropdown({
+  action: 'hide'
+});
 
 //js will complain about ports.PORTNAME being undefined if that port isn't actually referenced in otter.elm
 // app.ports.example.subscribe(function(data) {
@@ -51,3 +53,31 @@ function close_newest(){
 function close_oldest(){
   $('.ui.toast').first().toast('close');
 }
+
+//Button active behaviour, found from here: https://stackoverflow.com/questions/23032833/how-to-toggle-content-in-semantic-ui-buttons
+semantic = {};
+semantic.button = {};
+semantic.button.ready = function() {
+  var
+    $buttons = $('.ui.buttons .button'),
+    $toggle  = $('.main .ui.toggle.button'),
+    $button  = $('.ui.button').not($buttons).not($toggle),
+    handler = {
+      activate: function() {
+        $(this)
+          .addClass('active')
+          .siblings()
+          .removeClass('active')
+        ;
+      }
+    };
+  $buttons.on('click', handler.activate);
+  $toggle
+    .state({
+      text: {
+        inactive : 'Vote',
+        active   : 'Voted'
+      }
+    });
+};
+$(document).ready(semantic.button.ready);

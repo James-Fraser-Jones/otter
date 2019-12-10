@@ -1,4 +1,10 @@
-$('.dropdown').dropdown({transition: 'slide down', on: 'hover' }); //auto dropdown on hover menu items
+//$('.dropdown').dropdown({transition: 'slide down', on: 'hover' }); //auto dropdown on hover menu items
+
+$('.ui.dropdown')
+  .dropdown({
+    action: 'hide'
+  })
+;
 
 function send_error(msg){
   $('body').toast({

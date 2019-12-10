@@ -7,9 +7,9 @@ type Msg =
   | ToggleTopbar
   | OpenSettings
   | CloseSettings Bool
+  | SwitchCategory SettingCategory
 
 {-
-Switch Settings Category
 Change Setting
 
 Go To Page
