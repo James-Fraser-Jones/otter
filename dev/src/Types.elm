@@ -8,6 +8,7 @@ type Msg =
   | OpenSettings
   | CloseSettings Bool
   | SwitchCategory SettingCategory
+  | SaveState
 
 {-
 Change Setting
@@ -35,7 +36,7 @@ type alias Model =
   , suggestions : Array Record
   --settings
   , settings : Settings
-  , newSettings : Maybe NewSettings
+  , category : Maybe SettingCategory
   --cursor
   , cursorX : Int
   , mCursorY : Maybe Int
@@ -86,7 +87,7 @@ type SettingCategory =
   | Suggestions
   | License
 
-type alias NewSettings =
-  { category : SettingCategory
-  , settings : Settings
-  }
+-- type alias NewSettings =
+--   { category : SettingCategory
+--   , settings : Settings
+--   }

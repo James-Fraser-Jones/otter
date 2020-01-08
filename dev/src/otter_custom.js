@@ -2,9 +2,9 @@ var app = Elm.Otter.init({
   node: document.getElementById('elm')
 });
 
-$('.dropdown').dropdown({
-  action: 'hide'
-});
+/*******************************************************************************
+PORTS
+*******************************************************************************/
 
 //js will complain about ports.PORTNAME being undefined if that port isn't actually referenced in otter.elm
 // app.ports.example.subscribe(function(data) {
@@ -13,9 +13,9 @@ $('.dropdown').dropdown({
 // app.ports.send_error.subscribe(function(msg) {
 //   send_error(msg);
 // });
-// app.ports.send_info.subscribe(function(msg) {
-//   send_info(msg);
-// });
+app.ports.send_info.subscribe(function(msg) {
+  send_info(msg);
+});
 // app.ports.close_all.subscribe(function() {
 //   close_all();
 // });
@@ -25,6 +25,10 @@ $('.dropdown').dropdown({
 // app.ports.close_oldest.subscribe(function() {
 //   close_oldest();
 // });
+
+app.ports.save_file.subscribe(function(data) {
+  save_file(data[0], data[1]);
+});
 
 function send_error(msg){
   $('body').toast({
@@ -54,6 +58,14 @@ function close_oldest(){
   $('.ui.toast').first().toast('close');
 }
 
+/*******************************************************************************
+SEMANTIC
+*******************************************************************************/
+
+$('.dropdown').dropdown({
+  action: 'hide'
+});
+
 //Button active behaviour, found from here: https://stackoverflow.com/questions/23032833/how-to-toggle-content-in-semantic-ui-buttons
 semantic = {};
 semantic.button = {};
@@ -81,3 +93,20 @@ semantic.button.ready = function() {
     });
 };
 $(document).ready(semantic.button.ready);
+
+/*******************************************************************************
+NWJS
+*******************************************************************************/
+
+var fs = require('fs');
+var path = require('path');
+
+function save_file(fileName, fileContent){
+    var filePath = path.join(nw.App.dataPath, fileName);
+    fs.writeFile(filePath, JSON.stringify(fileContent), function (err) {
+        if (err){
+            console.info("There was an error attempting to save your data.");
+            console.warn(err.message);
+        }
+    });
+}

@@ -29,6 +29,7 @@ module Otter exposing (..)
 import Ports as P
 import Types exposing (..)
 import Prelude exposing (..)
+import Endecoder exposing (..)
 
 --Core modules
 import Array exposing (Array)
@@ -47,6 +48,7 @@ import File
 import File.Select as Select
 import File.Download as Download
 import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode
 
 --Uncommon modules
 import Csv
@@ -115,7 +117,7 @@ view = Lazy.lazy vieww >> List.singleton >> Browser.Document "Otter"
 
 vieww : Model -> Html Msg
 vieww model =
-  div ([] |> addAttr (isJust model.newSettings) (class "show-settings"))
+  div ([] |> addAttr (isJust model.category) (class "show-settings"))
     [ div ([ id "grid" ] |> addAttr (not model.topbar) (class "hide-topbar"))
         [ div [ id "icon" ]
             [ i [ class "file csv huge fitted icon" ]
@@ -141,7 +143,7 @@ vieww model =
                         , span [ class "text" ]
                             [ text "Open" ]
                         ]
-                    , div [ class "link item" ]
+                    , div [ class "link item", onClick SaveState ]
                         [ i [ class "green file export icon" ]
                             []
                         , span [ class "text" ]
@@ -199,7 +201,7 @@ vieww model =
                 , span [ class "text" ]
                     [ text "Import" ]
                 ]
-            , div [ class "link item" ]
+            , div [ class "link item", onClick SaveState ]
                 [ i [ class "green file export icon" ]
                     []
                 , span [ class "text" ]
@@ -291,7 +293,7 @@ vieww model =
             [ Html.form [ class "ui form" ]
                 [ div [ class "field" ]
                     [ label []
-                        [ text <| maybe "uh oh" (.category >> showSettingCategory) model.newSettings ]
+                        [ text <| maybe "uh oh" showSettingCategory model.category ]
                     , input [ name "first-name", placeholder "First Name", type_ "text" ]
                         []
                     ]
@@ -344,8 +346,13 @@ update msg model =
     NoOp -> (model, Cmd.none)
     ToggleTopbar -> (toggleTopbar model, Cmd.none)
     OpenSettings -> (openSettings model, Cmd.none)
-    CloseSettings save -> (model |> iff save saveSettings identity |> closeSettings, Cmd.none)
+    CloseSettings save -> (model |> iff save identity revertSettings |> closeSettings, Cmd.none)
     SwitchCategory cat -> (switchCategory cat model, Cmd.none)
+    SaveState ->
+      let encodedmodel = Encode.encode 2 (encodeModel model)
+          doublemodel = either (always "Ah shit") (Encode.encode 2 << encodeModel) (Decode.decodeString decodeModel encodedmodel)
+      in  (model, P.send_info <| if encodedmodel == doublemodel then "YAY" else "SHIT")
+    --SaveState -> (model, P.save_file ("TEMPSETTINGS.json", encodeModel model))
 
 -- handleError : (a -> Msg) -> Result Dom.Error a -> Msg
 -- handleError onSuccess result =
@@ -363,18 +370,19 @@ toggleTopbar : Model -> Model
 toggleTopbar model = {model | topbar = not model.topbar}
 
 openSettings : Model -> Model
-openSettings model = {model | newSettings = Just <| NewSettings General model.settings}
+openSettings = switchCategory General
 
 closeSettings : Model -> Model
-closeSettings model = {model | newSettings = Nothing}
+closeSettings model = {model | category = Nothing}
 
-saveSettings : Model -> Model
-saveSettings model = {model | settings = maybe model.settings (.settings) model.newSettings}
+-- saveSettings : Model -> Model
+-- saveSettings model = {model | settings = maybe model.settings (.settings) model.newSettings}
+
+revertSettings : Model -> Model
+revertSettings _ = Debug.todo "implement this!"
 
 switchCategory : SettingCategory -> Model -> Model
-switchCategory category model =
-  let setCategory c r = {r | category = c}
-   in {model | newSettings = Maybe.map (setCategory category) model.newSettings}
+switchCategory category model = {model | category = Just category}
 
 --==================================================================== SUBSCRIPTIONS
 
