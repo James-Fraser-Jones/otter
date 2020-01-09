@@ -44,7 +44,7 @@ import Html.Lazy as Lazy
 import Browser
 import Browser.Dom as Dom
 import Browser.Events as BEvent
-import File
+import File exposing (File)
 import File.Select as Select
 import File.Download as Download
 import Json.Decode as Decode exposing (Decoder)
@@ -81,6 +81,7 @@ defaultSettings =
     windows_newline
     100
     False
+    debug
 
 init : () -> (Model, Cmd Msg)
 init _ =
@@ -129,7 +130,7 @@ vieww model =
             ]
         , div [ class "ui secondary icon text menu", id "main-menu" ]
             [ div [ class "ui dropdown link item" ]
-                [ text "File        "
+                [ text "File"
                 , div [ class "menu" ]
                     [ div [ class "link item" ]
                         [ i [ class "yellow file icon" ]
@@ -143,7 +144,7 @@ vieww model =
                         , span [ class "text" ]
                             [ text "Open" ]
                         ]
-                    , div [ class "link item", onClick SaveState ]
+                    , div [ class "link item" ]
                         [ i [ class "green file export icon" ]
                             []
                         , span [ class "text" ]
@@ -158,7 +159,7 @@ vieww model =
                     ]
                 ]
             , div [ class "ui dropdown link item" ]
-                [ text "Edit        "
+                [ text "Edit"
                 , div [ class "menu" ]
                     [ div [ class "link item" ]
                         [ i [ class "grey undo icon" ]
@@ -181,10 +182,75 @@ vieww model =
                     ]
                 ]
             , div [ class "ui dropdown link item" ]
-                [ text "Help        "
+                [ text "Help"
                 , div [ class "menu" ]
                     [ div [ class "link item" ]
-                        [ text "???          " ]
+                        [ text "???" ]
+                    ]
+                ]
+            , div [ class <| "ui dropdown link item" ++ if not model.settings.debug then " hide-debug" else "" ]
+                [ text "Debug"
+                , div [ class "menu" ]
+                    [ div [ class "link item", onClick Debug1 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "SaveState" ]
+                        ]
+                    , div [ class "link item", onClick Debug2 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "LoadState" ]
+                        ]
+                    , div [ class "link item", onClick Debug3 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "Debug3" ]
+                        ]
+                    , div [ class "link item", onClick Debug4 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "Debug4" ]
+                        ]
+                    , div [ class "link item", onClick Debug5 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "Debug5" ]
+                        ]
+                    , div [ class "link item", onClick Debug6 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "Debug6" ]
+                        ]
+                    , div [ class "link item", onClick Debug7 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "Debug7" ]
+                        ]
+                    , div [ class "link item", onClick Debug8 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "Debug8" ]
+                        ]
+                    , div [ class "link item", onClick Debug9 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "Debug9" ]
+                        ]
+                    , div [ class "link item", onClick Debug10 ]
+                        [ i [ class "grey bug icon" ]
+                            []
+                        , span [ class "text" ]
+                            [ text "Debug10" ]
+                        ]
                     ]
                 ]
             ]
@@ -201,7 +267,7 @@ vieww model =
                 , span [ class "text" ]
                     [ text "Import" ]
                 ]
-            , div [ class "link item", onClick SaveState ]
+            , div [ class "link item" ]
                 [ i [ class "green file export icon" ]
                     []
                 , span [ class "text" ]
@@ -344,15 +410,32 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     NoOp -> (model, Cmd.none)
+
     ToggleTopbar -> (toggleTopbar model, Cmd.none)
     OpenSettings -> (openSettings model, Cmd.none)
     CloseSettings save -> (model |> iff save identity revertSettings |> closeSettings, Cmd.none)
     SwitchCategory cat -> (switchCategory cat model, Cmd.none)
-    SaveState ->
-      let encodedmodel = Encode.encode 2 (encodeModel model)
-          doublemodel = either (always "Ah shit") (Encode.encode 2 << encodeModel) (Decode.decodeString decodeModel encodedmodel)
-      in  (model, P.send_info <| if encodedmodel == doublemodel then "YAY" else "SHIT")
-    --SaveState -> (model, P.save_file ("TEMPSETTINGS.json", encodeModel model))
+
+    FileDownloaded filename mimetype filecontent -> (model, Download.string filename mimetype filecontent)
+    FileRequested cont mimes -> (model, Select.file mimes <| FileSelected cont)
+    FileSelected cont file -> (model, Task.perform (cont <| File.name file) <| File.toString file)
+    ReceiveSheet filename filecontent -> (model, Cmd.none)
+    ReceiveState filename filecontent ->
+      case Decode.decodeString decodeModel filecontent of
+        Ok newModel -> (newModel, P.send_info "Model loaded successfully")
+        Err error -> (model, P.send_error "File failed to load")
+
+    --Debugging
+    Debug1 -> update (FileDownloaded "appstate.json" json_mime <| Encode.encode 2 <| encodeModel model) model
+    Debug2 -> update (FileRequested ReceiveState [json_mime]) model
+    Debug3 -> (model, Cmd.none)
+    Debug4 -> (model, Cmd.none)
+    Debug5 -> (model, Cmd.none)
+    Debug6 -> (model, Cmd.none)
+    Debug7 -> (model, Cmd.none)
+    Debug8 -> (model, Cmd.none)
+    Debug9 -> (model, Cmd.none)
+    Debug10 -> (model, Cmd.none)
 
 -- handleError : (a -> Msg) -> Result Dom.Error a -> Msg
 -- handleError onSuccess result =
@@ -393,6 +476,9 @@ subscriptions _ = Sub.none
 
 csv_mime : String
 csv_mime = "text/csv"
+
+json_mime : String
+json_mime = "application/json"
 
 html_empty : Html Msg
 html_empty = text ""

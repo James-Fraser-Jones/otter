@@ -1,0 +1,34 @@
+{
+  "records": [],
+  "suggestions": [],
+  "settings": {
+    "pk": {
+      "name": "TOB IS BAE",
+      "key": "FOREIGN_KEY",
+      "width": 8
+    },
+    "fk": {
+      "name": "PRIMARY_KEY",
+      "key": "PRIMARY_KEY",
+      "width": 4
+    },
+    "columns": [],
+    "filename": "Untitled sheet",
+    "appendDate": false,
+    "rowSeperator": ",",
+    "colSeperator": "\r\n",
+    "pageSize": 100,
+    "pkAutoIncrement": false,
+    "debug": true
+  },
+  "category": null,
+  "cursorX": 1,
+  "mCursorY": null,
+  "newRecord": [
+    "Auto"
+  ],
+  "suggestion": null,
+  "topbar": true,
+  "filename": "",
+  "pageIndex": 0
+}

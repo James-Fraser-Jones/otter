@@ -7,12 +7,13 @@ PORTS
 *******************************************************************************/
 
 //js will complain about ports.PORTNAME being undefined if that port isn't actually referenced in otter.elm
+
 // app.ports.example.subscribe(function(data) {
 //   console.log("Example: " + data);
 // });
-// app.ports.send_error.subscribe(function(msg) {
-//   send_error(msg);
-// });
+app.ports.send_error.subscribe(function(msg) {
+  send_error(msg);
+});
 app.ports.send_info.subscribe(function(msg) {
   send_info(msg);
 });
@@ -25,43 +26,15 @@ app.ports.send_info.subscribe(function(msg) {
 // app.ports.close_oldest.subscribe(function() {
 //   close_oldest();
 // });
-
-app.ports.save_file.subscribe(function(data) {
-  save_file(data[0], data[1]);
-});
-
-function send_error(msg){
-  $('body').toast({
-    class: 'red',
-    position: 'bottom center',
-    showIcon: 'exclamation',
-    displayTime: 0,
-    message: msg
-  });
-}
-function send_info(msg){
-  $('body').toast({
-    class: 'blue',
-    position: 'bottom center',
-    showIcon: 'info',
-    displayTime: 0,
-    message: msg
-  });
-}
-function close_all(){
-  $('.ui.toast').toast('close');
-}
-function close_newest(){
-  $('.ui.toast').last().toast('close');
-}
-function close_oldest(){
-  $('.ui.toast').first().toast('close');
-}
+// app.ports.save_file.subscribe(function(data) {
+//   save_file(data[0], data[1]);
+// });
 
 /*******************************************************************************
 SEMANTIC
 *******************************************************************************/
 
+//Enable dropdown functionality
 $('.dropdown').dropdown({
   action: 'hide'
 });
@@ -94,6 +67,35 @@ semantic.button.ready = function() {
 };
 $(document).ready(semantic.button.ready);
 
+//toast invoker functions
+function send_error(msg){
+  $('body').toast({
+    class: 'red',
+    position: 'bottom center',
+    showIcon: 'exclamation',
+    displayTime: 0,
+    message: msg
+  });
+}
+function send_info(msg){
+  $('body').toast({
+    class: 'blue',
+    position: 'bottom center',
+    showIcon: 'info',
+    displayTime: 0,
+    message: msg
+  });
+}
+function close_all(){
+  $('.ui.toast').toast('close');
+}
+function close_newest(){
+  $('.ui.toast').last().toast('close');
+}
+function close_oldest(){
+  $('.ui.toast').first().toast('close');
+}
+
 /*******************************************************************************
 NWJS
 *******************************************************************************/
@@ -101,6 +103,7 @@ NWJS
 var fs = require('fs');
 var path = require('path');
 
+//will save a json file to "C:\Users\smudge\AppData\Local\otter\User Data\Default\"
 function save_file(fileName, fileContent){
     var filePath = path.join(nw.App.dataPath, fileName);
     fs.writeFile(filePath, JSON.stringify(fileContent), function (err) {

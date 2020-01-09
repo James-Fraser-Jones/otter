@@ -1,14 +1,33 @@
 module Types exposing (..)
 
 import Array exposing (Array)
+import File exposing (File)
 
 type Msg =
     NoOp
+
   | ToggleTopbar
   | OpenSettings
   | CloseSettings Bool
   | SwitchCategory SettingCategory
-  | SaveState
+
+  | FileDownloaded String String String
+  | FileRequested (String -> String -> Msg) (List String)
+  | FileSelected (String -> String -> Msg) File
+  | ReceiveSheet String String
+  | ReceiveState String String
+
+  --Debugging
+  | Debug1
+  | Debug2
+  | Debug3
+  | Debug4
+  | Debug5
+  | Debug6
+  | Debug7
+  | Debug8
+  | Debug9
+  | Debug10
 
 {-
 Change Setting
@@ -79,6 +98,7 @@ type alias Settings =
   --misc
   , pageSize : Int
   , pkAutoIncrement : Bool
+  , debug : Bool
   }
 
 type SettingCategory =

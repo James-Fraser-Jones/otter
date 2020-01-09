@@ -254,7 +254,10 @@
 .show-settings #settings {
   display: grid;
 }
-
 .show-settings #dimmer {
   display: block;
+}
+
+.hide-debug {
+  display: none !important;
 }

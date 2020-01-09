@@ -39,6 +39,7 @@ encodeSettings r =
                 , ("colSeperator", Encode.string r.colSeperator)
                 , ("pageSize", Encode.int r.pageSize)
                 , ("pkAutoIncrement", Encode.bool r.pkAutoIncrement)
+                , ("debug", Encode.bool r.debug)
                 ]
 
 encodeColumn : Column -> Encode.Value
@@ -73,10 +74,7 @@ encodeSettingCategory c =
 --==================================================================== JSON DECODING
 
 decodeAp :  Decoder a -> Decoder (a -> b) -> Decoder b
-decodeAp da df =
-  df |> Decode.andThen (\f ->
-      Decode.map f da
-    )
+decodeAp = Decode.andThen << flip Decode.map
 
 decodeModel : Decoder Model
 decodeModel =
@@ -105,6 +103,7 @@ decodeSettings =
     |> decodeAp (Decode.field "colSeperator" Decode.string)
     |> decodeAp (Decode.field "pageSize" Decode.int)
     |> decodeAp (Decode.field "pkAutoIncrement" Decode.bool)
+    |> decodeAp (Decode.field "debug" Decode.bool)
 
 decodeColumn : Decoder Column
 decodeColumn =
@@ -127,7 +126,7 @@ decodeNewRecord =
     "Auto" -> Decode.succeed Auto
     "ByKey" -> Decode.map ByKey <| Decode.index 1 Decode.int
     "Manual" -> Decode.map Manual <| Decode.index 1 decodeRecord
-    _ -> Decode.fail "Incorrect Tag"
+    _ -> Decode.fail "Incorrect ADT Tag"
     )
 
 decodeSettingCategory : Decoder SettingCategory
@@ -138,5 +137,5 @@ decodeSettingCategory =
     "Columns" -> Decode.succeed Columns
     "Suggestions" -> Decode.succeed Suggestions
     "License" -> Decode.succeed License
-    _ -> Decode.fail "Incorrect Tag"
+    _ -> Decode.fail "Incorrect ADT Tag"
     )
