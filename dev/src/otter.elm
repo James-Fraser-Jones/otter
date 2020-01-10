@@ -86,7 +86,29 @@ defaultSettings =
 init : () -> (Model, Cmd Msg)
 init _ =
   ( Model
-      Array.empty
+      ( Array.fromList
+        [ Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        , Record "1" "5" ["Big Boyz"]
+        ] )
       Array.empty
       defaultSettings
       Nothing
@@ -101,6 +123,13 @@ init _ =
   )
 
 --==================================================================== VIEW
+
+renderRecord : Record -> Html Msg
+renderRecord rec =
+  tr [] ([renderCell rec.fk, renderCell rec.pk] ++ List.map renderCell rec.fields)
+
+renderCell : String -> Html Msg
+renderCell content = td [] [text content]
 
 showSettingCategory : SettingCategory -> String
 showSettingCategory c =
@@ -293,19 +322,21 @@ vieww model =
                         ]
                     ]
                 , tbody []
-                    [ tr [ id "bottom-row" ]
-                        [ td [ id "cursor" ]
-                            [ div [ class "ui fluid input focus" ]
-                                [ input [ id "cursor-input", type_ "text", value "", autocomplete False ]
-                                    []
-                                ]
-                            ]
-                        , td []
-                            []
-                        , td []
-                            []
-                        ]
-                    ]
+                    (  List.map renderRecord (Array.toList model.records)
+                    ++ [ tr [ id "bottom-row" ]
+                          [ td [ id "cursor" ]
+                              [ div [ class "ui fluid input focus" ]
+                                  [ input [ id "cursor-input", type_ "text", value "", autocomplete False ]
+                                      []
+                                  ]
+                              ]
+                          , td []
+                              []
+                          , td []
+                              []
+                          ]
+                      ]
+                    )
                 ]
             ]
         , div [ class "ui secondary icon text menu", id "paginator" ]

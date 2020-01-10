@@ -75,6 +75,18 @@ findIndexFromEnd elem array =
 find : (a -> Bool) -> Array a -> Maybe a
 find cond = Array.get 0 << Array.filter cond
 
+insertAt : Int -> a -> Array a -> Array a
+insertAt n a arr =
+  let larr = Array.length arr
+   in if n < 0 || n > larr
+        then arr
+      else if n == larr
+        then Array.push a arr
+      else
+        let firstChunk = Array.slice 0 n arr
+            secondChunk = Array.slice n larr arr
+         in Array.append (Array.push a firstChunk) secondChunk
+
 --Maybes
 
 maybe : b -> (a -> b) -> Maybe a -> b
