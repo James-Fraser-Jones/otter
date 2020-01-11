@@ -151,16 +151,22 @@
   "suggestions": [],
   "settings": {
     "pk": {
-      "name": "FOREIGN_KEY",
+      "name": "FUCKING_KEY",
       "key": "FOREIGN_KEY",
-      "width": 4
+      "width": 100
     },
     "fk": {
       "name": "PRIMARY_KEY",
       "key": "PRIMARY_KEY",
-      "width": 4
+      "width": 50
     },
-    "columns": [],
+    "columns": [
+      {
+        "name": "ITEM_DESCRIPTION",
+        "key": "ITEM_DESCRIPTION",
+        "width": 300
+      }
+    ],
     "filename": "Untitled sheet",
     "appendDate": false,
     "rowSeperator": ",",

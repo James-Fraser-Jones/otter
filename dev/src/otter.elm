@@ -72,9 +72,9 @@ main =
 defaultSettings : Settings
 defaultSettings =
   Settings
-    (Column "FOREIGN_KEY" "FOREIGN_KEY" 4)
-    (Column "PRIMARY_KEY" "PRIMARY_KEY" 4)
-    []
+    (Column "FOREIGN_KEY" "FOREIGN_KEY" 50)
+    (Column "PRIMARY_KEY" "PRIMARY_KEY" 50)
+    [(Column "ITEM_DESCRIPTION" "ITEM_DESCRIPTION" 300)]
     "Untitled sheet"
     False
     ","
@@ -123,6 +123,20 @@ init _ =
   )
 
 --==================================================================== VIEW
+
+renderColumns : Model -> List (Html Msg)
+renderColumns model =
+  let columns = model.settings.fk :: model.settings.pk :: model.settings.columns
+      widths = List.map (.width) columns
+      names = List.map (.name) columns
+   in renderColumn
+        |> flip List.map widths
+        |> flip listZipAp names
+
+renderColumn : Int -> String -> Html Msg
+renderColumn w name =
+  th [ attribute "style" <| "width:" ++ String.fromInt w ++ "px" ]
+    [ text name ]
 
 renderRecord : Record -> Html Msg
 renderRecord rec =
@@ -224,19 +238,19 @@ vieww model =
                         [ i [ class "grey bug icon" ]
                             []
                         , span [ class "text" ]
-                            [ text "SaveState" ]
+                            [ text "Save State" ]
                         ]
                     , div [ class "link item", onClick Debug2 ]
                         [ i [ class "grey bug icon" ]
                             []
                         , span [ class "text" ]
-                            [ text "LoadState" ]
+                            [ text "Load State" ]
                         ]
                     , div [ class "link item", onClick Debug3 ]
                         [ i [ class "grey bug icon" ]
                             []
                         , span [ class "text" ]
-                            [ text "Debug3" ]
+                            [ text "Reset State" ]
                         ]
                     , div [ class "link item", onClick Debug4 ]
                         [ i [ class "grey bug icon" ]
@@ -311,16 +325,7 @@ vieww model =
             ]
         , div [ id "main-window" ]
             [ table [ class "ui single line fixed unstackable celled compact table", id "table" ]
-                [ thead []
-                    [ tr []
-                        [ th [ attribute "style" "width:50px" ]
-                            [ text "FOREIGN_KEY" ]
-                        , th [ attribute "style" "width:50px" ]
-                            [ text "PRIMARY_KEY" ]
-                        , th [ attribute "style" "width:300px" ]
-                            [ text "ITEM" ]
-                        ]
-                    ]
+                [ thead [] [ tr [] <| renderColumns model ]
                 , tbody []
                     (  List.map renderRecord (Array.toList model.records)
                     ++ [ tr [ id "bottom-row" ]
@@ -459,7 +464,7 @@ update msg model =
     --Debugging
     Debug1 -> update (FileDownloaded "appstate.json" json_mime <| Encode.encode 2 <| encodeModel model) model
     Debug2 -> update (FileRequested ReceiveState [json_mime]) model
-    Debug3 -> (model, Cmd.none)
+    Debug3 -> init ()
     Debug4 -> (model, Cmd.none)
     Debug5 -> (model, Cmd.none)
     Debug6 -> (model, Cmd.none)
