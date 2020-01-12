@@ -5,65 +5,48 @@ type Type
   | Cont Container
   | New NewType
   | Var TypeVar
+--deriving Generic
 
 type Primitive
-  = Int
-  | Float
-  | Order
+  = Never
+  | Unit
   | Bool
+  | Int
+  | Float
   | Char
   | String
-  | Never
+  | Order
 
 type Container
   = List Type
   | Array Type
   | Set Type
-  | Tuple Type Type
   | Dict Type Type
+  | Tuple Type Type
+  | Record Record
 
 type NewType
-  = Rec (List (String, Type))
-  | Alias String (List (String, Type))
+  = Alias String Record
   | Custom String (List TypeVar) (List (String, (List Type)))
+
+type Record
+  = Rec (List (String, Type))
 
 type TypeVar
   = TV String
 
--- maybe : Type
--- maybe = Custom "Maybe" [TV "a"] [("Nothing", []), ("Just", [Var (TV "a")])]
---
--- result : Type
--- result = Custom "Result" [TV "error", TV "value"] [("Ok", [Var (TV "value")]), ("Err", [Var (TV "error")])]
+type Elm
+  = Elm String
 
-show : Type -> String
-show ty =
-  case ty of
-    Int -> "Int"
-    Float -> "Float"
-    Order -> "Order"
-    Bool -> "Bool"
-    Char -> "Char"
-    String -> "String"
-    Never -> "Never"
-    List t -> "List " ++ showT t
-    Array t -> "Array " ++ showT t
-    Set t -> "Set " ++ showT t
-    Tuple t1 t2 -> "( " ++ show t1 ++ ", " ++ show t2 ++ " )"
-    Dict t t2 -> "Dict (" ++ show t ++ ") (" ++ show t2 ++ ")"
-    Rec r -> "{ " ++ String.join ", " (List.map showPair r) ++ "}"
-    Alias s r -> s
-    Custom s c -> s
+maybe : NewType
+maybe = Custom "Maybe" [TV "a"] [("Nothing", []), ("Just", [Var (TV "a")])]
 
-read : String -> Result String Type
+result : NewType
+result = Custom "Result" [TV "error", TV "value"] [("Ok", [Var (TV "value")]), ("Err", [Var (TV "error")])]
 
-declare : Type -> String
+--generic : String -> Cmd msg --actually call this code to scan some elm file on the file system for type declarations
 
-showPair : (String, Type) -> String
-showPair (s, t) = s ++ ": " ++ show t
-
--- encode : Type -> Encode.Value
---
--- decode : Type -> Decoder a
---
--- render : Type -> HTML msg
+--parseDecs : Elm -> Result String (List NewType)
+--genEncoder : Type -> Elm
+--genDecoder : Type -> Elm
+--genHtml : Type -> Elm --renders `Model` type using Generic deriving of it and all its children types
