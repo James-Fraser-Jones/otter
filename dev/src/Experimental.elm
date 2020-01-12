@@ -4,18 +4,14 @@ type Type
   = Prim Primitive
   | Cont Container
   | New NewType
-  | Var TypeVar
---deriving Generic
+--deriving (Show, Read, Encoder, Decoder, Html)
 
 type Primitive
-  = Never
-  | Unit
-  | Bool
-  | Int
+  = Int
   | Float
   | Char
   | String
-  | Order
+  | Bytes
 
 type Container
   = List Type
@@ -25,28 +21,56 @@ type Container
   | Tuple Type Type
   | Record Record
 
-type NewType
-  = Alias String Record
-  | Custom String (List TypeVar) (List (String, (List Type)))
-
 type Record
   = Rec (List (String, Type))
 
-type TypeVar
-  = TV String
+type NewType
+  = Alias String Record
+  | Custom String (List (String, (List Type)))
+
+never : NewType
+never =
+  Custom "Never" []
+
+unit : NewType
+unit =
+  Custom "()" [("()",[])]
+
+bool : NewType
+bool =
+  Custom "Bool" [("True",[]), ("False",[])]
+
+maybe : Type -> NewType
+maybe a =
+  Custom "Maybe" [("Nothing", []), ("Just", [a])]
+
+result : Type -> NewType
+result error value =
+  Custom "Result" [("Ok", [value]), ("Err", [error])]
+
+order : NewType
+order =
+  Custom "Order" [("LT",[]), ("EQ",[]), ("GT",[])]
+
+endianness : NewType
+endianness =
+  Custom "Endianness" [("LE",[]), ("BE",[])]
 
 type Elm
   = Elm String
 
-maybe : NewType
-maybe = Custom "Maybe" [TV "a"] [("Nothing", []), ("Just", [Var (TV "a")])]
-
-result : NewType
-result = Custom "Result" [TV "error", TV "value"] [("Ok", [Var (TV "value")]), ("Err", [Var (TV "error")])]
-
---generic : String -> Cmd msg --actually call this code to scan some elm file on the file system for type declarations
-
 --parseDecs : Elm -> Result String (List NewType)
---genEncoder : Type -> Elm
---genDecoder : Type -> Elm
---genHtml : Type -> Elm --renders `Model` type using Generic deriving of it and all its children types
+
+--genPrinter : NewType -> Elm
+--genParser : NewType -> Elm
+--genEncoder : NewType -> Elm
+--genDecoder : NewType -> Elm
+--genHtml : NewType -> Elm --renders `Model` type using Generic deriving of it and all its children types
+
+--parseMyType : String -> Result String MyType
+--printMyType : MyType -> String
+--decodeMyType : Decoder MyType
+--encodeMyType : MyType -> Encode.Value
+--htmlMyType : MyType -> Html GenMsg 
+
+--generate : String -> Cmd msg --actually call this code to scan some elm file on the file system for type declarations
