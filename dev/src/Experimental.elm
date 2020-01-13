@@ -1,5 +1,7 @@
 module Experimental exposing (..)
 
+import Prelude exposing (..)
+
 --------------------------------------------------------------------------------
 --Custom Types
 
@@ -83,6 +85,12 @@ endianness =
 --------------------------------------------------------------------------------
 --type application of custom types
 
+saturate : [Type] -> Custom -> Custom
+saturate l c =
+  case l of
+    [] -> c
+    (t :: ts) -> saturate ts (typeApp t c)
+
 typeApp : Type -> Custom -> Custom
 typeApp t c =
   case c.vars of
@@ -131,6 +139,21 @@ subTVar x y v =
   if x == v then y else Var v
 
 --------------------------------------------------------------------------------
+
+printType : NewType -> Elm
+printType n =
+  case n of
+    Alias s r -> Debug.todo "shit"
+    Cus c -> printCustom c
+
+printCustom : Custom -> Elm
+printCustom c = flip template []
+  "
+  {0} : {1} -> String\n
+  {0} a = 
+  "
+
+--------------------------------------------------------------------------------
 --Outer level stuff
 
 --parseDecs : Elm -> Result String (List NewType)
@@ -148,3 +171,12 @@ subTVar x y v =
 --htmlMyType : MyType -> Html GenMsg
 
 --generate : String -> Cmd msg --actually call this code to scan some elm file on the file system for type declarations
+
+--NOTE: A big "container" that we're currently missing is Func Type Type (i.e. a -> b)
+--Functions can't be printed or parsed in a straightforward way
+--The best we could realistically do in this circumstance would be to literally print the Elm code which delcares that function
+--And to parse a string which represents the code of an Elm function.
+
+--NOTE: Currently `Type` allows unsaturated types (i.e. those with free type variables). There is no intention to support
+--any meaningful behavior on a type like this. The intention is that this generation code will work only providing that
+--the types supplied to it actually compile in Elm (in which case there should be no unsaturated types in the wrong places).

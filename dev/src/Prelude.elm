@@ -122,3 +122,14 @@ succ = (+) 1
 
 pred : number -> number
 pred = flip (-) 1
+
+--Strings
+
+template : String -> List String -> String
+template s l =
+  let braces = List.map (\i -> "{" ++ String.fromInt i ++ "}") (List.range 0 (List.length l - 1))
+      templ st z =
+        case z of
+          [] -> st
+          ((x, y) :: t) -> templ (String.replace x y st) t
+   in templ s (List.map2 Tuple.pair braces l)
