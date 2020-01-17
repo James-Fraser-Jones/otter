@@ -10,12 +10,16 @@ type Msg =
   | OpenSettings
   | CloseSettings Bool
   | SwitchCategory SettingCategory
+  | FilenameEdited String
 
   | FileDownloaded String String String
   | FileRequested (String -> String -> Msg) (List String)
   | FileSelected (String -> String -> Msg) File
   | ReceiveSheet String String
   | ReceiveState String String
+
+  | CellClicked Int Int --(doesn't include cells from green row)
+  | CellEdited Int Int String --(doesn't include cells from green row)
 
   --Debugging
   | Debug1
@@ -34,8 +38,6 @@ Change Setting
 
 Go To Page
 
-Filename Clicked
-Filename Edited
 
 Row Push
 Row Pop
@@ -44,8 +46,7 @@ Import CSV
 Export CSV
 
 Cursor Moved
-Cell Clicked
-Cell Edited
+
 Foreign Key Edited
 -}
 
@@ -86,8 +87,8 @@ type alias Column =
 
 type alias Settings =
   --columns
-  { pk : Column
-  , fk : Column
+  { fk : Column
+  , pk : Column
   , columns : List Column
   --filename
   , filename : String

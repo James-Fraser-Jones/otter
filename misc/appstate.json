@@ -1,10 +1,10 @@
 {
   "records": [
     {
-      "pk": "1",
+      "pk": "4",
       "fk": "5",
       "fields": [
-        "Big Boyz"
+        "Noice"
       ]
     },
     {
@@ -23,7 +23,7 @@
     },
     {
       "pk": "1",
-      "fk": "5",
+      "fk": "6",
       "fields": [
         "Big Boyz"
       ]
@@ -39,19 +39,19 @@
       "pk": "1",
       "fk": "5",
       "fields": [
-        "Big Boyz"
+        "Big Yoyz"
       ]
     },
     {
       "pk": "1",
       "fk": "5",
       "fields": [
-        "Big Boyz"
+        "Big Toyz"
       ]
     },
     {
       "pk": "1",
-      "fk": "5",
+      "fk": "8",
       "fields": [
         "Big Boyz"
       ]
@@ -151,13 +151,13 @@
   "suggestions": [],
   "settings": {
     "pk": {
-      "name": "FUCKING_KEY",
-      "key": "FOREIGN_KEY",
-      "width": 100
-    },
-    "fk": {
       "name": "PRIMARY_KEY",
       "key": "PRIMARY_KEY",
+      "width": 50
+    },
+    "fk": {
+      "name": "FOREIGN_KEY",
+      "key": "FOREIGN_KEY",
       "width": 50
     },
     "columns": [
@@ -176,8 +176,8 @@
     "debug": true
   },
   "category": null,
-  "cursorX": 0,
-  "mCursorY": null,
+  "cursorX": 2,
+  "mCursorY": 9,
   "newRecord": [
     "Auto"
   ],

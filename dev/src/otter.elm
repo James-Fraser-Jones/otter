@@ -138,12 +138,20 @@ renderColumn w name =
   th [ attribute "style" <| "width:" ++ String.fromInt w ++ "px" ]
     [ text name ]
 
-renderRecord : Record -> Html Msg
-renderRecord rec =
-  tr [] ([renderCell rec.fk, renderCell rec.pk] ++ List.map renderCell rec.fields)
+renderRecord : Int -> Int -> Int -> Record -> Html Msg
+renderRecord cx cy y rec = tr [] <|
+  [renderCell cx cy y (-2) rec.fk, renderCell cx cy y (-1) rec.pk] ++ List.indexedMap (renderCell cx cy y) rec.fields
 
-renderCell : String -> Html Msg
-renderCell content = td [] [text content]
+renderCell : Int -> Int -> Int -> Int -> String -> Html Msg
+renderCell cx cy y s content =
+  let x = s + 2 in
+    if cx == x && cy == y then
+      td [ id "cursor" ]
+        [ div [ class "ui fluid input focus" ]
+            [ input [ id "cursor-input", type_ "text", autocomplete False, onInput <| CellEdited x y, value content ] [] ]
+        ]
+    else
+      td [ onClick <| CellClicked x y ] [ text content ]
 
 showSettingCategory : SettingCategory -> String
 showSettingCategory c =
@@ -168,7 +176,7 @@ vieww model =
                 []
             ]
         , div [ class "ui huge transparent input", id "filename" ]
-            [ input [ placeholder "Untitled sheet", type_ "text" ]
+            [ input [ placeholder model.settings.filename, type_ "text", onInput FilenameEdited, value model.filename ]
                 []
             ]
         , div [ class "ui secondary icon text menu", id "main-menu" ]
@@ -327,7 +335,7 @@ vieww model =
             [ table [ class "ui single line fixed unstackable celled compact table", id "table" ]
                 [ thead [] [ tr [] <| renderColumns model ]
                 , tbody []
-                    (  List.map renderRecord (Array.toList model.records)
+                    (  Array.toList (Array.indexedMap (renderRecord model.cursorX <| maybe (-1) identity model.mCursorY) model.records)
                     ++ [ tr [ id "bottom-row" ]
                           [ td [ id "cursor" ]
                               [ div [ class "ui fluid input focus" ]
@@ -447,19 +455,31 @@ update msg model =
   case msg of
     NoOp -> (model, Cmd.none)
 
+    --Simple
     ToggleTopbar -> (toggleTopbar model, Cmd.none)
-    OpenSettings -> (openSettings model, Cmd.none)
-    CloseSettings save -> (model |> iff save identity revertSettings |> closeSettings, Cmd.none)
-    SwitchCategory cat -> (switchCategory cat model, Cmd.none)
+    FilenameEdited name -> (editFilename name model, Cmd.none)
 
+    --Settings
+    OpenSettings -> (openSettings model, Cmd.none)
+    SwitchCategory cat -> (switchCategory cat model, Cmd.none)
+    CloseSettings save -> (model |> iff save identity revertSettings |> closeSettings, Cmd.none)
+
+    --File Output
     FileDownloaded filename mimetype filecontent -> (model, Download.string filename mimetype filecontent)
+
+    --File Input Helpers
     FileRequested cont mimes -> (model, Select.file mimes <| FileSelected cont)
     FileSelected cont file -> (model, Task.perform (cont <| File.name file) <| File.toString file)
+
+    --File Input
     ReceiveSheet filename filecontent -> (model, Cmd.none)
     ReceiveState filename filecontent ->
       case Decode.decodeString decodeModel filecontent of
         Ok newModel -> (newModel, P.send_info "Model loaded successfully")
         Err error -> (model, P.send_error "File failed to load")
+
+    CellEdited x y content -> (editCell x y content model, Cmd.none)
+    CellClicked x y -> (focusCell x y model, Cmd.none)
 
     --Debugging
     Debug1 -> update (FileDownloaded "appstate.json" json_mime <| Encode.encode 2 <| encodeModel model) model
@@ -502,6 +522,24 @@ revertSettings _ = Debug.todo "implement this!"
 
 switchCategory : SettingCategory -> Model -> Model
 switchCategory category model = {model | category = Just category}
+
+editFilename : String -> Model -> Model
+editFilename name model = {model | filename = name}
+
+editCell : Int -> Int -> String -> Model -> Model
+editCell x y content model = {model | records = updateAtt y (updateRecord x (always content)) model.records}
+
+updateRecord : Int -> (String -> String) -> Record -> Record
+updateRecord n f rec =
+  if n == 0 then
+    {rec | fk = f rec.fk}
+  else if n == 1 then
+    {rec | pk = f rec.pk}
+  else
+    {rec | fields = updateAt (n - 2) f rec.fields}
+
+focusCell : Int -> Int -> Model -> Model
+focusCell x y model = {model | cursorX = x, mCursorY = Just y}
 
 --==================================================================== SUBSCRIPTIONS
 
